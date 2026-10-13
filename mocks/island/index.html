@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="de" data-theme="obsidian" data-scheme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Island Lab · rice</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wdth,wght@75..100,400..700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300..700&family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap">
+
+  <!-- Design system: contract first, then every theme. -->
+  <link rel="stylesheet" href="../../design/tokens/tokens.css">
+  <link rel="stylesheet" href="../../design/themes/obsidian.css">
+  <link rel="stylesheet" href="../../design/themes/monet.css">
+  <link rel="stylesheet" href="../../design/themes/glass.css">
+  <link rel="stylesheet" href="../../design/themes/terminal.css">
+  <link rel="stylesheet" href="../../design/themes/paper.css">
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/controls.css">
+  <link rel="stylesheet" href="css/island.css">
+  <link rel="stylesheet" href="css/panel.css">
+  <link rel="stylesheet" href="css/lab.css">
+</head>
+<body>
+  <!-- Metaball filter for the liquid split of the bubble. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <filter id="goo" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 24 -10" result="goo"/>
+      <feComposite in="SourceGraphic" in2="goo" operator="atop"/>
+    </filter>
+  </svg>
+
+  <main class="stage" data-backdrop="none">
+    <div class="wallpaper"></div>
+
+    <div class="test-window test-window--light" aria-hidden="true">
+      <div class="test-window__bar"><div class="test-window__tab"></div></div>
+      <div class="test-window__body">
+        <div class="test-window__h"></div>
+        <div class="test-window__line" style="width:92%"></div>
+        <div class="test-window__line" style="width:86%"></div>
+        <div class="test-window__line" style="width:95%"></div>
+        <div class="test-window__line" style="width:64%"></div>
+        <div class="test-window__line" style="width:88%"></div>
+        <div class="test-window__line" style="width:79%"></div>
+      </div>
+    </div>
+    <div class="test-window test-window--dark" aria-hidden="true">
+      <div class="test-window__bar"><div class="test-window__tab"></div></div>
+      <div class="test-window__body">
+        <div class="test-window__h"></div>
+        <div class="test-window__line" style="width:42%"></div>
+        <div class="test-window__line" style="width:66%"></div>
+        <div class="test-window__line" style="width:58%"></div>
+        <div class="test-window__line" style="width:73%"></div>
+        <div class="test-window__line" style="width:35%"></div>
+        <div class="test-window__line" style="width:61%"></div>
+      </div>
+    </div>
+
+    <div class="island-anchor">
+      <div class="island" tabindex="0" role="button" aria-expanded="false" aria-label="Dynamic Island">
+        <div class="island__shadow"></div>
+        <div class="island__shapes">
+          <div class="island__bubble">
+            <div class="mat mat-rim"></div><div class="mat mat-core"></div><div class="mat mat-tint"></div><div class="mat mat-sheen"></div>
+          </div>
+          <div class="island__bg">
+            <div class="mat mat-rim"></div><div class="mat mat-core"></div><div class="mat mat-tint"></div><div class="mat mat-sheen"></div>
+          </div>
+        </div>
+        <div class="island__clip"></div>
+        <button class="bubble-content" tabindex="-1"></button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="lab" aria-label="Island Lab"></aside>
+  <div class="lab-toast" role="status" aria-live="polite"></div>
+
+  <script src="js/motion.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/themes.js"></script>
+  <script src="js/island.js"></script>
+  <script src="js/island-views.js"></script>
+  <script src="js/panel.js"></script>
+  <script src="js/lab.js"></script>
+  <script src="js/app.js"></script>
+  <script>App.init();</script>
+</body>
+</html>

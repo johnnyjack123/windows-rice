@@ -1,0 +1,239 @@
+/* =============================================================================
+   Theme · Terminal
+   Technical and dense: monospace, hairline separation instead of fills, an
+   amber phosphor accent, square corners and stepped, bounce-free motion.
+   Content "renders" in with a stepped wipe instead of blurring in. Dark only.
+   ========================================================================== */
+
+[data-theme="terminal"] {
+  color-scheme: dark;
+
+  /* Primitives */
+  --_bg: #0b0c0a;
+  --_bg1: #10120f;
+  --_bg2: #161914;
+  --_bg3: #1f231c;
+  --_fg: #dcd8c8;
+  --_fg2: #a29e8c;
+  --_fg3: #848174;
+  --_line: #2a2e26;
+  --_line2: #3e4338;
+
+  --accent: #ffb000;
+
+  --color-island: var(--_bg);
+  --color-on-island: var(--_fg);
+  --color-on-island-muted: var(--_fg2);
+  --color-surface: var(--_bg);
+  --color-surface-container: var(--_bg);
+  --color-surface-container-high: var(--_bg1);
+  --color-surface-container-highest: var(--_bg3);
+  --color-text: var(--_fg);
+  --color-text-muted: var(--_fg2);
+  --color-text-subtle: var(--_fg3);
+  --color-border: var(--_line);
+  --color-border-strong: var(--_line2);
+  --color-accent: var(--accent);
+  --color-on-accent: #140e00;
+  --color-accent-container: color-mix(in oklch, var(--accent) 14%, var(--_bg));
+  --color-on-accent-container: var(--accent);
+  --color-accent-text: var(--accent);
+  --color-positive: #9ad64e;
+  --color-negative: #ff5f45;
+  --color-warning: #ffb000;
+  --color-focus: var(--accent);
+
+  --data-l: 0.76;
+  --data-c: 0.09;
+  --app-icon-l: 0.8;
+  --app-icon-c: 0.1;
+
+  --font-ui: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  --font-display: var(--font-ui);
+  --font-mono: var(--font-ui);
+  --font-numeric: var(--font-ui);
+  --type-display: 300 34px/1 var(--font-numeric);
+  --type-headline: 600 13px/1.2 var(--font-ui);
+  --type-title: 500 12.5px/1.3 var(--font-ui);
+  --type-body: 400 12px/1.45 var(--font-ui);
+  --type-label: 600 11px/1.2 var(--font-ui);
+  --type-caption: 400 11px/1.3 var(--font-ui);
+  --type-island: 500 12px/1 var(--font-ui);
+  --type-island-clock: 500 12.5px/1 var(--font-numeric);
+  --type-metric: 300 22px/1 var(--font-numeric);
+  --tracking-display: -0.03em;
+  --tracking-headline: 0.04em;
+  --tracking-label: 0.08em;
+  --label-transform: uppercase;
+
+  --space-unit: 3.5px;
+
+  --radius-island: 4px;
+  --radius-live: 5px;
+  --radius-panel: 6px;
+  --panel-padding: 14px;
+  --radius-tile: 3px;
+  --radius-tile-on: 3px;
+  --radius-tile-pressed: 3px;
+  --radius-tile-small: 3px;
+  --radius-tile-small-on: 3px;
+  --radius-tile-icon: 2px;
+  --radius-control: 3px;
+  --radius-check: 2px;
+  --radius-art: 2px;
+  --radius-art-island: 1px;
+
+  --island-height: 32px;
+  --panel-height: 524px;
+  --tile-height: 56px;
+  --tile-small-height: 44px;
+  --tile-icon-size: 30px;
+  --control-height: 28px;
+  --row-height: 38px;
+  --slider-height: 26px;
+  --switch-width: 36px;
+  --switch-height: 18px;
+  --switch-thumb: 12px;
+  --icon-size: 18px;
+  --art-size: 52px;
+
+  --elevation-island: 0 0 0 1px var(--_line2);
+  --elevation-panel: 0 0 0 1px var(--_line2), 0 18px 50px -12px rgb(0 0 0 / 0.8);
+  --elevation-card: inset 0 0 0 1px var(--_line);
+  --elevation-tile: inset 0 0 0 1px var(--_line);
+  --elevation-raised: inset 0 0 0 1px var(--_line2);
+
+  --tile-bg: transparent;
+  --tile-icon-bg: transparent;
+  --tile-icon-fg: var(--_fg2);
+  --tile-border: transparent;
+  --tile-bg-on: color-mix(in oklch, var(--accent) 9%, transparent);
+  --tile-fg-on: var(--accent);
+  --tile-fg-muted-on: color-mix(in oklch, var(--accent) 66%, var(--_bg));
+  --tile-icon-bg-on: transparent;
+  --tile-icon-fg-on: var(--accent);
+  --tile-border-on: var(--accent);
+  --tile-small-bg-on: color-mix(in oklch, var(--accent) 9%, transparent);
+  --tile-small-fg-on: var(--accent);
+
+  --slider-track: var(--_bg2);
+  --slider-fill: var(--accent);
+  --slider-icon: var(--color-on-accent);
+  --switch-track: var(--_bg3);
+  --switch-thumb-color: var(--_fg2);
+  --switch-track-on: var(--accent);
+  --switch-thumb-color-on: var(--color-on-accent);
+  --tabs-bg: transparent;
+  --tabs-indicator: transparent;
+  --tabs-fg-active: var(--accent);
+  --progress-track: var(--_bg3);
+  --progress-fill: var(--accent);
+  --media-bg: transparent;
+  --eq-color: var(--accent);
+
+  --icon-family: "Material Symbols Sharp";
+  --icon-weight: 300;
+
+  --island-clock-seconds: inline;
+  --island-goo: 0;
+
+  --spring-island: 0.28 0;
+  --spring-bubble: 0.3 0;
+  --spring-content: 0.2 0;
+  --spring-control: 0.18 0;
+  --dur-instant: 60ms;
+  --dur-fast: 110ms;
+  --dur-medium: 180ms;
+  --dur-slow: 320ms;
+  --content-blur: 0px;
+  --enter-scale: 1;
+  --enter-offset: 0px;
+  --enter-delay-grow: 40ms;
+  --enter-delay-shrink: 90ms;
+  --stagger: 14ms;
+  --eq-timing: steps(3, jump-none);
+  --spark-style: step;
+}
+
+/* Content renders in with a stepped wipe instead of a blur. */
+[data-theme="terminal"] .view {
+  clip-path: inset(0 100% 0 0);
+  transition:
+    opacity var(--dur-fast) steps(2, end),
+    clip-path var(--dur-fast) steps(3, end),
+    visibility 0s linear var(--dur-fast);
+}
+[data-theme="terminal"] .view.is-active {
+  clip-path: inset(0 0 0 0);
+  transition:
+    opacity var(--dur-medium) steps(3, end) var(--enter-delay, 0ms),
+    clip-path var(--dur-slow) steps(10, end) var(--enter-delay, 0ms),
+    visibility 0s linear 0s;
+}
+
+/* HUD corner marks on the panel. */
+[data-theme="terminal"] .view--panel::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  --m: var(--color-accent);
+  background:
+    linear-gradient(var(--m), var(--m)) top left / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) top left / 1px 10px no-repeat,
+    linear-gradient(var(--m), var(--m)) top right / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) top right / 1px 10px no-repeat,
+    linear-gradient(var(--m), var(--m)) bottom left / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) bottom left / 1px 10px no-repeat,
+    linear-gradient(var(--m), var(--m)) bottom right / 10px 1px no-repeat,
+    linear-gradient(var(--m), var(--m)) bottom right / 1px 10px no-repeat;
+}
+
+[data-theme="terminal"] .p-date::before {
+  content: "› ";
+  color: var(--color-accent);
+}
+
+[data-theme="terminal"] :is(.tile__label, .detail-title, .media__title) {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="terminal"] .tile {
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+[data-theme="terminal"] .tile.is-on {
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+[data-theme="terminal"] .tab.is-active {
+  box-shadow: inset 0 -1px 0 var(--color-accent);
+}
+
+/* Meters and fills are segmented like a bar graph. */
+[data-theme="terminal"] :is(.progress__fill, .meter__fill, .osd__fill) {
+  background: repeating-linear-gradient(90deg, currentColor 0 4px, transparent 4px 6px);
+}
+[data-theme="terminal"] .slider__fill {
+  background: repeating-linear-gradient(90deg, var(--slider-fill) 0 4px, transparent 4px 6px);
+}
+[data-theme="terminal"] .slider__icon {
+  color: var(--color-accent);
+  background: var(--_bg);
+  box-shadow: 0 0 0 4px var(--_bg);
+}
+
+[data-theme="terminal"] .eq i {
+  border-radius: 0;
+}
+
+[data-theme="terminal"] .app-icon {
+  background: transparent;
+  color: oklch(from var(--app-color) var(--app-icon-l) var(--app-icon-c) h);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+[data-theme="terminal"] .media__art,
+[data-theme="terminal"] .art {
+  filter: grayscale(0.6) contrast(1.15);
+}

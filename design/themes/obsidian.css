@@ -1,0 +1,71 @@
+/* =============================================================================
+   Theme · Obsidian
+   Closest to the original: a pure black island that reads as hardware, white
+   type, vivid system tints and a springy, liquid split. Dark only.
+   ========================================================================== */
+
+[data-theme="obsidian"] {
+  color-scheme: dark;
+
+  /* Primitives */
+  --_black: #000;
+  --_g1: #141416;
+  --_g2: #1f1f22;
+  --_g3: #2c2c30;
+  --_white: #f5f5f7;
+
+  --accent: #0a84ff;
+
+  --color-island: var(--_black);
+  --color-on-island: var(--_white);
+  --color-on-island-muted: #8e8e93;
+  --color-surface: var(--_black);
+  --color-surface-container: var(--_g1);
+  --color-surface-container-high: var(--_g2);
+  --color-surface-container-highest: var(--_g3);
+  --color-text: var(--_white);
+  --color-text-muted: #a1a1a8;
+  --color-text-subtle: #7d7d85;
+
+  /* Active tiles flip to white like a lit key; the icon disc carries the
+     tile's own tint (see per-tile block below). */
+  --tile-bg-on: var(--_white);
+  --tile-fg-on: #000;
+  --tile-fg-muted-on: rgb(0 0 0 / 0.56);
+  --tile-icon-fg-on: #fff;
+  --tile-small-fg-on: #fff;
+
+  --slider-fill: var(--_white);
+  --slider-icon: #000;
+  --progress-fill: var(--_white);
+  --switch-thumb-color: #fff;
+  --switch-track-on: var(--color-positive);
+  --switch-thumb-color-on: #fff;
+
+  --data-l: 0.72;
+  --data-c: 0.16;
+
+  --radius-panel: 40px;
+  --panel-padding: 16px;
+  --radius-live: 30px;
+  --radius-art-island: 7px;
+
+  --island-goo: 1;
+
+  --spring-island: 0.5 0.26;
+  --spring-bubble: 0.55 0.32;
+  --spring-content: 0.36 0.08;
+  --spring-control: 0.32 0.2;
+}
+
+/* Per-tile tints are declared on the tile so they resolve locally. */
+[data-theme="obsidian"] .tile {
+  --tile-icon-bg-on: var(--tile-tint);
+  --tile-small-bg-on: var(--tile-tint);
+}
+[data-theme="obsidian"] [data-tile="dnd"] { --tile-tint: #5e5ce6; }
+[data-theme="obsidian"] [data-tile="night"] { --tile-tint: #ff9f0a; }
+[data-theme="obsidian"] [data-tile="airplane"] { --tile-tint: #ff9f0a; }
+[data-theme="obsidian"] [data-tile="saver"] { --tile-tint: #30d158; }
+[data-theme="obsidian"] [data-tile="mic"] { --tile-tint: #ff375f; }
+[data-theme="obsidian"] [data-tile="hotspot"] { --tile-tint: #30d158; }
