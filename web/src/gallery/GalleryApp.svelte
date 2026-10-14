@@ -2,7 +2,7 @@
   import { provideBackend, type Backend } from '$backend/index';
   import { COVERS } from '$backend/mock/art';
   import { provideEngine, type ThemeEngine } from '$design/engine.svelte';
-  import { i18n } from '$i18n/i18n.svelte';
+  import { fmt, i18n } from '$i18n/i18n.svelte';
   import AppIcon from '$ui/AppIcon.svelte';
   import Art from '$ui/Art.svelte';
   import Banner from '$ui/Banner.svelte';
@@ -198,8 +198,8 @@
       <div class="g-section">
         <h3>{g.system}</h3>
         <div class="meters" style:padding="0">
-          <div class="meter"><div class="meter__head"><span class="meter__label">{m.system.cpu}</span><span class="meter__value num">34<small>%</small></span></div><Spark values={samples} max={100} /><div class="meter__sub">8 Kerne · 4,7 GHz</div></div>
-          <div class="meter"><div class="meter__head"><span class="meter__label">{m.system.ram}</span><span class="meter__value num">11,4<small>GB</small></span></div><div class="meter__bar"><div class="meter__fill" style:--p={0.36}></div></div><div class="meter__sub">{m.system.ofTotal('32 GB', 36)}</div></div>
+          <div class="meter"><div class="meter__head"><span class="meter__label">{m.system.cpu}</span><span class="meter__value num">34<small>%</small></span></div><Spark values={samples} max={100} /><div class="meter__sub">AMD Ryzen 7 7800X3D · {fmt.num(4.7)} GHz</div></div>
+          <div class="meter"><div class="meter__head"><span class="meter__label">{m.system.ram}</span><span class="meter__value num">{fmt.num(11.4)}<small>GB</small></span></div><div class="meter__bar"><div class="meter__fill" style:--p={0.36}></div></div><div class="meter__sub">{m.system.ofTotal(fmt.bytes(32 * 1024 ** 3), 36)}</div></div>
         </div>
       </div>
 
