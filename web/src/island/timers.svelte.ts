@@ -29,6 +29,14 @@ export interface StopwatchState {
   laps: number[];
 }
 
+let sequence = 0;
+
+/** Ids stay unique even when two items are created in the same millisecond. */
+function uid(prefix: string): string {
+  sequence += 1;
+  return `${prefix}-${Date.now()}-${sequence}`;
+}
+
 /** Something currently ringing. */
 export interface Ringing {
   kind: 'timer' | 'alarm';
@@ -70,6 +78,8 @@ export class TimersStore {
 
   private ticker: ReturnType<typeof setInterval> | null = null;
   private stopSound: (() => void) | null = null;
+  /** Signals that came in while something else was ringing, oldest first. */
+  private pending: Ringing[] = [];
   private snoozed: Array<{ alarm: Alarm; at: number }> = [];
   private lastAlarmCheck = '';
 
@@ -116,14 +126,17 @@ export class TimersStore {
   start(duration: number, label: string): void {
     const now = Date.now();
     this.timers = [...this.timers, {
-      id: `timer-${now}`, label, duration, endsAt: now + duration, remaining: duration, state: 'running',
+      id: uid('timer'), label, duration, endsAt: now + duration, remaining: duration, state: 'running',
     }];
     this.ensureTicker();
   }
 
   /** @param id - Timer to pause. */
   pause(id: string): void {
-    this.update(id, (t) => ({ ...t, state: 'paused', remaining: this.remainingOf(t), endsAt: null }));
+    const now = Date.now();
+    this.update(id, (t) => ({
+      ...t, state: 'paused', remaining: t.endsAt !== null ? Math.max(0, t.endsAt - now) : t.remaining, endsAt: null,
+    }));
   }
 
   /** @param id - Timer to resume. */
@@ -142,6 +155,7 @@ export class TimersStore {
   /** @param id - Timer to remove (also stops its ringing). */
   cancel(id: string): void {
     this.timers = this.timers.filter((t) => t.id !== id);
+    this.pending = this.pending.filter((r) => r.id !== id);
     if (this.ringing?.id === id) {
       this.silence();
     }
@@ -161,8 +175,9 @@ export class TimersStore {
 
   /** Records a lap. */
   lap(): void {
-    if (this.stopwatch.running) {
-      this.stopwatch = { ...this.stopwatch, laps: [...this.stopwatch.laps, this.stopwatchElapsed] };
+    const s = this.stopwatch;
+    if (s.running) {
+      this.stopwatch = { ...s, laps: [...s.laps, s.elapsed + Date.now() - s.startedAt] };
     }
   }
 
@@ -201,7 +216,7 @@ export class TimersStore {
    * @param days - Weekdays 0 = Monday; empty = once.
    */
   addAlarm(time: string, label: string, days: number[]): Promise<void> {
-    return this.saveAlarms([...this.alarms, { id: `alarm-${Date.now()}`, time, label, days, enabled: true }]);
+    return this.saveAlarms([...this.alarms, { id: uid('alarm'), time, label, days, enabled: true }]);
   }
 
   /**
@@ -246,7 +261,7 @@ export class TimersStore {
     this.start(60_000, ringing.label);
   }
 
-  /** Stops the signal; one-off alarms disable themselves. */
+  /** Stops the signal; one-off alarms disable themselves. A queued signal rings next. */
   dismiss(): void {
     const ringing = this.ringing;
     if (ringing?.kind === 'timer') {
@@ -260,8 +275,14 @@ export class TimersStore {
     this.silence();
   }
 
+  /** Rings now, or queues the signal if something else is ringing — nothing gets lost. */
   private ring(ringing: Ringing): void {
-    this.silence();
+    if (this.ringing) {
+      if (this.ringing.id !== ringing.id && !this.pending.some((r) => r.id === ringing.id)) {
+        this.pending = [...this.pending, ringing];
+      }
+      return;
+    }
     this.ringing = ringing;
     const { sound, soundVolume } = this.settings().timers;
     this.stopSound = loopSignal(sound, soundVolume);
@@ -271,6 +292,11 @@ export class TimersStore {
     this.stopSound?.();
     this.stopSound = null;
     this.ringing = null;
+    const [next, ...rest] = this.pending;
+    if (next) {
+      this.pending = rest;
+      this.ring(next);
+    }
   }
 
   private update(id: string, fn: (t: TimerItem) => TimerItem): void {
@@ -278,6 +304,8 @@ export class TimersStore {
   }
 
   private ensureTicker(): void {
+    // The clock may be stale after an idle stretch; displays must not jump.
+    this.now = Date.now();
     if (this.ticker) {
       return;
     }
@@ -300,11 +328,12 @@ export class TimersStore {
   private checkAlarms(): void {
     const now = new Date();
     const key = `${now.getHours()}:${now.getMinutes()}`;
-    const due = this.snoozed.filter((s) => s.at <= now.getTime());
-    if (due.length) {
+    const woken = this.snoozed.filter((s) => s.at <= now.getTime());
+    if (woken.length) {
       this.snoozed = this.snoozed.filter((s) => s.at > now.getTime());
-      const first = due[0]!.alarm;
-      this.ring({ kind: 'alarm', id: first.id, label: first.label, time: first.time });
+      for (const { alarm } of woken) {
+        this.ring({ kind: 'alarm', id: alarm.id, label: alarm.label, time: alarm.time });
+      }
     }
     if (key === this.lastAlarmCheck) {
       return;
@@ -312,8 +341,8 @@ export class TimersStore {
     this.lastAlarmCheck = key;
     const weekday = (now.getDay() + 6) % 7;
     const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const alarm = this.alarms.find((a) => a.enabled && a.time === hhmm && (a.days.length === 0 || a.days.includes(weekday)));
-    if (alarm) {
+    const due = this.alarms.filter((a) => a.enabled && a.time === hhmm && (a.days.length === 0 || a.days.includes(weekday)));
+    for (const alarm of due) {
       this.ring({ kind: 'alarm', id: alarm.id, label: alarm.label, time: alarm.time });
     }
   }
