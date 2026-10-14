@@ -86,10 +86,19 @@ describe('island', () => {
       c.panel.section = section;
       await settle();
     }
-    for (const page of ['wifi', 'bluetooth', 'home'] as const) {
+    // Drill-in pages; their footer hands off to the Windows settings.
+    const opened: string[] = [];
+    const offShell = mock.onShellOpen.on((target) => opened.push(target));
+    for (const page of ['wifi', 'bluetooth'] as const) {
       c.panel.page = page;
       await settle();
+      document.querySelector<HTMLButtonElement>(`[data-page="${page}"].is-current .detail-foot .btn`)?.click();
+      await settle();
     }
+    offShell();
+    expect(opened).toEqual(['ms-settings:network-wifi', 'ms-settings:bluetooth']);
+    c.panel.page = 'home';
+    await settle();
     document.querySelectorAll<HTMLButtonElement>('.tile__toggle, .tile--small, .seg__btn, .day, .chip, .check').forEach((b) => b.click());
     await settle();
 
