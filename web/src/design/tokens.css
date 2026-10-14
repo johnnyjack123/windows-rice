@@ -1,0 +1,302 @@
+/* =============================================================================
+   rice · Design tokens — the contract
+   -----------------------------------------------------------------------------
+   Every token a component may use is declared here with a neutral default.
+   Themes (themes/*.css) override VALUES, never NAMES. Components use tokens
+   from this file only.
+
+   Tiers
+     0. Inputs            --base-bg, --base-fg, --accent, --text-scale, ...
+                          Themes set them, the theme editor overrides them.
+     1. Theme primitives  --_name      private, only inside one theme file
+     2. Semantic          --color-*, --type-*, --space-*, --radius-*, ...
+     3. Component         --tile-*, --slider-*, --island-*, ...
+
+   Rules and rationale: docs/DESIGN.md · Building a theme: docs/THEMING.md
+   ========================================================================== */
+
+/* Album colour extracted at runtime; registered so it can cross-fade. */
+@property --media-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #8e8e93;
+}
+
+/* ── Block A · inputs and constants ───────────────────────────────────────
+   Declared on every [data-theme] scope too, so nested scopes (gallery,
+   theme previews) start from the contract defaults. */
+:root,
+[data-theme] {
+  color-scheme: dark;
+
+  /* Inputs edited by the theme editor ("Hintergrund", "Text", "Akzent"). */
+  --base-bg: #000;
+  --base-fg: #f5f5f7;
+  --accent: #0a84ff;
+
+  /* How far containers and text move from the background towards the
+     foreground (sRGB mix). Themes tune these instead of hard-coding greys. */
+  --mix-container: 8%;
+  --mix-container-high: 12.5%;
+  --mix-container-highest: 18%;
+  --mix-muted: 66%;
+  --mix-subtle: 53%;
+  --mix-border: 8%;
+  --mix-border-strong: 17%;
+  --mix-island: 0%;                            /* island = background by default */
+
+  /* Global scales edited by the theme editor. */
+  --text-scale: 1;
+  --density: 1;
+  --space-base: 4px;
+
+  /* ── Colour · status (fixed per theme, not derived) ──────────────────── */
+  --color-positive: #30d158;
+  --color-on-positive: #00230b;
+  --color-negative: #ff453a;
+  --color-on-negative: #fff;
+  --color-warning: #ffd60a;
+  --color-scrim: rgb(0 0 0 / 0.55);
+
+  /* State layers: opacity of currentColor over interactive surfaces. */
+  --state-hover-opacity: 0.06;
+  --state-pressed-opacity: 0.12;
+
+  /* Foreign data colours (calendars, app icons) normalised to the theme. */
+  --data-l: 0.72;
+  --data-c: 0.15;
+  --app-icon-l: 0.62;
+  --app-icon-c: 0.15;
+  --app-icon-fg: #fff;
+
+  /* ── Type · families ────────────────────────────────────────────────── */
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+  --font-numeric: var(--font-display);
+
+  /* ── Type · roles (font shorthand, scaled by --text-scale) ──────────── */
+  --type-display: 600 calc(40px * var(--text-scale))/1 var(--font-numeric);
+  --type-timer: 300 calc(46px * var(--text-scale))/1 var(--font-numeric);
+  --type-page: 600 calc(28px * var(--text-scale))/1.15 var(--font-display); /* window page titles */
+  --type-headline: 600 calc(19px * var(--text-scale))/1.2 var(--font-display);
+  --type-title: 600 calc(13.5px * var(--text-scale))/1.3 var(--font-ui);
+  --type-body: 400 calc(13px * var(--text-scale))/1.4 var(--font-ui);
+  --type-label: 500 calc(12px * var(--text-scale))/1.25 var(--font-ui);
+  --type-caption: 400 calc(11.5px * var(--text-scale))/1.3 var(--font-ui);
+  --type-island: 600 calc(13px * var(--text-scale))/1 var(--font-ui);
+  --type-island-clock: 600 calc(13.5px * var(--text-scale))/1 var(--font-numeric);
+  --type-metric: 600 calc(22px * var(--text-scale))/1 var(--font-numeric);
+  --type-badge: 700 calc(10px * var(--text-scale))/1 var(--font-ui);
+
+  --tracking-display: -0.025em;
+  --tracking-headline: -0.01em;
+  --tracking-label: 0em;
+  --label-transform: none;
+  --display-variation: normal;
+
+  /* ── Spacing · 4 px grid, scaled by --density ───────────────────────── */
+  --space-unit: calc(var(--space-base) * var(--density));
+  --space-half: calc(var(--space-unit) * 0.5);
+  --space-1: calc(var(--space-unit) * 1);
+  --space-1-5: calc(var(--space-unit) * 1.5);
+  --space-2: calc(var(--space-unit) * 2);
+  --space-2-5: calc(var(--space-unit) * 2.5);
+  --space-3: calc(var(--space-unit) * 3);
+  --space-4: calc(var(--space-unit) * 4);
+  --space-5: calc(var(--space-unit) * 5);
+  --space-6: calc(var(--space-unit) * 6);
+  --space-8: calc(var(--space-unit) * 8);
+  --space-10: calc(var(--space-unit) * 10);
+
+  /* ── Shape · scale ──────────────────────────────────────────────────── */
+  --radius-min: 2px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  /* ── Shape · components (concentric: inner = outer − gap) ───────────── */
+  --radius-island: var(--radius-full);         /* compact; ≥ height/2 = pill */
+  --radius-panel: 40px;
+  --panel-padding: var(--space-4);
+  --radius-tile: var(--radius-card);
+  --radius-control: var(--radius-full);
+  --radius-check: var(--radius-full);
+  --radius-art: var(--radius-sm);
+  --radius-art-island: 7px;
+  --radius-window: 12px;                       /* settings window cards */
+
+  /* ── Dimensions ─────────────────────────────────────────────────────── */
+  --island-top: 10px;
+  --island-height: 34px;
+  --island-bubble-gap: 8px;
+  --panel-width: 800px;
+  --panel-height: 556px;
+  --panel-column: 340px;
+  --tile-height: 64px;
+  --tile-small-height: 52px;
+  --tile-icon-size: 36px;
+  --control-height: 32px;
+  --row-height: 44px;
+  --slider-height: 38px;
+  --slider-handle-width: 0px;
+  --slider-handle-height: 0px;
+  --switch-width: 42px;
+  --switch-height: 26px;
+  --switch-thumb: 20px;
+  --icon-size: 20px;
+  --icon-size-sm: 16px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 34px;
+  --live-width: 392px;
+  --osd-width: 264px;
+  --art-size: 56px;
+  --app-icon-size: 36px;
+  --check-size: 20px;
+  --progress-height: 4px;
+  --spark-height: 28px;
+  --settings-nav-width: 232px;
+
+  /* ── Separation · elevation ─────────────────────────────────────────── */
+  --elevation-island: none;
+  --elevation-panel: 0 24px 64px -16px rgb(0 0 0 / 0.65), 0 0 0 0.5px rgb(255 255 255 / 0.07);
+  --elevation-card: none;
+  --elevation-tile: none;
+  --elevation-raised: 0 2px 8px rgb(0 0 0 / 0.35);
+  --surface-texture: none;
+  --surface-texture-opacity: 0;
+
+  /* ── Material · behaviour ───────────────────────────────────────────── */
+  --island-goo: 0;                             /* 1 = liquid bridge between pill and bubble */
+  --island-material: solid;                    /* solid | glass */
+
+  /* ── Iconography · Material Symbols ─────────────────────────────────── */
+  --icon-family: "Material Symbols Rounded";
+  --icon-weight: 400;
+  --icon-grade: 0;
+  --icon-fill: 0;
+  --icon-fill-on: 1;
+
+  /* ── Motion · springs "<duration s> <bounce>" ───────────────────────── */
+  --spring-island: 0.5 0.24;
+  --spring-bubble: 0.55 0.3;
+  --spring-content: 0.36 0.08;
+  --spring-control: 0.32 0.18;
+
+  /* ── Motion · time and curves (colour and opacity only) ─────────────── */
+  --dur-instant: 80ms;
+  --dur-fast: 150ms;
+  --dur-medium: 240ms;
+  --dur-slow: 400ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-exit: cubic-bezier(0.3, 0, 0.8, 0.15);
+
+  /* ── Motion · choreography ──────────────────────────────────────────── */
+  --content-blur: 6px;
+  --enter-scale: 0.94;
+  --enter-offset: 8px;
+  --enter-delay-grow: 70ms;
+  --enter-delay-shrink: 150ms;
+  --stagger: 18ms;
+  --eq-timing: ease-in-out;
+
+  /* Generated at runtime from --spring-* (fallbacks only). */
+  --ease-spring-content: var(--ease-enter);
+  --dur-spring-content: 360ms;
+  --ease-spring-control: var(--ease-enter);
+  --dur-spring-control: 320ms;
+
+  /* ── Content density ────────────────────────────────────────────────── */
+  --island-clock-seconds: none;
+  --island-track-display: flex;
+  --spark-style: smooth;                       /* smooth | linear | step (read by JS) */
+}
+
+/* ── Block B · derived roles ──────────────────────────────────────────────
+   Everything here follows from the inputs above, so the theme editor can
+   recolour a whole theme with three colours. Themes override single roles
+   only when the derivation cannot express them. */
+:root,
+[data-theme] {
+  --base-island: color-mix(in srgb, var(--base-fg) var(--mix-island), var(--base-bg));
+
+  --color-island: var(--base-island);
+  --color-on-island: var(--base-fg);
+  --color-on-island-muted: color-mix(in srgb, var(--base-fg) var(--mix-muted), var(--base-island));
+
+  --color-surface: var(--base-bg);
+  --color-window: var(--base-bg);               /* opaque background of normal windows */
+  --color-surface-container: color-mix(in srgb, var(--base-fg) var(--mix-container), var(--base-bg));
+  --color-surface-container-high: color-mix(in srgb, var(--base-fg) var(--mix-container-high), var(--base-bg));
+  --color-surface-container-highest: color-mix(in srgb, var(--base-fg) var(--mix-container-highest), var(--base-bg));
+
+  --color-text: var(--base-fg);
+  --color-text-muted: color-mix(in srgb, var(--base-fg) var(--mix-muted), var(--base-bg));
+  --color-text-subtle: color-mix(in srgb, var(--base-fg) var(--mix-subtle), var(--base-bg));
+  --color-border: color-mix(in srgb, var(--base-fg) var(--mix-border), transparent);
+  --color-border-strong: color-mix(in srgb, var(--base-fg) var(--mix-border-strong), transparent);
+
+  --color-accent: var(--accent);
+  --color-on-accent: #fff;
+  --color-accent-container: oklch(from var(--accent) 0.32 calc(c * 0.5) h);
+  --color-on-accent-container: oklch(from var(--accent) 0.92 calc(c * 0.35) h);
+  --color-accent-text: oklch(from var(--accent) 0.76 c h);
+  --color-focus: oklch(from var(--accent) 0.74 c h);
+
+  /* Concentric radii follow the panel. */
+  --radius-card: max(var(--radius-min), calc(var(--radius-panel) - var(--panel-padding)));
+  --card-padding: var(--space-2);
+  --radius-row: max(var(--radius-min), calc(var(--radius-card) - var(--card-padding)));
+  --radius-live: calc(var(--radius-panel) * 0.75);
+  --radius-tile-on: var(--radius-tile);
+  --radius-tile-pressed: var(--radius-tile);
+  --radius-tile-small: var(--radius-tile);
+  --radius-tile-small-on: var(--radius-tile-small);
+  --radius-tile-icon: var(--radius-full);
+
+  /* ── Component · island ─────────────────────────────────────────────── */
+  --eq-color: oklch(from var(--media-color) 0.78 calc(c * 1.1) h);
+
+  /* ── Component · tiles ──────────────────────────────────────────────── */
+  --tile-tint: var(--color-accent);
+  --tile-bg: var(--color-surface-container-high);
+  --tile-fg: var(--color-text);
+  --tile-fg-muted: var(--color-text-muted);
+  --tile-icon-bg: var(--color-surface-container-highest);
+  --tile-icon-fg: var(--color-text);
+  --tile-border: transparent;
+  --tile-bg-on: var(--color-accent);
+  --tile-fg-on: var(--color-on-accent);
+  --tile-fg-muted-on: color-mix(in srgb, var(--color-on-accent) 72%, transparent);
+  --tile-icon-bg-on: color-mix(in srgb, var(--color-on-accent) 18%, transparent);
+  --tile-icon-fg-on: var(--color-on-accent);
+  --tile-border-on: transparent;
+  --tile-small-bg-on: var(--tile-tint);
+  --tile-small-fg-on: var(--color-on-accent);
+
+  /* ── Component · sliders, switches, ranges ──────────────────────────── */
+  --slider-track: var(--color-surface-container-highest);
+  --slider-fill: var(--color-text);
+  --slider-icon: var(--color-surface);
+  --slider-handle: var(--color-text);
+  --slider-gap: 0px;
+  --slider-gap-color: transparent;
+  --switch-track: var(--color-surface-container-highest);
+  --switch-thumb-color: var(--color-text-muted);
+  --switch-track-on: var(--color-accent);
+  --switch-thumb-color-on: var(--color-on-accent);
+
+  /* ── Component · tabs, progress, media ──────────────────────────────── */
+  --tabs-bg: var(--color-surface-container-high);
+  --tabs-indicator: var(--color-surface-container-highest);
+  --tabs-fg-active: var(--color-text);
+  --progress-track: var(--color-surface-container-highest);
+  --progress-fill: var(--color-text);
+  --media-bg: var(--color-surface-container);
+  --media-fg: var(--color-text);
+  --media-fg-muted: var(--color-text-muted);
+}

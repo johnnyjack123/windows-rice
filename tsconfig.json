@@ -1,0 +1,29 @@
+{
+  "extends": "@tsconfig/svelte/tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vite/client", "node"],
+    "paths": {
+      "$design/*": ["./web/src/design/*"],
+      "$motion/*": ["./web/src/motion/*"],
+      "$i18n/*": ["./web/src/i18n/*"],
+      "$ui/*": ["./web/src/ui/*"],
+      "$backend/*": ["./web/src/backend/*"],
+      "$island/*": ["./web/src/island/*"],
+      "$settings/*": ["./web/src/settings/*"],
+      "$lab/*": ["./web/src/lab/*"]
+    }
+  },
+  "include": ["web/src/**/*.ts", "web/src/**/*.svelte", "vite.config.ts"]
+}

@@ -1,0 +1,15 @@
+[
+  "add", "airplanemode_active", "alarm", "alarm_add", "alarm_off", "arrow_back", "arrow_downward",
+  "arrow_upward", "bluetooth", "bluetooth_disabled", "bolt", "brightness_high", "brightness_low",
+  "brightness_medium", "calendar_month", "chat", "check", "check_circle", "chevron_right", "close",
+  "cloud_off", "commit", "contrast", "dashboard", "delete", "do_not_disturb_on", "done_all",
+  "earbuds", "edit", "energy_savings_leaf", "error", "event", "flag", "folder_open", "forum",
+  "headphones", "hourglass_top", "info", "keyboard", "location_on", "lock", "mail", "mic",
+  "mic_off", "monitoring", "more_time", "mouse", "music_note", "network_wifi_1_bar",
+  "network_wifi_2_bar", "network_wifi_3_bar", "nightlight", "notifications", "notifications_off",
+  "open_in_new", "palette", "pause", "pill", "play_arrow", "power_settings_new",
+  "progress_activity", "restart_alt", "save", "settings", "signal_wifi_4_bar", "skip_next",
+  "skip_previous", "snooze", "speaker", "sports_esports", "stop", "sync", "task_alt", "timer",
+  "translate", "tune", "videogame_asset", "visibility", "visibility_off", "volume_down",
+  "volume_mute", "volume_off", "volume_up", "warning", "wifi", "wifi_off", "wifi_tethering"
+]

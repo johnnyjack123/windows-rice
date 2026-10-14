@@ -1,0 +1,162 @@
+/* Base layer: reset, icon primitive, focus, utilities. Tokens only. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+html {
+  /* Album colour cross-fades when the track changes (registered in tokens.css). */
+  transition: --media-color calc(var(--dur-slow) * 2) var(--ease-standard);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font: var(--type-body);
+  color: var(--color-text);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ── Icon (Material Symbols, variable axes driven by tokens) ──────────────
+   The fill axis animates, so active states "pour" into their icon. */
+.ic {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+  font-family: var(--icon-family);
+  font-size: var(--icon-size);
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  direction: ltr;
+  user-select: none;
+  font-feature-settings: "liga";
+  font-variation-settings:
+    "FILL" var(--icon-fill),
+    "wght" var(--icon-weight),
+    "GRAD" var(--icon-grade),
+    "opsz" 20;
+  transition: font-variation-settings var(--dur-medium) var(--ease-standard);
+}
+.ic--sm {
+  font-size: var(--icon-size-sm);
+}
+.ic--lg {
+  font-size: var(--icon-size-lg);
+}
+.ic--xl {
+  font-size: var(--icon-size-xl);
+}
+
+/* A spinner is a genuine progress indicator, the only allowed endless loop. */
+.spin {
+  animation: spin 900ms linear infinite;
+}
+@keyframes spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+/* ── Focus ────────────────────────────────────────────────────────────── */
+:focus {
+  outline: none;
+}
+:focus-visible,
+.is-focus {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────── */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+.truncate {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.stack {
+  display: block;
+  min-width: 0;
+}
+
+/* Reduced motion: keep cross-fades, drop travel, scale and blur. Specific
+   enough to win over user overrides (which use two attribute selectors). */
+:root[data-motion="reduced"][data-theme] {
+  --content-blur: 0px;
+  --enter-scale: 1;
+  --enter-offset: 0px;
+  --stagger: 0ms;
+}

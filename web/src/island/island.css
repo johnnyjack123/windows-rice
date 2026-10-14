@@ -1,0 +1,478 @@
+/* =============================================================================
+   Island: shell, material, split bubble, liquid bridge and the live activity
+   views. Geometry (size, radius, scale, hide offset) is written per frame by
+   controller.svelte.ts as inline styles on a few small elements.
+   ========================================================================== */
+
+.island-anchor {
+  position: fixed;
+  top: var(--island-top);
+  left: 50%;
+  z-index: 10;
+  width: 0;
+  height: 0;
+}
+
+.island {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 128px;
+  height: var(--island-height);
+  translate: -50% 0;
+  transform-origin: 50% 0;
+  color: var(--color-on-island);
+  font: var(--type-island);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.island.is-expanded {
+  cursor: default;
+  user-select: auto;
+}
+.island:focus-visible {
+  outline-offset: 3px;
+}
+
+.island__shadow {
+  position: absolute;
+  inset: 0;
+  box-shadow: var(--elevation-island);
+  pointer-events: none;
+  transition: box-shadow var(--dur-slow) var(--ease-standard);
+}
+.island.is-expanded .island__shadow {
+  box-shadow: var(--elevation-panel);
+}
+
+/* Liquid bridge between the end cap and the bubble (vector, no filter). */
+.island__bridge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+.island__bridge path {
+  fill: var(--color-island);
+}
+
+.island__bubble {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--island-height);
+  height: var(--island-height);
+  overflow: hidden;
+  border-radius: var(--radius-island);
+  background-color: var(--color-island);
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.island__bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--color-island);
+  transition: background-color var(--dur-slow) var(--ease-standard);
+}
+.island.is-expanded .island__bg {
+  background-color: var(--color-surface);
+}
+.island__bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--surface-texture);
+  opacity: var(--surface-texture-opacity);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Material layers for glass-like themes (hidden otherwise). */
+.mat {
+  display: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.mat-core {
+  overflow: hidden;
+}
+
+.island__clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.bubble-content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: var(--island-height);
+  height: var(--island-height);
+  border-radius: var(--radius-island);
+  color: var(--color-on-island);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+.bubble-content.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity var(--dur-medium) var(--ease-standard);
+}
+
+/* ── Views ──────────────────────────────────────────────────────────────
+   Inactive views keep their layout (so they can be measured) but are
+   invisible and inert. Exit is faster than entry; entry waits until the
+   shape has started to move. */
+.view {
+  --view-radius: var(--radius-island);
+  position: absolute;
+  top: 0;
+  left: 50%;
+  /* Without this, the narrow shell would squeeze views while measuring. */
+  width: max-content;
+  translate: -50% 0;
+  transform-origin: 50% 0;
+  opacity: 0;
+  visibility: hidden;
+  scale: var(--enter-scale);
+  filter: blur(var(--content-blur));
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) var(--ease-exit),
+    scale var(--dur-fast) var(--ease-exit),
+    filter var(--dur-fast) var(--ease-exit),
+    visibility 0s linear var(--dur-fast);
+}
+.view.is-active {
+  opacity: 1;
+  visibility: visible;
+  scale: 1;
+  filter: none;
+  pointer-events: auto;
+  transition:
+    opacity var(--dur-medium) var(--ease-standard) var(--enter-delay, 0ms),
+    scale var(--dur-spring-content) var(--ease-spring-content) var(--enter-delay, 0ms),
+    filter var(--dur-medium) var(--ease-standard) var(--enter-delay, 0ms),
+    visibility 0s linear 0s;
+}
+.view.is-bumped {
+  animation: view-bump var(--dur-slow) var(--ease-enter);
+}
+@keyframes view-bump {
+  from {
+    opacity: 0.2;
+    filter: blur(var(--content-blur));
+  }
+}
+
+.view[data-compact] {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--island-height);
+  padding: 0 var(--space-4);
+  transform-origin: 50% 50%;
+  white-space: nowrap;
+}
+
+/* ── Clock (idle) ───────────────────────────────────────────────────────── */
+.island-clock {
+  font: var(--type-island-clock);
+  letter-spacing: var(--tracking-display);
+}
+.island-clock__sec {
+  display: var(--island-clock-seconds);
+  color: var(--color-on-island-muted);
+}
+.island-unread {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+/* ── Music (compact) ────────────────────────────────────────────────────── */
+.view.view--music {
+  gap: var(--space-2-5);
+  padding-left: calc((var(--island-height) - var(--island-art)) / 2);
+  padding-right: var(--space-3);
+  --island-art: calc(var(--island-height) - var(--space-3));
+}
+.art--island {
+  width: var(--island-art, 22px);
+  height: var(--island-art, 22px);
+  border-radius: var(--radius-art-island);
+}
+.island-track {
+  display: var(--island-track-display);
+  align-items: baseline;
+  gap: var(--space-1-5);
+  min-width: 0;
+  max-width: 210px;
+}
+.island-track__title {
+  flex: 0 1 auto;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.island-track__artist {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-on-island-muted);
+  font-weight: 500;
+}
+
+/* ── Live activities taller than the island ─────────────────────────────── */
+.view--live {
+  --view-radius: var(--radius-live);
+  width: var(--live-width);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+  color: var(--color-on-island);
+}
+.view--live .progress {
+  color: var(--color-on-island-muted);
+  --progress-track: color-mix(in srgb, var(--color-on-island) 20%, transparent);
+  --progress-fill: var(--color-on-island);
+}
+.live-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+.live-art {
+  width: var(--art-size);
+  height: var(--art-size);
+  border-radius: max(var(--radius-min), calc(var(--radius-live) - var(--space-4)));
+}
+.live-title {
+  font: var(--type-title);
+}
+.live-sub {
+  margin-top: var(--space-half);
+  font: var(--type-body);
+  color: var(--color-on-island-muted);
+}
+.eq--lg {
+  height: 22px;
+  gap: 2.5px;
+  align-self: start;
+  margin-top: var(--space-1);
+}
+.eq--lg i {
+  width: 3.5px;
+}
+.live-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-6);
+}
+.live-controls .icon-btn {
+  color: var(--color-on-island);
+}
+.live-controls .ic {
+  font-size: var(--icon-size-lg);
+  --icon-fill: 1;
+}
+.live-controls .is-primary .ic {
+  font-size: var(--icon-size-xl);
+}
+.live-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+.live-actions .btn {
+  height: calc(var(--control-height) + var(--space-2));
+}
+.live-actions .btn--tonal {
+  background: color-mix(in srgb, var(--color-on-island) 14%, transparent);
+  color: var(--color-on-island);
+}
+
+/* ── Notification banner ────────────────────────────────────────────────── */
+.view--notification {
+  --view-radius: var(--radius-live);
+  width: var(--live-width);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
+}
+.nv {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+.nv .app-icon {
+  width: calc(var(--app-icon-size) + var(--space-1));
+  height: calc(var(--app-icon-size) + var(--space-1));
+  border-radius: min(50%, max(var(--radius-min), calc(var(--radius-live) - var(--space-3))));
+}
+.nv-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font: var(--type-caption);
+  color: var(--color-on-island-muted);
+}
+.nv-title {
+  margin-top: var(--space-half);
+  font: var(--type-title);
+}
+.nv-body {
+  font: var(--type-body);
+  color: var(--color-on-island-muted);
+}
+
+/* ── OSD (volume, brightness) ───────────────────────────────────────────── */
+.view--osd {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: var(--osd-width);
+  height: calc(var(--island-height) + var(--space-2));
+  padding: 0 var(--space-4);
+}
+.osd-icon {
+  --icon-fill: 1;
+}
+.osd-bar {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-on-island) 20%, transparent);
+}
+.osd__fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 50%;
+  scale: var(--v, 0.5) 1;
+  color: var(--color-on-island);
+  background: var(--color-on-island);
+  transition: scale var(--dur-spring-control) var(--ease-spring-control);
+}
+.osd-value {
+  min-width: 2ch;
+  text-align: right;
+  font: var(--type-island-clock);
+}
+
+/* ── Calendar event soon ────────────────────────────────────────────────── */
+.ev-ring {
+  --p: 0.3;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, var(--color-island) 62%, transparent 64%),
+    conic-gradient(
+      oklch(from var(--c) var(--data-l) var(--data-c) h) calc(var(--p) * 1turn),
+      color-mix(in srgb, var(--color-on-island) 18%, transparent) 0
+    );
+}
+.ev-title {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ev-when {
+  color: var(--color-on-island-muted);
+  font-weight: 500;
+}
+
+/* ── Timer & stopwatch ──────────────────────────────────────────────────── */
+.view--timer,
+.view--stopwatch {
+  color: var(--color-accent-text);
+}
+.view--timer .ic,
+.view--stopwatch .ic {
+  --icon-fill: 1;
+  font-size: var(--icon-size-sm);
+}
+.island-count {
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font: var(--type-badge);
+}
+.timer-time {
+  font: var(--type-island-clock);
+}
+
+/* ── Charging ───────────────────────────────────────────────────────────── */
+.view.view--charging {
+  justify-content: space-between;
+  gap: var(--space-8);
+  min-width: var(--osd-width);
+}
+.ch-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-positive);
+}
+.ch-label .ic {
+  --icon-fill: 1;
+  font-size: var(--icon-size-sm);
+  vertical-align: -3px;
+  color: var(--color-positive);
+}
+
+/* ── Ringing (alarm, finished timer) ────────────────────────────────────── */
+.ring-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.ring-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--app-icon-size) + var(--space-1));
+  height: calc(var(--app-icon-size) + var(--space-1));
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  --icon-fill: 1;
+  animation: ring-wobble 1.1s var(--ease-standard) infinite;
+}
+@keyframes ring-wobble {
+  0%, 60%, 100% { rotate: 0deg; }
+  10%, 30%, 50% { rotate: -12deg; }
+  20%, 40% { rotate: 12deg; }
+}
+.ring-time {
+  font: var(--type-metric);
+}
+
+/* ── Bubble contents ────────────────────────────────────────────────────── */
+.art--bubble {
+  width: calc(var(--island-height) - var(--space-3));
+  height: calc(var(--island-height) - var(--space-3));
+  border-radius: var(--radius-art-island);
+}
+.bubble-text {
+  font: var(--type-badge);
+  color: var(--color-accent-text);
+}

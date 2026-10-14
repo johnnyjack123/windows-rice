@@ -1,0 +1,54 @@
+/* =============================================================================
+   Theme · Obsidian
+   Closest to the original: a pure black island that reads as hardware, white
+   type, vivid system tints and a springy, liquid split. Dark only.
+   ========================================================================== */
+
+[data-theme="obsidian"] {
+  color-scheme: dark;
+
+  --base-bg: #000;
+  --base-fg: #f5f5f7;
+  --accent: #0a84ff;
+
+  /* Active tiles flip like a lit key; the icon disc carries the tile tint. */
+  --tile-bg-on: var(--base-fg);
+  --tile-fg-on: var(--base-bg);
+  --tile-fg-muted-on: color-mix(in srgb, var(--base-bg) 56%, transparent);
+  --tile-icon-fg-on: #fff;
+  --tile-small-fg-on: #fff;
+
+  --slider-fill: var(--base-fg);
+  --slider-icon: var(--base-bg);
+  --progress-fill: var(--base-fg);
+  --switch-thumb-color: #fff;
+  --switch-track-on: var(--color-positive);
+  --switch-thumb-color-on: #fff;
+
+  --data-l: 0.72;
+  --data-c: 0.16;
+
+  --radius-panel: 40px;
+  --panel-padding: var(--space-4);
+  --radius-live: 30px;
+  --radius-art-island: 7px;
+
+  --island-goo: 1;
+
+  --spring-island: 0.5 0.26;
+  --spring-bubble: 0.55 0.32;
+  --spring-content: 0.36 0.08;
+  --spring-control: 0.32 0.2;
+}
+
+/* Per-tile tints resolve on the tile itself. */
+[data-theme="obsidian"] .tile {
+  --tile-icon-bg-on: var(--tile-tint);
+  --tile-small-bg-on: var(--tile-tint);
+}
+[data-theme="obsidian"] [data-tile="dnd"] { --tile-tint: #5e5ce6; }
+[data-theme="obsidian"] [data-tile="night"] { --tile-tint: #ff9f0a; }
+[data-theme="obsidian"] [data-tile="airplane"] { --tile-tint: #ff9f0a; }
+[data-theme="obsidian"] [data-tile="saver"] { --tile-tint: #30d158; }
+[data-theme="obsidian"] [data-tile="mic"] { --tile-tint: #ff375f; }
+[data-theme="obsidian"] [data-tile="hotspot"] { --tile-tint: #30d158; }
