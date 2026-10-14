@@ -1,40 +1,53 @@
 # rice
 
 Ein Windows-Desktop-Rice: eine **Dynamic Island**, die per Klick zum Kontrollzentrum wird (Mitteilungen, Medien,
-Kalender, Aufgaben, Systemmonitor, Schnelleinstellungen mit WLAN-/Bluetooth-Untermenüs). Später kommen Taskleiste,
-App-Launcher und weitere Module dazu. Geplanter Stack: Tauri 2 + Rust + Svelte 5.
+Kalender, Aufgaben, Timer, Systemmonitor, Schnelleinstellungen mit WLAN-/Bluetooth-Untermenüs). Später kommen
+Taskleiste, App-Launcher und weitere Module dazu. Stack: Tauri 2 + Rust + Svelte 5.
 
-> **Status: Phase 0 – Design Lab.** Es gibt noch keine Desktop-App, sondern Browser-Mocks und das Design-System.
-> Plan und Roadmap: [`docs/PLAN.md`](docs/PLAN.md)
+> **Status: Phase 1 – Frontend fertig, Rust-Backend als Nächstes.** Das komplette Frontend läuft im Browser gegen ein
+> Mock-Backend. Den Auftrag für das Backend beschreibt [`docs/BACKEND.md`](docs/BACKEND.md), Plan und Roadmap
+> [`docs/PLAN.md`](docs/PLAN.md).
 
-## Island Lab öffnen
+## Starten
 
-Empfohlen ist ein kleiner lokaler Server (das Glas-Theme braucht ihn für das Vorrendern des Wallpapers):
+Voraussetzungen: Node 22+ und pnpm.
 
 ```powershell
-python -m http.server 5173 --bind 127.0.0.1
+pnpm install
+pnpm dev
 ```
 
-Dann in Chrome oder Edge: <http://127.0.0.1:5173/mocks/island/>. Ein Doppelklick auf `mocks/island/index.html`
-funktioniert für die meisten Dinge auch. Schriften und Icons kommen von Google Fonts, dafür braucht es Internet.
+Dann in Chrome oder Edge:
+
+| Seite | Adresse | Wofür |
+|---|---|---|
+| **Island Lab** | <http://127.0.0.1:1420/lab.html> | Island + Kontrollzentrum über einem Test-Desktop, Ereignisse auslösen |
+| **Einstellungen** | <http://127.0.0.1:1420/settings.html> | Themes, Theme-Editor, Island, Kontrollzentrum, Kalender, Timer, Sprache |
+| **Galerie** | <http://127.0.0.1:1420/gallery.html> | Alle Bausteine in allen Zuständen, Themes und Schemata |
+
+Lab und Einstellungen teilen sich das Mock-Backend: Eine Änderung in den Einstellungen wirkt sofort in einem offenen
+Lab-Tab (wie später zwischen den beiden Fenstern).
+
+### Tastenkürzel im Lab
 
 | Taste | Aktion | Taste | Aktion |
 |---|---|---|---|
-| `1`–`5` | Konzept wechseln | `Leertaste` | Kontrollzentrum öffnen/schließen |
+| `1`–`5` | Theme wechseln | `Leertaste` | Kontrollzentrum öffnen/schließen |
 | `D` | Hell/Dunkel | `Esc` | Schließen |
 | `N` | Mitteilung | `M` | Play/Pause |
 | `V` / `B` | Lautstärke / Helligkeit | `.` | Nächster Titel |
-| `E` | Termin | `T` | Timer (zeigt das Abspalten) |
-| `C` | Laden | `S` | Zeitlupe (1× → 0,5× → 0,2×) |
-| `R` | Reduzierte Bewegung | `H` | Lab ausblenden |
+| `E` | Termin in Kürze | `T` | 5-Minuten-Timer (zeigt das Abspalten) |
+| `C` | Laden | `A` | Wecker klingelt |
+| `S` | Zeitlupe (1× → 0,5× → 0,2×) | `R` | Reduzierte Bewegung |
+| `H` | Lab-Leiste ausblenden | | |
 
 Außerdem: **Mausrad** über der Island ändert die Lautstärke, **Überfahren** der Musik-Island öffnet den Player.
-Die **Komponenten-Galerie** (`mocks/island/gallery.html`) zeigt alle Bausteine in allen Zuständen und Themes
-nebeneinander.
+**Auto-Hide testen:** Im Lab „Dahinter → Helles/Dunkles Fenster“ wählen – die Island versteckt sich. Maus oben in der
+Mitte an den Rand drücken → sie kommt zurück; Bereich verlassen → sie verschwindet wieder.
 
-## Die fünf Konzepte
+## Die fünf Standard-Themes
 
-| | Konzept | Charakter |
+| | Theme | Charakter |
 |---|---|---|
 | 1 | **Obsidian** | Apple-nah: reines Schwarz, kräftige Federn, die zweite Aktivität spaltet sich flüssig ab |
 | 2 | **Monet** | Material 3 Expressive: alle Farben aus einem Seed (Wallpaper/Album), Formen verwandeln sich je nach Zustand |
@@ -42,24 +55,40 @@ nebeneinander.
 | 4 | **Terminal** | Monospace, Haarlinien, Bernstein; ohne Federn, Inhalte „rendern“ sich ein |
 | 5 | **Paper** | Editorial: warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot |
 
-Alle fünf benutzen **denselben** HTML-/CSS-/JS-Code, nur die Tokens unterscheiden sich. Genau darauf baut später das
-Theme-System der App auf.
+Jedes Theme lässt sich im **Theme-Editor** anpassen (Farben, Schriften, Radien, Tempo, Easing, Federung …) und als
+eigenes Theme speichern. Eigene Themes von Hand: [`docs/THEMING.md`](docs/THEMING.md).
+
+## Befehle
+
+| Befehl | Was |
+|---|---|
+| `pnpm dev` | Entwicklungsserver auf Port 1420 |
+| `pnpm check` | Typprüfung (svelte-check, Warnungen sind Fehler) |
+| `pnpm test` | Unit-Tests + Smoke-Test (mountet alle Seiten headless) |
+| `pnpm build` | Produktions-Build nach `dist/` |
+| `pnpm verify` | alles drei nacheinander – vor jedem Commit |
+| `pnpm icons` | Icon-Subset neu erzeugen (nach Änderungen an `web/src/design/icons.json`, braucht Python mit `fonttools` + `brotli`) |
 
 ## Struktur
 
 ```
-design/                 Design-System (wird später zu packages/design)
+docs/
+  PLAN.md               Architektur, Machbarkeit, Roadmap, Entscheidungen
   DESIGN.md             verbindliche Gestaltungsregeln
-  THEMING.md            eigene Themes bauen
-  tokens/tokens.css     Token-Vertrag
-  themes/*.css          Obsidian, Monet, Glass, Terminal, Paper + Vorlage
-docs/PLAN.md            Architektur, Machbarkeit, Roadmap
-mocks/island/           Island Lab + Komponenten-Galerie (ohne Build-Schritt)
-tools/lab-smoke/        Headless-Smoke-Test für das Lab (Laufzeitfehler, unbekannte Icons)
+  THEMING.md            Themes anpassen und bauen
+  BACKEND.md            Auftrag und Schnittstelle für das Rust-Backend
+web/
+  *.html                Einstiegsseiten (island, settings, lab, gallery)
+  src/
+    design/             Tokens, Themes, Theme-Engine, Theme-Editor, Icons, Schriften
+    motion/             Federn (Physik + CSS-Kurven)
+    i18n/               Sprachkataloge Deutsch/Englisch, Formatierer
+    backend/            Vertrag (contract.ts), Tauri-Anbindung, Mock-Backend, Stores
+    ui/                 Bausteine (Tile, Slider, Switch, Tabs …)
+    island/             Island, Aktivitäten, Auto-Hide, Timer, Kontrollzentrum (panel/)
+    settings/           Einstellungsfenster
+    lab/ gallery/       Entwicklungsseiten
+scripts/                Hilfsskripte (Icon-Subset)
 ```
 
-Smoke-Test ausführen (prüft keine Optik):
-
-```powershell
-cd tools/lab-smoke; npm install; npm test
-```
+Das Rust-Backend (`src-tauri/`) entsteht als Nächstes nach [`docs/BACKEND.md`](docs/BACKEND.md).

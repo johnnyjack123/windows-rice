@@ -1,8 +1,8 @@
 # rice — Umsetzungsplan
 
-> Arbeitstitel „rice“ · Stand 13.10.2026 · aktuelle Phase: **0 – Design Lab**
-> Begleitdokumente: [`design/DESIGN.md`](../design/DESIGN.md) (Gestaltungsregeln) ·
-> [`design/THEMING.md`](../design/THEMING.md) (Themes bauen) · [`mocks/island/`](../mocks/island/) (Lab)
+> Arbeitstitel „rice“ · Stand 14.10.2026 · aktuelle Phase: **1b – Rust-Backend** (Frontend fertig, läuft im Browser)
+> Begleitdokumente: [`DESIGN.md`](DESIGN.md) (Gestaltungsregeln) · [`THEMING.md`](THEMING.md) (Themes bauen) ·
+> [`BACKEND.md`](BACKEND.md) (Auftrag Rust-Backend) · Lab: `pnpm dev` → <http://127.0.0.1:1420/lab.html>
 
 ---
 
@@ -12,13 +12,14 @@
 |---|---|
 | Framework | **Tauri 2** (Rust-Backend) + **Svelte 5** + TypeScript + Vite |
 | Styling | Reines CSS mit **Design-Tokens** (CSS Custom Properties), kein CSS-Framework |
-| Animation | Eigene **Feder-Engine** (`@rice/motion`, aus dem Lab übernommen) + aus denselben Federn erzeugte CSS-`linear()`-Kurven |
+| Animation | Eigene **Feder-Engine** (`web/src/motion`) + aus denselben Federn erzeugte CSS-`linear()`-Kurven |
+| Sprachen | Keine UI-Texte im Code: typisierte Kataloge **Deutsch + Englisch** (`web/src/i18n`), Test prüft Vollständigkeit |
 | Prozessmodell | **Ein** Host-Prozess (`rice-shell`), jedes Modul (Island, später Taskleiste, Launcher) ist ein eigenes Fenster |
 | Erweiterbarkeit | Rust: Services hinter einem gemeinsamen Trait. Frontend: drei Registries – **Aktivitäten**, **Panel-Bereiche**, **Kacheln** |
-| Themes | Theme = Token-Overrides + optionales, gekapseltes CSS. Zur Laufzeit aus `%APPDATA%\rice\themes` geladen, **Hot Reload** |
-| Kalender/Aufgaben | **CalDAV** (VEVENT + VTODO) mit lokalem Cache. Das ist gleichzeitig unser „Task-Store“ |
-| Größtes Risiko | Benachrichtigungen lesen (braucht Paket-Identität) und Bluetooth-Audio verbinden (keine offizielle API) |
-| Nächster Schritt | Im Island Lab ein Konzept (oder einen Mix) wählen → Phase 1 |
+| Themes | Fünf Standard-Themes (Obsidian, Monet, Liquid Glass, Terminal, Paper) + eigene Themes aus `%APPDATA%\rice\themes` (Hot Reload). **Theme-Editor**: jedes Theme bringt Standardwerte mit, der Nutzer passt Farben, Schrift, Form und Bewegung an |
+| Kalender/Aufgaben | **CalDAV** (VEVENT + VTODO) gegen **Nextcloud**, lokaler Cache. Das ist gleichzeitig unser „Task-Store“ |
+| Arbeitsteilung | Frontend fertig (dieser Stand). Rust-Backend baut ein separater Agent nach [`BACKEND.md`](BACKEND.md); Vertrag: `web/src/backend/contract.ts` |
+| Größtes Risiko | Benachrichtigungen lesen (braucht Paket-Identität) und Bluetooth-Audio verbinden (keine offizielle API) – Fallback ist jeweils „In Windows-Einstellungen öffnen“ |
 
 ---
 
@@ -176,116 +177,57 @@ pub trait Service: Send + Sync + 'static {
 `rusqlite` (Cache), `image` + [`material-colors`](https://docs.rs/material-colors) (Seed-Farbe aus Wallpaper/Cover),
 `tauri-specta`, `tracing`. Tauri-Plugins: `autostart`, `single-instance`, `global-shortcut`, `log`.
 
-### 3.4 Frontend-Pakete
+### 3.4 Frontend-Module (umgesetzt)
 
-| Paket | Inhalt |
+Eine Vite-App, eine HTML-Seite pro Fenster (`island.html`, `settings.html`; dazu die Dev-Seiten `lab.html` und
+`gallery.html`). Statt separater npm-Pakete gibt es klar getrennte Ordner mit Pfad-Aliasen – spätere Module
+(Taskleiste, Launcher) werden weitere Seiten derselben App und nutzen dieselben Module.
+
+| Ordner (Alias) | Inhalt |
 |---|---|
-| `@rice/design` | `tokens.css`, mitgelieferte Themes, Schriften, Icon-Subset, `THEMES`-Manifest |
-| `@rice/motion` | Feder-Engine (`SpringValue`, `SpringSystem`, `toLinear`), Svelte-Actions/Hooks |
-| `@rice/ui` | Primitive ohne Fachlogik: `Tile`, `Slider`, `Switch`, `Button`, `IconButton`, `Chip`, `Tabs`, `Row`, `Progress`, `Check`, `Field`, `Meter`, `Spark`, `Empty` … + Galerie-Route |
-| `@rice/services` | Typisierte Svelte-Stores über den generierten IPC-Bindings (`media`, `network`, …) |
-| `apps/shell/src/widgets/island` | Island: Shell, Morph-Controller, Aktivitäten, Panel, Bereiche, Kacheln |
+| `web/src/design` (`$design`) | `tokens.css` (Vertrag), `themes/*.css`, Schriften, Icon-Subset, Theme-Engine, Theme-Editor-Modell, Farb- und Wallpaper-Helfer |
+| `web/src/motion` (`$motion`) | Feder-Engine (`SpringValue`, `SpringSystem`, `springToLinear`) |
+| `web/src/i18n` (`$i18n`) | Kataloge `de.ts` (Referenz) und `en.ts`, reaktive Sprache, Formatierer |
+| `web/src/ui` (`$ui`) | Primitive ohne Fachlogik: `Tile`, `SmallTile`, `Slider`, `Switch`, `Tabs`, `Segmented`, `Range`, `ColorInput`, `Progress`, `Check`, `AppIcon`, `Art`, `Equalizer`, `Spark`, `Battery`, `Empty`, `Banner`, `Icon` + `ui.css` |
+| `web/src/backend` (`$backend`) | Vertrag `contract.ts`, Transports (Tauri/Mock), reaktive Stores je Service, Einstellungs-Defaults und Merge-Logik, simuliertes Backend |
+| `web/src/island` (`$island`) | Island: Controller, Aktivitäten-Registry, Views, Auto-Hide, Timer/Stoppuhr/Wecker, Panel mit Kacheln, Drill-ins und Bereichen |
+| `web/src/settings` (`$settings`) | Einstellungsfenster inkl. Theme-Editor |
+| `web/src/lab`, `web/src/gallery` | Dev-Werkzeuge |
 
-Regel aus dem Design-System: **Fachkomponenten** (z. B. `NotificationCard`) bauen nur auf `@rice/ui` auf und greifen
-nie an den Tokens vorbei.
+Regel aus dem Design-System: **Fachkomponenten** bauen nur auf `$ui` auf und greifen nie an den Tokens vorbei.
 
-### 3.5 Island intern: die drei Erweiterungspunkte
+### 3.5 Die drei Erweiterungspunkte (umgesetzt)
 
-Im Lab sind sie bereits angelegt (`ISLAND_PRIORITY`, `TILES`, `TABS`). In der App werden sie zu Registries, in die sich
-Module eintragen:
+| Erweiterungspunkt | Datei | So kommt etwas Neues dazu |
+|---|---|---|
+| Aktivitäten (was die Island zeigen kann) | `island/activities.svelte.ts` | `registry.define({ id, priority, view, compact, bubble?, expandedView?, section?, transient?, critical?, label })`, dann `registry.show(id, { ttl })` / `hide(id)` aus der eigenen Datenquelle |
+| Panel-Bereiche (Tabs) | `island/panel/sections.ts` | Eintrag `{ id, label, icon, badge?, component }`; Reihenfolge/Sichtbarkeit in `settings.panel.sections` |
+| Kacheln | `island/panel/tiles.ts` | Eintrag `{ id, label, icon, sub, on, available, toggle, page? }`; Auswahl/Reihenfolge in `settings.panel.tilesLarge/tilesSmall` |
 
-```ts
-/** Something that can own the island for a while (music, timer, call, download, ...). */
-export interface ActivityProvider {
-  id: string;
-  /** Arbitration: the highest priority owns the island, the next one splits into the bubble. */
-  priority: number;
-  /** Compact presentation (height = island height). */
-  compact: Component;
-  /** Optional taller presentation on hover / long press. */
-  expanded?: Component;
-  /** Optional presentation inside the split bubble. */
-  bubble?: Component;
-  /** Panel section to open on click. */
-  opens?: string;
-  /** Reactive: is the activity currently active, and until when. */
-  state: Readable<{ active: boolean; until?: number }>;
-}
-
-/** A tab/section of the control centre (notifications, calendar, tasks, system, ...). */
-export interface PanelSection {
-  id: string;
-  label: string;
-  icon: IconName;
-  badge?: Readable<number>;
-  view: Component;
-}
-
-/** A quick setting. `detail` turns it into a two-zone tile with a drill-in page. */
-export interface QuickTile {
-  id: string;
-  label: string;
-  icon: Readable<IconName>;
-  sub: Readable<string>;
-  on: Readable<boolean>;
-  toggle(): Promise<void>;
-  detail?: Component;
-  size: 'large' | 'small';
-}
-```
-
-Welche Bereiche/Kacheln in welcher Reihenfolge erscheinen, steht in der Konfiguration – nicht im Code.
+Die eingebauten Aktivitäten (Musik, Mitteilung, OSD, Laden, Termin, Timer, Stoppuhr, Wecker, abgelaufener Timer) und
+der Timer-Bereich wurden genau so hinzugefügt – das ist der Beweis, dass die Erweiterungspunkte tragen.
 
 ### 3.6 Konfiguration
 
-`%APPDATA%\rice\rice.toml`, wird überwacht und live übernommen. Geheimnisse (CalDAV-Passwörter) liegen **nie** in der
-Datei, sondern in der Windows-Anmeldeinformationsverwaltung.
+Das Backend speichert ein **opakes JSON-Objekt** (`%APPDATA%
+ice\config.json`) und mergt Patches (Objekte
+schlüsselweise, Arrays ersetzen, `null` löscht). Defaults, Typprüfung und Migrationen liegen an **einer** Stelle im
+Frontend (`web/src/backend/settings.ts`). Geheimnisse (CalDAV-Passwörter) liegen nie in der Datei, sondern in der
+Windows-Anmeldeinformationsverwaltung. Schema: Typ `Settings` in `contract.ts`.
 
-```toml
-[theme]
-name = "obsidian"        # Ordnername unter themes/
-scheme = "auto"          # auto | dark | light   (auto folgt Windows)
-accent = "wallpaper"     # "#0a84ff" | "wallpaper" | "theme"
-
-[island]
-monitor = "primary"      # primary | <index>
-offset_top = 10
-hover_preview = true
-hide_in_fullscreen = true
-
-[island.panel]
-sections = ["notifications", "calendar", "tasks", "system"]
-tiles_large = ["wifi", "bluetooth", "dnd", "night"]
-tiles_small = ["airplane", "saver", "mic", "hotspot"]
-
-[[calendar.accounts]]
-name = "Nextcloud"
-url = "https://cloud.example.org/remote.php/dav"
-user = "me"              # Passwort: Anmeldeinformationsverwaltung "rice/caldav/Nextcloud"
-```
-
-### 3.7 Ziel-Verzeichnisstruktur
+### 3.7 Verzeichnisstruktur
 
 ```
 rice/
-├─ apps/
-│  └─ shell/                    Tauri-App
-│     ├─ src-tauri/             Rust: main, Window-Manager, IPC
-│     └─ src/
-│        ├─ island.html         ein Einstieg pro Fenster
-│        ├─ settings.html
-│        └─ widgets/island/     Island-Feature-Code
-├─ crates/
-│  ├─ rice-core/                Service-Trait, Kontext, Event-Bus, Config
-│  ├─ rice-win/                 dünne, getestete Wrapper um Win32/WinRT
-│  └─ rice-services/            media, audio, network, … (Feature-Flags)
-├─ packages/
-│  ├─ design/                   ← heutiger Ordner design/
-│  ├─ motion/                   ← aus mocks/island/js/motion.js
-│  ├─ ui/                       Primitive + Galerie
-│  └─ services/                 generierte Bindings + Stores
-├─ docs/                        Plan, Entscheidungen (ADRs)
-└─ mocks/                       Design Lab (bleibt als Spielwiese)
+├─ package.json, vite.config.ts …   Frontend-Tooling (pnpm, Vite 8, Svelte 5, TS 6, Vitest)
+├─ web/                             Frontend (Vite-Root)
+│  ├─ island.html, settings.html    Fenster der App
+│  ├─ lab.html, gallery.html        Dev-Werkzeuge
+│  └─ src/…                         Module, siehe 3.4
+├─ src-tauri/                       ← Rust-Backend (folgt, siehe BACKEND.md)
+├─ crates/                          ← optional: rice-core, rice-win, rice-services
+├─ scripts/fetch-icons.mjs          lädt das Icon-Subset (pnpm icons)
+└─ docs/                            PLAN, DESIGN, THEMING, BACKEND
 ```
 
 ---
@@ -318,7 +260,7 @@ Die Animationen im Lab funktionieren nur dann genauso im echten Desktop, wenn da
 7. **Windows-eigene Einblendungen.** Lautstärke- und Helligkeits-OSD von Windows erscheinen weiterhin. Sie lassen sich
    nur über inoffizielle Fenster-Tricks verstecken → optional, experimentell.
 
-**Performance-Regeln für die WebView** (gelten ab Phase 1, stehen auch in DESIGN.md):
+**Performance-Regeln für die WebView** (gelten für alle Fenster, stehen auch in DESIGN.md):
 - Animiert werden `transform`, `opacity`, `filter`, Farbe. Größen nur am kleinen Island-Shell, dessen Inhalt eine feste
   Endgröße hat. Der Inhalt wird beim Morph also nicht neu umbrochen.
 - Kein `backdrop-filter` über große Flächen; Glas nutzt vorgerenderte Bilder.
@@ -363,7 +305,7 @@ Die Animationen im Lab funktionieren nur dann genauso im echten Desktop, wenn da
 | Später: Taskleiste | AppBar (`SHAppBarMessage`), `EnumWindows` + WinEvent-Hooks | ✅/⚠️ | Windows-Taskleiste ausblenden ist inoffiziell (Explorer zeigt sie gern wieder); Tray-Icons spiegeln ist schwierig |
 | Später: App-Launcher | Startmenü-Verknüpfungen + `shell:AppsFolder` (UWP) | ✅ | Win-Taste abfangen erfordert einen Low-Level-Keyboard-Hook ⚠️ |
 
-**Spikes (Phase 1)** – je ein kleiner Wegwerf-Beweis, bevor Zeit in UI fließt:
+**Spikes (Backend-Schritt 1)** – je ein kleiner Wegwerf-Beweis, bevor Zeit in UI fließt:
 
 | Spike | Frage | Erfolg wenn |
 |---|---|---|
@@ -388,44 +330,34 @@ Ein Provider-Trait hält die Tür für Microsoft To Do offen.
 
 ## 6. Design-System und Theming (Kurzfassung)
 
-Die Details stehen in [`design/DESIGN.md`](../design/DESIGN.md) und [`design/THEMING.md`](../design/THEMING.md). Die
+Die Details stehen in [`DESIGN.md`](DESIGN.md) und [`THEMING.md`](THEMING.md). Die
 Kernideen:
 
-- **Ein Vertrag, viele Gesichter.** `design/tokens/tokens.css` definiert *jedes* Token. Themes überschreiben Werte,
+- **Ein Vertrag, viele Gesichter.** `web/src/design/tokens.css` definiert *jedes* Token. Themes überschreiben Werte,
   nie Namen. Komponenten benutzen nur Tokens. Die fünf Lab-Konzepte sind derselbe Code mit verschiedenen Tokens; das ist
   der Beweis, dass es funktioniert.
 - **Theme-Achsen:** Farbe · Typografie · Dichte · Form · Trennung (Schatten/Haarlinie/Fläche) · Material
   (deckend/Glas) · Ikonografie · Bewegung (Federn, Dauern, Choreografie).
-- **Dynamische Farbe:** Seed aus Wallpaper (Rust, `material-colors`) oder Albumcover; Paletten entstehen per
-  OKLCH-Relativfarben direkt im CSS. Ein Teilbaum kann sich lokal neu einfärben (`.reseed`), z. B. die Medienkarte.
-- **Theme-Pakete in der App:** `%APPDATA%\rice\themes\<id>\theme.toml` (Name, Autor, Schemata, Schriften) + `theme.css`
-  (+ Assets). Der `theme`-Service überwacht den Ordner → Hot Reload. Mitgelieferte Themes sind normale Pakete.
+- **Dynamische Farbe:** Seed aus dem Wallpaper (im Frontend aus dem Bild gerechnet, Windows-Akzent als Rückfall) oder
+  dem Albumcover; Paletten entstehen per OKLCH-Relativfarben direkt im CSS. Komponenten wie die Medienkarte haben eigene
+  Tokens (`--media-*`), die ein Theme aus `--media-color` ableiten kann (Monet).
+- **Theme-Pakete in der App:** `%APPDATA%\rice\themes\<id>\theme.toml` (Name, Autor, Version, Schemata, Basis-Theme) +
+  `theme.css`. Das Backend überwacht den Ordner → Hot Reload. Die fünf Standard-Themes sind ins Frontend gebündelt.
 - **Hell/Dunkel „auto“** folgt Windows (`AppsUseLightTheme` + `UISettings.ColorValuesChanged`).
 
 ---
 
 ## 7. Roadmap
 
-Größen: S ≈ wenige Abende, M ≈ ein bis zwei Wochenenden, L ≈ mehrere Wochenenden. Jede Phase endet mit einem
-lauffähigen Stand und einer kurzen Review im Lab bzw. in der Galerie.
+Größen: S ≈ wenige Abende, M ≈ ein bis zwei Wochenenden, L ≈ mehrere Wochenenden.
 
-| Phase | Inhalt | Größe | Fertig, wenn … |
-|---|---|---|---|
-| **0 Design Lab** *(jetzt)* | Fünf Konzepte, Tokens, Themes, Galerie, Regeln | – | Du hast eine Richtung (oder einen Mix) gewählt, Feedback ist eingearbeitet, Token-Vertrag v1 ist eingefroren |
-| **1 Fundament + Spikes** | Monorepo, Tauri-2-App, Svelte/Vite-Multipage, `@rice/design` + `@rice/motion`, Spikes S1–S5, Config + Theme-Hot-Reload | M | Die echte Island zeigt die Uhr, morpht in ein leeres Panel, Klick-durch stimmt, Theme wechselt live, Autostart |
-| **2 Island-Kern** | Primitive nach `@rice/ui` portieren (mit Galerie-Route), Morph-Controller, Aktivitäten-Arbitrierung, Panel-Layout, Registries, Tastaturbedienung | L | Gleichstand mit dem Lab auf Mock-Daten, Playwright-Screenshots als Baseline |
-| **3 Medien & Audio** | `media`, `audio` (OSD, Scrollen = Lautstärke), `display`, `power` | M | Echte Musik, Steuerung, Lautstärke und Helligkeit, Laden-Aktivität |
-| **4 System** | `system`: Messwerte, Sparklines, Prozessliste, Beenden mit Rückfrage | S | Werte stimmen mit dem Task-Manager überein, kein Polling bei geschlossenem Tab |
-| **5 Konnektivität** | WLAN-Kachel + Seite, Radios, Bluetooth-Seite inkl. Akku, Hotspot, Flugmodus | L | Bekannte und neue WLANs verbinden, BT-Kopfhörer verbinden/trennen (oder sauberer Fallback) |
-| **6 Kalender & Aufgaben** | CalDAV-Konten (Einrichtung, Anmeldeinformationen), Sync + Cache, Agenda, Erinnerungen als Aktivität, VTODO-CRUD | L | Termine und Aufgaben synchron mit Android |
-| **7 Mitteilungen** | Sparse Package, Listener, Liste, Entfernen, eigener Nicht-stören-Modus | M | Mitteilungen erscheinen als Banner und in der Liste |
-| **8 Politur & Release** | Einstellungsfenster, Theme-Auswahl, Performance-Pass, Installer (NSIS/MSI), optional Auto-Update | M | Installierbar, Qualitätsziele aus Abschnitt 1 erfüllt |
-| **9+ Weitere Module** | Taskleiste, App-Launcher, Desktop-Widgets, … | – | Jeweils eigener Plan, gleiche Pakete, gleiche Tokens |
-
-Die Reihenfolge folgt dem Prinzip „sichtbarer Nutzen zuerst, Risiko früh prüfen“: Die riskanten Teile (Mitteilungen,
-WLAN) werden in Phase 1 per Spike geprüft, aber erst gebaut, wenn das Fundament steht.
-
----
+| Phase | Inhalt | Stand |
+|---|---|---|
+| **0 Design Lab** | Fünf Konzepte, Tokens, Themes, Galerie, Regeln | ✅ erledigt (13.10.) – alle fünf bleiben Standard-Themes |
+| **1a Frontend** | Svelte-App: Island (Morph, Aktivitäten, Split-Bubble mit flüssiger Brücke, Auto-Hide mit Kanten-Reveal), Kontrollzentrum (Kacheln, WLAN-/Bluetooth-Seiten, Medien, Mitteilungen, Kalender, Aufgaben, Timer/Stoppuhr/Wecker, System), Einstellungen mit Theme-Editor, DE/EN, Vertrag + simuliertes Backend, Tests | ✅ erledigt (14.10.) |
+| **1b Rust-Backend** | Nach [`BACKEND.md`](BACKEND.md) §6, Schritte 1–7 (Fenster & Klick-durch → Medien/Audio → System → Netz/Bluetooth → CalDAV → Mitteilungen → Installer) | ⏳ nächster Schritt (separater Agent) |
+| **2 Politur** | Feinschliff nach echtem Desktop-Test, Performance-Pass, Playwright-Screenshots der Galerie als visuelle Regression | offen |
+| **3+ Weitere Module** | Taskleiste, App-Launcher, Desktop-Widgets … als weitere Seiten derselben App | offen |
 
 ## 8. Qualitätssicherung
 
@@ -437,7 +369,7 @@ WLAN) werden in Phase 1 per Spike geprüft, aber erst gebaut, wenn das Fundament
 - **Rust:** `rustfmt`, `clippy -D warnings`, Unit-Tests für Parser (ICS, CalDAV-XML, WLAN-Profile), dünne `rice-win`-
   Wrapper, damit Fachlogik ohne Windows testbar bleibt.
 - **Performance:** Idle-CPU und RAM werden pro Release gemessen (Abschnitt 1); ein Frame-Profil des Morphs gehört zur
-  Definition of Done von Phase 1 und 2.
+  Definition of Done von Backend-Schritt 1 und Phase 2.
 - **Entscheidungen** landen als kurze ADRs in `docs/adr/` (Kontext, Entscheidung, Konsequenzen).
 
 ---
@@ -447,7 +379,7 @@ WLAN) werden in Phase 1 per Spike geprüft, aber erst gebaut, wenn das Fundament
 | Risiko | Auswirkung | Gegenmaßnahme |
 |---|---|---|
 | Klick-durch/Fokus verhalten sich anders als erwartet | Island fühlt sich „im Weg“ an | Spike S1 zuerst; Fallback: Fenster nur zwischen Zuständen (nicht pro Frame) vergrößern |
-| Paket-Identität für Mitteilungen ist umständlich (Signatur, Installer) | Phase 7 verzögert sich | Spike S3 früh; Mitteilungen sind das letzte Feature, alles andere geht ohne |
+| Paket-Identität für Mitteilungen ist umständlich (Signatur, Installer) | Backend-Schritt 6 verzögert sich | Spike S3 früh; Mitteilungen sind das letzte Feature, alles andere geht ohne |
 | WLAN-API ohne Standortfreigabe leer (24H2) | Netzwerkliste fehlt | Expliziter Zustand `permission_required` mit Erklärung und Deep-Link |
 | BT-Audio-Verbinden ohne offizielle API | Kachel kann nicht alles | KS-Property-Weg, sonst Deep-Link; klar gekennzeichnet |
 | Inoffizielle APIs brechen mit Windows-Updates (Nachtlicht, IPolicyConfig) | Einzelne Kacheln fallen aus | Pro Feature Feature-Flag + Selbsttest beim Start; Kachel deaktiviert sich mit Hinweis |
@@ -456,16 +388,22 @@ WLAN) werden in Phase 1 per Spike geprüft, aber erst gebaut, wenn das Fundament
 
 ---
 
-## 10. Offene Entscheidungen (für dich)
+## 10. Entscheidungen
 
-1. **Konzept:** Welches der fünf (oder welcher Mix, z. B. „Obsidian-Island + Monet-Panel“)? Was stört dich an den anderen?
-2. **Kalender-Server:** Nextcloud, iCloud, Google oder Microsoft 365? (Bestimmt Authentifizierung und Phase 6.)
-3. **Aufgaben:** CalDAV-VTODO (empfohlen) oder Microsoft To Do?
-4. **Monitore:** Island nur auf dem Hauptmonitor oder auf jedem?
-5. **Windows-Banner:** Sollen Windows-Mitteilungsbanner langfristig durch die Island ersetzt werden (dann pro App in
-   Windows abschalten)?
-6. **Name:** „rice“ ist ein Arbeitstitel. Paketnamen werden in Phase 1 festgelegt.
-7. **Git:** Soll ich das Repository initialisieren (inkl. `.gitignore`, Conventional Commits)?
+| Datum | Entscheidung |
+|---|---|
+| 13.10. | Stack Tauri 2 + Rust + Svelte 5; Design-Tokens als CSS Custom Properties |
+| 14.10. | Alle fünf Konzepte bleiben als Standard-Themes; eigene Themes jederzeit möglich |
+| 14.10. | Theme-Editor mit Standardwerten pro Theme: Hintergrund, Text, Akzent, Schriften, Textgröße, Island-/Panel-/Kachel-Rundung, Dichte, Tempo, Federung, Easing, Weichzeichnen, flüssiges Abspalten, Icon-Stil/-Stärke |
+| 14.10. | Alle UI-Texte über Kataloge, Deutsch und Englisch von Anfang an |
+| 14.10. | Island versteckt sich, wenn ein Fenster die Island-Zone überlappt; Maus oben mittig an die Kante → kommt zurück; kurzlebige Ereignisse blenden kurz ein |
+| 14.10. | Untermenüs, die zu frickelig werden (BT koppeln, Spezialfälle), öffnen die passende Windows-Einstellungsseite |
+| 14.10. | Timer-Menü mit Timern (parallel), Stoppuhr und Wecker |
+| 14.10. | Kalender und Aufgaben: Nextcloud per CalDAV |
+| 14.10. | Git-Repository; Frontend und Backend getrennt, Rust-Backend durch einen eigenen Agenten nach `BACKEND.md` |
+
+**Noch offen:** Island auf mehreren Monitoren gleichzeitig? · Windows-eigene Mitteilungsbanner langfristig abschalten?
+· Endgültiger Name statt „rice“.
 
 ---
 

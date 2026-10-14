@@ -3,42 +3,32 @@
    One or two sentences on the character of this theme.
    Schemes: dark (default) [, light].
 
-   Copy this file, replace "my-theme", register it (lab: js/themes.js,
-   app: theme.toml) and override only what should differ from tokens.css.
-   Guide: design/THEMING.md
+   Copy this file, replace "my-theme" and override only what should differ
+   from tokens.css. Built-in: add it to registry.ts and styles.ts. User theme:
+   put it as theme.css next to a theme.toml in the themes folder.
+   Guide: docs/THEMING.md
    ========================================================================== */
 
 [data-theme="my-theme"] {
   color-scheme: dark;
 
-  /* 1. Primitives — private to this file */
-  --_bg: #111214;
-  --_bg1: #18191c;
-  --_bg2: #212226;
-  --_bg3: #2b2d31;
-  --_fg: #ececef;
-  --_fg2: #a7a8ae;
-
-  /* 2. Inputs */
+  /* 1. Inputs — everything else in tokens.css derives from these three */
+  --base-bg: #111214;
+  --base-fg: #ececef;
   --accent: #7aa2f7;
 
-  /* 3. Colour roles (pairs!) */
-  --color-island: var(--_bg);
-  --color-on-island: var(--_fg);
-  --color-on-island-muted: var(--_fg2);
-  --color-surface: var(--_bg);
-  --color-surface-container: var(--_bg1);
-  --color-surface-container-high: var(--_bg2);
-  --color-surface-container-highest: var(--_bg3);
-  --color-text: var(--_fg);
-  --color-text-muted: var(--_fg2);
+  /* 2. Steps — share of the text colour mixed into each surface */
+  /* --mix-island: 0%; --mix-container: 8%; --mix-muted: 66%; */
+
+  /* 3. Primitives — private to this file, only for values the inputs cannot express */
+  /* --_highlight: #ffd166; */
 
   /* 4. Type */
   /* --font-ui: ...; --type-display: ...; */
 
   /* 5. Shape — panel radius and padding drive the concentric radii */
   --radius-panel: 32px;
-  --panel-padding: 16px;
+  --panel-padding: var(--space-4);
 
   /* 6. Separation — pick ONE strategy */
   /* --elevation-card: inset 0 0 0 1px var(--color-border); */
@@ -52,6 +42,8 @@
 /* Optional second scheme
 [data-theme="my-theme"][data-scheme="light"] {
   color-scheme: light;
+  --base-bg: #f6f6f8;
+  --base-fg: #17181b;
 }
 */
 
