@@ -241,6 +241,16 @@ Die Theme-Engine erzeugt daraus CSS-Kurven (`--ease-spring-*`) und Dauern (`--du
 Animiert werden `transform` (inkl. `scale`/`translate`), `opacity`, `filter`, Farben. Größen nur an der kleinen
 Island-Hülle; der Inhalt hat eine feste Endgröße. Pro Frame werden Werte nur auf wenige kleine Elemente geschrieben.
 
+- **Kein Neu-Stylen nebenbei:** Die Theme-Engine reagiert nur auf Theme-Einstellungen, Systemdarstellung und
+  Bewegungsmodus. Andere Einstellungen (z. B. der zuletzt offene Tab) dürfen nie das Theme neu anwenden – das restylt
+  das ganze Dokument (Test: `design/engine.test.ts`). Häufige Zustände nicht bei jedem Klick speichern.
+- **Eine Layout-Eigenschaft pro Animation:** Tabs animieren nur `flex-grow`; Beschriftungen werden beschnitten, nicht in
+  der Breite animiert.
+- **Isolieren:** Gestapelte Seiten/Bereiche haben `contain: size layout style` und während der Bewegung `will-change`,
+  damit Aktualisierungen in einem Bereich (tickende Timer, Sparklines) die anderen nicht neu layouten.
+- Abgeleitete Werte, die pro Sekunde neu entstehen (Datum aus `clock.now`), als Zahl ableiten – sonst rendert alles
+  Abhängige jede Sekunde neu.
+
 ---
 
 ## 12. Komponenten, Zustände, Barrierefreiheit

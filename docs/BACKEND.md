@@ -7,6 +7,9 @@
 > **Verhaltensreferenz:** [`web/src/backend/mock/mock-backend.ts`](../web/src/backend/mock/mock-backend.ts) — so soll sich
 > jeder Command anfühlen (Zeiten, Fehlerfälle, Folge-Events).
 > Hintergrund: [`docs/PLAN.md`](PLAN.md) §4–§5 (Fenstertechnik, Machbarkeit pro Feature).
+>
+> **Start:** Arbeite die Schritte aus §6 der Reihe nach ab, beginnend mit Schritt 1, auf einem eigenen Branch
+> (`feat/rust-backend`). Das Frontend im Browser (`pnpm dev` → `/lab.html`) zeigt jederzeit, wie es sich anfühlen soll.
 
 ---
 
@@ -34,11 +37,14 @@ rice/
 └─ crates/                            ← empfohlen: rice-core, rice-win, rice-services
 ```
 
-- **Tauri 2** (aktuelle stabile 2.x), Frontend-Paket `@tauri-apps/api` 2.x ist bereits installiert.
+- **Tauri 2** (aktuelle stabile 2.x), Frontend-Paket `@tauri-apps/api` 2.x ist bereits installiert. Die CLI fehlt noch:
+  `pnpm add -D @tauri-apps/cli@2` und im `package.json` das Script `"tauri": "tauri"` ergänzen (dann `pnpm tauri dev`).
+  Voraussetzungen auf dem Rechner: Rust (stable, MSVC), Visual Studio Build Tools mit C++-Workload, WebView2-Runtime.
 - `tauri.conf.json`:
   - `build.devUrl = "http://127.0.0.1:1420"`, `build.frontendDist = "../dist"`
   - `build.beforeDevCommand = "pnpm dev"`, `build.beforeBuildCommand = "pnpm build"`
-  - Fenster siehe §3. Nur das Island-Fenster startet beim Boot, Einstellungen werden bei Bedarf erzeugt.
+  - Fenster siehe §3. Nur das Island-Fenster startet beim Boot; Einstellungen und Pausenfenster werden bei Bedarf
+    erzeugt.
 - Plugins: `tauri-plugin-single-instance`, `tauri-plugin-autostart`, `tauri-plugin-global-shortcut`, `tauri-plugin-log`.
   Shell-Öffnen machst du selbst (§4, `shell_open`), damit die Whitelist bei dir liegt.
 - Empfohlene Crates: `windows` (Win32 + WinRT), `tokio`, `serde`/`serde_json`, `toml`, `notify`, `sysinfo`, `keyring`,
@@ -68,7 +74,7 @@ rice/
 lege einen Typtest an, der prüft, dass die generierten Typen den Vertragstypen zuweisbar sind. So fällt jede Abweichung
 im `pnpm check` auf.
 
-**Capabilities (Tauri 2 ACL):** Beide Fenster (`island`, `settings`) brauchen mindestens `core:default` und
+**Capabilities (Tauri 2 ACL):** Alle Fenster (`island`, `settings`, `break-*`) brauchen mindestens `core:default` und
 `core:event:default` (das Frontend nutzt `listen`). Prüfe beim Setup, ob deine App-Commands zusätzliche Freigaben
 brauchen (abhängig davon, ob du ein App-Manifest in `build.rs` definierst).
 
