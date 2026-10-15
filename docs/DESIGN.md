@@ -175,6 +175,13 @@ zwei Zeilen · Deutsch ist ~30 % länger als Englisch, beide Sprachen testen · 
 **Material** (`--island-material`): `solid` oder `glass`. Glas bekommt vorgerenderte Wallpaper-Ebenen aus der Laufzeit;
 Live-Blur des Desktops ist für ein geformtes Fenster unter Windows nicht möglich (PLAN §4).
 
+**Liquid Glass** (`glass` mit WebGL2, `web/src/island/glass/`): Ein Shader zeichnet Island und Bubble als Distanzfeld.
+Im Rand (`--glass-bezel`) wölbt sich die Fläche wie eine dicke Linse: Das Wallpaper wird nach außen gebrochen
+(`--glass-refraction`), je Farbkanal leicht verschieden (Farbsaum, `--glass-dispersion`), der Körper ist Milchglas
+(`--glass-frost`), ein dünnes Randlicht folgt dem Mauszeiger (`--glass-edge-light`), darunter ein weicher Schatten
+(`--glass-shadow`). Island und Bubble verschmelzen beim Abspalten weich miteinander. Ohne WebGL2 übernehmen die
+CSS-Ebenen (`.mat-*`) – ebenso in Galerie und Theme-Karten.
+
 ---
 
 ## 10. Ikonografie
@@ -219,9 +226,13 @@ Die Theme-Engine erzeugt daraus CSS-Kurven (`--ease-spring-*`) und Dauern (`--du
 5. **Unterbrechbar:** Eingaben werden nie blockiert; neue Ziele übernehmen die aktuelle Geschwindigkeit.
 6. **Bump** bei Aktualisierung an Ort und Stelle (neue Mitteilung, Titelwechsel), ca. 3 %.
 7. **Hover** 1,035, **Drücken** 0,965 – beides als Feder.
-8. **Flüssiges Abspalten:** die Brücke zwischen Island und Bubble ist ein berechneter Vektorpfad (Metaball), kein
-   Filter. Sie reißt einmal und bildet sich beim Zurückziehen neu – auch wenn die Feder nachschwingt.
-9. **Keine Endlosschleifen** außer echtem Fortschritt, laufender Wiedergabe (Equalizer) und klingelndem Wecker.
+8. **Flüssiges Abspalten:** Die zweite Aktivität wird aus der Island **herausgezogen**. Der Hals dehnt sich
+   (`--island-split-pull`), reißt, die Bubble federt an ihren Platz zurück, und beide Körper wackeln kurz nach. Die
+   Brücke ist ein berechneter Vektorpfad (Metaball) bzw. beim Liquid Glass die weiche Vereinigung im Shader. Beim
+   Zurückziehen bildet sie sich neu. Schließt das Kontrollzentrum, wird die Island **erst** wieder eine Pille, **dann**
+   spaltet sich die Bubble ab.
+9. **Keine Endlosschleifen** außer echtem Fortschritt, laufender Wiedergabe (Equalizer), klingelndem Wecker und dem
+   Pausen-Vollbild (Atemkreis, Ambiente; §16).
 10. **Reduzierte Bewegung** (Windows oder Lab): Federn kritisch gedämpft ≤ 0,3 s, keine Unschärfe, Skalierung,
     Staffelung oder Wackeln. Überblendungen bleiben.
 
@@ -234,7 +245,7 @@ Island-Hülle; der Inhalt hat eine feste Endgröße. Pro Frame werden Werte nur 
 
 ## 12. Komponenten, Zustände, Barrierefreiheit
 
-**Primitive** (`web/src/ui`): `Icon`, `Tile` (zwei Zonen), `SmallTile`, `Slider`, `Switch`, `Tabs`, `Segmented`, `Range`,
+**Primitive** (`web/src/ui`): `Icon`, `Tile` (zwei Zonen), `SmallTile`, `Slider`, `Switch`, `Tabs`, `Segmented`, `Range`, `Stepper`,
 `ColorInput`, `Progress`, `Check`, `AppIcon`, `Art`, `Equalizer`, `Spark`, `Battery`, `Empty`, `Banner` sowie die
 CSS-Primitive `.btn`, `.icon-btn`, `.chip`, `.row`, `.field`, `.select`, `.section-label`.
 **Fachkomponenten** bauen nur auf Primitiven auf (Island-Views, Panel-Bereiche, Einstellungsseiten).
@@ -282,8 +293,11 @@ Bedeutung nie nur über Farbe.
 | `osd` | 264 × 42 | Icon nach Stufe, Balken, Wert |
 | `event` | Inhalt × 34 | Fortschrittsring in Kalenderfarbe, Titel, „in 5 Min“ |
 | `timer` / `stopwatch` | Inhalt × 34 | Restzeit des nächsten Timers (+n weitere) / laufende Zeit |
+| `pomodoro` | Inhalt × 34 | Phasen-Icon, Phase, Restzeit (Fokus in Akzentfarbe, Pausen in Grün) |
+| `timer:expanded`, `stopwatch:expanded`, `pomodoro:expanded` | 304 × Inhalt | Schnellaktionen: Ring + Restzeit, darunter +1 Min/Pause/Abbrechen bzw. Runde/Pause bzw. Pause/Überspringen/Beenden |
+| `pomodoroPhase` | 304 × Inhalt | Ankündigung eines automatischen Phasenwechsels („Zeit für eine Pause · 5 Min“) |
 | `charging` | ≥ 264 × 34 | „Wird geladen“, Prozent, Akku |
-| `alarm` / `timerDone` | 392 × Inhalt | Wackelnde Glocke, Uhrzeit bzw. Name, Schlummern/+1 Min und Ausschalten/Stopp |
+| `alarm` / `timerDone` / `pomodoroDone` | 392 × Inhalt | Wackelnde Glocke, Uhrzeit bzw. Name, Schlummern/+1 Min und Ausschalten/Stopp; beim Pomodoro „Pause starten“/„Fokus starten“ und Beenden |
 | `panel` | 800 × 556 | Kontrollzentrum |
 
 ### 14.2 Arbitrierung
@@ -292,16 +306,21 @@ Bedeutung nie nur über Farbe.
 |---|---|---|---|
 | Wecker klingelt | 110 | bis Schlummern/Aus | Timer |
 | Timer abgelaufen | 105 | bis Stopp | Timer |
+| Pomodoro-Phase vorbei (ohne Autostart) | 104 | bis Start/Beenden | Timer |
 | Mitteilung | 100 | 4,8 s (pausiert bei Hover) | Mitteilungen |
+| Pomodoro-Phasenwechsel | 95 | 5,2 s | Timer |
 | OSD | 90 | 1,7 s nach letzter Änderung | – |
 | Laden | 80 | 3,2 s | – |
 | Termin | 60 | bis 1 min nach Beginn (max. 15 min) | Kalender |
-| Timer | 50 | solange einer läuft | Timer |
-| Stoppuhr | 45 | solange sie läuft | Timer |
-| Musik | 40 | solange sie läuft, 12 s nach Pause | – |
+| Musik | 57 | solange sie läuft, 12 s nach Pause | – |
+| Pomodoro | 55 | solange ein Zyklus läuft | Timer |
+| Timer | 50 | solange einer läuft oder pausiert ist | Timer |
+| Stoppuhr | 45 | solange sie läuft oder pausiert ist (bis Zurücksetzen) | Timer |
 
 Die höchste Priorität besitzt die Island. Die nächsthöhere Aktivität mit Bubble-Darstellung spaltet sich ab, aber nur
-neben kompakten Ansichten.
+neben kompakten Ansichten. Laufende Musik behält die Haupt-Pille; Timer, Stoppuhr und Pomodoro spalten sich daneben ab
+(Hover auf die Bubble zeigt ihre Schnellaktionen). Klingelnde Signale (Wecker, Timer, Pomodoro) stehen in einer Warteschlange: Nichts geht
+verloren, wenn mehrere gleichzeitig fällig werden.
 
 ### 14.3 Sichtbarkeit (Auto-Hide)
 
@@ -319,12 +338,13 @@ Versteckt ist die Island vollständig durchklickbar.
 
 | Eingabe | Wirkung |
 |---|---|
-| Hover | Feder auf 1,035; Musik: nach 420 ms → Player, nach Verlassen 260 ms zurück |
+| Hover über einer Pille | Feder auf 1,035 (Bubble 1,06); nach 420 ms öffnet ihre Vorschau (Musik-Player, Schnellaktionen), nach Verlassen 260 ms zurück |
+| Vorschau der Bubble | wächst um ihre eigene Mitte (bleibt unter dem Zeiger) und schiebt die Island zur Seite; wächst die Island, weicht die Bubble nach rechts – beides als Feder, immer innerhalb des Fensters |
 | Klick | Kontrollzentrum (Bereich der Aktivität) |
 | Mausrad | Lautstärke ± 4 % mit OSD (abschaltbar) |
 | Enter / Leertaste (fokussiert), globales Tastenkürzel | Kontrollzentrum umschalten |
 | Esc, Klick daneben, Fokusverlust | schließen |
-| Klick auf Bubble | Kontrollzentrum mit dem Bereich dieser Aktivität |
+| Klick auf Bubble | Kontrollzentrum mit dem Bereich dieser Aktivität (Schnellaktionen in der Vorschau wirken direkt) |
 
 ### 14.5 Kontrollzentrum
 
@@ -332,7 +352,11 @@ Kopf: große Uhr + Datum · Akku, Kacheln bearbeiten (öffnet Einstellungen), Ei
 Energie sparen, Abmelden, Neu starten, Herunterfahren).
 Links: große und kleine Kacheln (konfigurierbar), Lautstärke, Helligkeit, Medienkarte. Kacheln mit Details haben zwei
 Zonen: **Icon schaltet, Text öffnet** die Detailseite. Was dort zu frickelig wird, öffnet die Windows-Einstellungen.
+**Rechtsklick** (oder Kontextmenü-Taste) auf eine Kachel öffnet die passende Seite der Windows-Einstellungen.
 Rechts: Bereiche **Mitteilungen · Kalender · Aufgaben · Timer · System** (Reihenfolge und Sichtbarkeit konfigurierbar).
+Der Timer-Bereich hat vier Tabs: **Timer · Stoppuhr · Wecker · Pomodoro**. Der Pomodoro zeigt ein großes Zifferblatt
+mit Sessionpunkten; seine Einstellungen (Längen, lange Pause nach n Sessions, Autostart, Pause als Mitteilung oder
+Vollbild) liegen auf einer zweiten Fläche hinter dem Regler-Icon und zusätzlich im Einstellungsfenster.
 Der aktive Tab wächst und zeigt seine Beschriftung.
 
 ---
@@ -345,3 +369,21 @@ Der aktive Tab wächst und zeigt seine Beschriftung.
 - Zahlen, Daten, Uhrzeiten, Dauern über `fmt.*` (folgen der aktiven Sprache).
 - Sprache: „Wie Windows“, Deutsch oder Englisch (Einstellungen → Sprache), wirkt live in allen Fenstern.
 - Neue Sprache: Katalog anlegen, in `LOCALES` eintragen – fertig.
+
+---
+
+## 16. Pausen-Vollbild (Pomodoro)
+
+Ein eigenes Fenster je Monitor (`break.html`, siehe BACKEND §3.3). Es soll zum Aufstehen einladen, nicht bestrafen.
+
+- **Aufbau:** Uhrzeit oben · Zifferblatt mit Atemkreis, Fortschrittsring und Countdown (`--type-break`) · Sessionpunkte ·
+  ein Tipp für die Pause · unten „Gedrückt halten zum Überspringen“ (`--break-hold`, auch per Leertaste/Enter halten).
+  Ist die Pause vorbei: Haken, „Bereit für die nächste Runde?“ und „Weiter arbeiten“.
+- **Bewegung:** Hintergrund blendet ein, Inhalte steigen gestaffelt auf, Ausgang ist ein Ausblenden. Der Atemkreis atmet
+  in `--break-breath` (4 s ein, 4 s aus, Beschriftung wechselt mit), das Ambiente-Licht driftet langsam
+  (`--break-drift`). Reduzierte Bewegung: beides steht still.
+- **Themes** färben es über `--break-*`: Obsidian echtes Schwarz mit weißem Ring, Monet Seed-Farben und ein Atemkreis,
+  der seine Form wandelt, Liquid Glass das echte Wallpaper mattiert mit Glas-Zifferblatt, Terminal Scanlines, ASCII-Balken
+  und Cursor, Paper Papierkorn, Tuschering und kursiver Tipp.
+- **Vorschau:** `break.html?preview` (auch `?preview=long`, `?preview=over`).
+

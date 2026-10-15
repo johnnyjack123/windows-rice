@@ -22,7 +22,7 @@ Dann in Chrome oder Edge:
 | Seite | Adresse | Wofür |
 |---|---|---|
 | **Island Lab** | <http://127.0.0.1:1420/lab.html> | Island + Kontrollzentrum über einem Test-Desktop, Ereignisse auslösen |
-| **Einstellungen** | <http://127.0.0.1:1420/settings.html> | Themes, Theme-Editor, Island, Kontrollzentrum, Kalender, Timer, Sprache |
+| **Einstellungen** | <http://127.0.0.1:1420/settings.html> | Themes, Theme-Editor, Island, Kontrollzentrum, Kalender, Timer & Pomodoro, Sprache |
 | **Galerie** | <http://127.0.0.1:1420/gallery.html> | Alle Bausteine in allen Zuständen, Themes und Schemata |
 
 Lab und Einstellungen teilen sich das Mock-Backend: Eine Änderung in den Einstellungen wirkt sofort in einem offenen
@@ -38,12 +38,21 @@ Lab-Tab (wie später zwischen den beiden Fenstern).
 | `V` / `B` | Lautstärke / Helligkeit | `.` | Nächster Titel |
 | `E` | Termin in Kürze | `T` | 5-Minuten-Timer (zeigt das Abspalten) |
 | `C` | Laden | `A` | Wecker klingelt |
-| `S` | Zeitlupe (1× → 0,5× → 0,2×) | `R` | Reduzierte Bewegung |
-| `H` | Lab-Leiste ausblenden | | |
+| `P` | Pomodoro starten / nächste Phase | `S` | Zeitlupe (1× → 0,5× → 0,2×) |
+| `R` | Reduzierte Bewegung | `H` | Lab-Leiste ausblenden |
 
 Außerdem: **Mausrad** über der Island ändert die Lautstärke, **Überfahren** der Musik-Island öffnet den Player.
 **Auto-Hide testen:** Im Lab „Dahinter → Helles/Dunkles Fenster“ wählen – die Island versteckt sich. Maus oben in der
 Mitte an den Rand drücken → sie kommt zurück; Bereich verlassen → sie verschwindet wieder.
+
+**Zwei Pillen testen:** Musik läuft bereits; `T` startet einen Timer, er spaltet sich als zweite Pille ab. Über die
+Musik-Pille fahren öffnet den Player, über die Timer-Pille die Schnellaktionen (+1 Min, Pause, Abbrechen); die andere
+Pille weicht jeweils aus. Kontrollzentrum öffnen und schließen zeigt das erneute
+Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Liquid Glass.
+
+**Pomodoro und Pausen-Vollbild:** Im Lab „Pomodoro-Pause im Vollbild“ anhaken, dann `P` (Start) und nochmal `P`
+(Fokus überspringen) – die Pause legt sich über die Seite. Direkt ansehen: <http://127.0.0.1:1420/break.html?preview>
+(auch `?preview=long`, `?preview=over`).
 
 ## Die fünf Standard-Themes
 
@@ -51,7 +60,7 @@ Mitte an den Rand drücken → sie kommt zurück; Bereich verlassen → sie vers
 |---|---|---|
 | 1 | **Obsidian** | Apple-nah: reines Schwarz, kräftige Federn, die zweite Aktivität spaltet sich flüssig ab |
 | 2 | **Monet** | Material 3 Expressive: alle Farben aus einem Seed (Wallpaper/Album), Formen verwandeln sich je nach Zustand |
-| 3 | **Liquid Glass** | Lichtbrechendes Glas über dem Wallpaper, Glanzkante folgt der Maus |
+| 3 | **Liquid Glass** | Echtes Glas per WebGL: Lichtbrechung und Farbsaum am Rand, Milchglas, Randlicht folgt der Maus, Pillen verschmelzen flüssig |
 | 4 | **Terminal** | Monospace, Haarlinien, Bernstein; ohne Federn, Inhalte „rendern“ sich ein |
 | 5 | **Paper** | Editorial: warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot |
 
@@ -78,14 +87,15 @@ docs/
   THEMING.md            Themes anpassen und bauen
   BACKEND.md            Auftrag und Schnittstelle für das Rust-Backend
 web/
-  *.html                Einstiegsseiten (island, settings, lab, gallery)
+  *.html                Einstiegsseiten (island, settings, break, lab, gallery)
   src/
     design/             Tokens, Themes, Theme-Engine, Theme-Editor, Icons, Schriften
     motion/             Federn (Physik + CSS-Kurven)
     i18n/               Sprachkataloge Deutsch/Englisch, Formatierer
     backend/            Vertrag (contract.ts), Tauri-Anbindung, Mock-Backend, Stores
     ui/                 Bausteine (Tile, Slider, Switch, Tabs …)
-    island/             Island, Aktivitäten, Auto-Hide, Timer, Kontrollzentrum (panel/)
+    island/             Island, Aktivitäten, Auto-Hide, Timer, Pomodoro, Glas-Shader (glass/), Kontrollzentrum (panel/)
+    break/              Pausen-Vollbild des Pomodoro
     settings/           Einstellungsfenster
     lab/ gallery/       Entwicklungsseiten
 scripts/                Hilfsskripte (Icon-Subset)

@@ -1,6 +1,6 @@
 # rice — Umsetzungsplan
 
-> Arbeitstitel „rice“ · Stand 14.10.2026 · aktuelle Phase: **1b – Rust-Backend** (Frontend fertig, läuft im Browser)
+> Name „rice“ · Stand 15.10.2026 · aktuelle Phase: **1b – Rust-Backend** (Frontend fertig, läuft im Browser)
 > Begleitdokumente: [`DESIGN.md`](DESIGN.md) (Gestaltungsregeln) · [`THEMING.md`](THEMING.md) (Themes bauen) ·
 > [`BACKEND.md`](BACKEND.md) (Auftrag Rust-Backend) · Lab: `pnpm dev` → <http://127.0.0.1:1420/lab.html>
 
@@ -179,8 +179,8 @@ pub trait Service: Send + Sync + 'static {
 
 ### 3.4 Frontend-Module (umgesetzt)
 
-Eine Vite-App, eine HTML-Seite pro Fenster (`island.html`, `settings.html`; dazu die Dev-Seiten `lab.html` und
-`gallery.html`). Statt separater npm-Pakete gibt es klar getrennte Ordner mit Pfad-Aliasen – spätere Module
+Eine Vite-App, eine HTML-Seite pro Fenster (`island.html`, `settings.html`, `break.html`; dazu die Dev-Seiten
+`lab.html` und `gallery.html`). Statt separater npm-Pakete gibt es klar getrennte Ordner mit Pfad-Aliasen – spätere Module
 (Taskleiste, Launcher) werden weitere Seiten derselben App und nutzen dieselben Module.
 
 | Ordner (Alias) | Inhalt |
@@ -188,9 +188,10 @@ Eine Vite-App, eine HTML-Seite pro Fenster (`island.html`, `settings.html`; dazu
 | `web/src/design` (`$design`) | `tokens.css` (Vertrag), `themes/*.css`, Schriften, Icon-Subset, Theme-Engine, Theme-Editor-Modell, Farb- und Wallpaper-Helfer |
 | `web/src/motion` (`$motion`) | Feder-Engine (`SpringValue`, `SpringSystem`, `springToLinear`) |
 | `web/src/i18n` (`$i18n`) | Kataloge `de.ts` (Referenz) und `en.ts`, reaktive Sprache, Formatierer |
-| `web/src/ui` (`$ui`) | Primitive ohne Fachlogik: `Tile`, `SmallTile`, `Slider`, `Switch`, `Tabs`, `Segmented`, `Range`, `ColorInput`, `Progress`, `Check`, `AppIcon`, `Art`, `Equalizer`, `Spark`, `Battery`, `Empty`, `Banner`, `Icon` + `ui.css` |
+| `web/src/ui` (`$ui`) | Primitive ohne Fachlogik: `Tile`, `SmallTile`, `Slider`, `Switch`, `Tabs`, `Segmented`, `Range`, `Stepper`, `ColorInput`, `Progress`, `Check`, `AppIcon`, `Art`, `Equalizer`, `Spark`, `Battery`, `Empty`, `Banner`, `Icon` + `ui.css` |
 | `web/src/backend` (`$backend`) | Vertrag `contract.ts`, Transports (Tauri/Mock), reaktive Stores je Service, Einstellungs-Defaults und Merge-Logik, simuliertes Backend |
-| `web/src/island` (`$island`) | Island: Controller, Aktivitäten-Registry, Views, Auto-Hide, Timer/Stoppuhr/Wecker, Panel mit Kacheln, Drill-ins und Bereichen |
+| `web/src/island` (`$island`) | Island: Controller (zwei Pillen mit eigener Vorschau), Aktivitäten-Registry, Views, Auto-Hide, Timer/Stoppuhr/Wecker/Pomodoro, Liquid-Glass-Shader (`glass/`), Panel mit Kacheln, Drill-ins und Bereichen |
+| `web/src/break` (`$break`) | Pausen-Vollbild des Pomodoro (eigenes Fenster je Monitor) |
 | `web/src/settings` (`$settings`) | Einstellungsfenster inkl. Theme-Editor |
 | `web/src/lab`, `web/src/gallery` | Dev-Werkzeuge |
 
@@ -202,16 +203,16 @@ Regel aus dem Design-System: **Fachkomponenten** bauen nur auf `$ui` auf und gre
 |---|---|---|
 | Aktivitäten (was die Island zeigen kann) | `island/activities.svelte.ts` | `registry.define({ id, priority, view, compact, bubble?, expandedView?, section?, transient?, critical?, label })`, dann `registry.show(id, { ttl })` / `hide(id)` aus der eigenen Datenquelle |
 | Panel-Bereiche (Tabs) | `island/panel/sections.ts` | Eintrag `{ id, label, icon, badge?, component }`; Reihenfolge/Sichtbarkeit in `settings.panel.sections` |
-| Kacheln | `island/panel/tiles.ts` | Eintrag `{ id, label, icon, sub, on, available, toggle, page? }`; Auswahl/Reihenfolge in `settings.panel.tilesLarge/tilesSmall` |
+| Kacheln | `island/panel/tiles.ts` | Eintrag `{ id, label, icon, sub, on, available, toggle, page?, settings? }` (`settings` = `ms-settings:`-Ziel für den Rechtsklick); Auswahl/Reihenfolge in `settings.panel.tilesLarge/tilesSmall` |
 
-Die eingebauten Aktivitäten (Musik, Mitteilung, OSD, Laden, Termin, Timer, Stoppuhr, Wecker, abgelaufener Timer) und
-der Timer-Bereich wurden genau so hinzugefügt – das ist der Beweis, dass die Erweiterungspunkte tragen.
+Die eingebauten Aktivitäten (Musik, Mitteilung, OSD, Laden, Termin, Timer, Stoppuhr, Wecker, abgelaufener Timer,
+Pomodoro samt Phasenwechsel und Klingeln) und der Timer-Bereich wurden genau so hinzugefügt – das ist der Beweis, dass
+die Erweiterungspunkte tragen.
 
 ### 3.6 Konfiguration
 
-Das Backend speichert ein **opakes JSON-Objekt** (`%APPDATA%
-ice\config.json`) und mergt Patches (Objekte
-schlüsselweise, Arrays ersetzen, `null` löscht). Defaults, Typprüfung und Migrationen liegen an **einer** Stelle im
+Das Backend speichert ein **opakes JSON-Objekt** (`%APPDATA%\rice\config.json`) und mergt
+Patches (Objekte schlüsselweise, Arrays ersetzen, `null` löscht). Defaults, Typprüfung und Migrationen liegen an **einer** Stelle im
 Frontend (`web/src/backend/settings.ts`). Geheimnisse (CalDAV-Passwörter) liegen nie in der Datei, sondern in der
 Windows-Anmeldeinformationsverwaltung. Schema: Typ `Settings` in `contract.ts`.
 
@@ -221,7 +222,8 @@ Windows-Anmeldeinformationsverwaltung. Schema: Typ `Settings` in `contract.ts`.
 rice/
 ├─ package.json, vite.config.ts …   Frontend-Tooling (pnpm, Vite 8, Svelte 5, TS 6, Vitest)
 ├─ web/                             Frontend (Vite-Root)
-│  ├─ island.html, settings.html    Fenster der App
+│  ├─ island.html, settings.html,   Fenster der App
+│  │  break.html
 │  ├─ lab.html, gallery.html        Dev-Werkzeuge
 │  └─ src/…                         Module, siehe 3.4
 ├─ src-tauri/                       ← Rust-Backend (folgt, siehe BACKEND.md)
@@ -355,6 +357,7 @@ Größen: S ≈ wenige Abende, M ≈ ein bis zwei Wochenenden, L ≈ mehrere Woc
 |---|---|---|
 | **0 Design Lab** | Fünf Konzepte, Tokens, Themes, Galerie, Regeln | ✅ erledigt (13.10.) – alle fünf bleiben Standard-Themes |
 | **1a Frontend** | Svelte-App: Island (Morph, Aktivitäten, Split-Bubble mit flüssiger Brücke, Auto-Hide mit Kanten-Reveal), Kontrollzentrum (Kacheln, WLAN-/Bluetooth-Seiten, Medien, Mitteilungen, Kalender, Aufgaben, Timer/Stoppuhr/Wecker, System), Einstellungen mit Theme-Editor, DE/EN, Vertrag + simuliertes Backend, Tests | ✅ erledigt (14.10.) |
+| **1a+ Erweiterungen** | Liquid Glass per WebGL (Brechung, Farbsaum, flüssige Vereinigung), zwei Pillen mit eigener Hover-Vorschau und Abspalt-Choreografie, Pomodoro mit Pausen-Vollbild, Rechtsklick auf Kacheln → Windows-Einstellungen, Windows-Banner-Einstellung | ✅ erledigt (15.10.) |
 | **1b Rust-Backend** | Nach [`BACKEND.md`](BACKEND.md) §6, Schritte 1–7 (Fenster & Klick-durch → Medien/Audio → System → Netz/Bluetooth → CalDAV → Mitteilungen → Installer) | ⏳ nächster Schritt (separater Agent) |
 | **2 Politur** | Feinschliff nach echtem Desktop-Test, Performance-Pass, Playwright-Screenshots der Galerie als visuelle Regression | offen |
 | **3+ Weitere Module** | Taskleiste, App-Launcher, Desktop-Widgets … als weitere Seiten derselben App | offen |
@@ -401,9 +404,15 @@ Größen: S ≈ wenige Abende, M ≈ ein bis zwei Wochenenden, L ≈ mehrere Woc
 | 14.10. | Timer-Menü mit Timern (parallel), Stoppuhr und Wecker |
 | 14.10. | Kalender und Aufgaben: Nextcloud per CalDAV |
 | 14.10. | Git-Repository; Frontend und Backend getrennt, Rust-Backend durch einen eigenen Agenten nach `BACKEND.md` |
+| 15.10. | Name bleibt vorerst „rice“; Repository auf GitHub (`johnnyjack123/windows-rice`) |
+| 15.10. | Mehrere Monitore: die Island steht auf einem wählbaren Monitor (Einstellung vorhanden), nicht auf allen |
+| 15.10. | Windows-eigene Mitteilungsbanner werden abgeschaltet, solange rice läuft (pro App `ShowBanner`, mit Sicherung und Wiederherstellung; abschaltbar) |
+| 15.10. | Echtes Liquid Glass per WebGL2-Shader, CSS-Glas als Rückfall |
+| 15.10. | Zwei Pillen: Hover öffnet die Vorschau der jeweiligen Pille, die andere weicht aus; nach dem Schließen erst eine Pille, dann sichtbares Abspalten |
+| 15.10. | Pomodoro als vierter Timer-Tab; Pause als Mitteilung oder als Vollbild über alle Monitore (Überspringen nur per Gedrückthalten) |
+| 15.10. | Rechtsklick auf eine Kachel öffnet die passende Windows-Einstellungsseite |
 
-**Noch offen:** Island auf mehreren Monitoren gleichzeitig? · Windows-eigene Mitteilungsbanner langfristig abschalten?
-· Endgültiger Name statt „rice“.
+**Noch offen:** nichts Grundsätzliches – Feinschliff nach dem ersten echten Desktop-Test.
 
 ---
 

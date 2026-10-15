@@ -24,6 +24,7 @@ liegen in den Einstellungen unter `theme.overrides.<theme-id>` und gelten nur f�
 | Farben (pro Schema) | Hintergrund, Text, Akzent | `--base-bg`, `--base-fg`, `--accent` – alle Flächen, Linien und Zustände leiten sich daraus ab |
 | Schrift | Oberfläche, Anzeige (Uhr, Zahlen), Textgröße | `--font-ui`, `--font-display`/`--font-numeric`, `--text-scale` |
 | Form | Island-Höhe, Island-Radius, Panel-Radius, Kachel-Radius, Dichte | `--island-height`, `--radius-island`, `--radius-panel` (+ konzentrische Radien), `--radius-tile(-small)`, `--density` |
+| Glas (nur Glas-Themes) | Lichtbrechung, Farbsaum, Milchglas | `--glass-refraction`, `--glass-dispersion`, `--glass-frost` |
 | Bewegung | Tempo, Federung, Easing-Stärke, Weichzeichnen beim Überblenden, Flüssiges Abspalten | alle Dauern und Federn, Bounce, Bezier-Kurven, `--content-blur`, `--island-goo` |
 | Icons | Stil, Strichstärke | `--icon-family`, `--icon-weight` |
 
@@ -42,11 +43,12 @@ liegen in den Einstellungen unter `theme.overrides.<theme-id>` und gelten nur f�
 | Dichte | `--space-base`, `--tile-height`, `--control-height`, `--row-height` | Terminal: 3,5-px-Raster |
 | Form | `--radius-panel`, `--panel-padding`, `--radius-island`, `--radius-tile(-on/-pressed)` | Monet: Pille → Rechteck bei „An“ |
 | Trennung | `--elevation-*`, `--surface-texture` | Terminal: Haarlinien, Paper: Regeln + Papierkorn |
-| Material | `--island-material`, `--island-goo` | Glass: vorgerendertes Glas; Obsidian: flüssiges Abspalten |
+| Material | `--island-material`, `--island-goo`, `--glass-*` | Glass: Liquid-Glass-Shader; Obsidian, Monet, Paper: flüssiges Abspalten |
 | Ikonografie | `--icon-family`, `--icon-weight`, `--icon-grade`, `--icon-fill-on` | Terminal: Sharp 300 |
 | Bewegung | `--spring-*`, `--dur-*`, `--content-blur`, `--enter-*`, `--stagger`, `--eq-timing` | Terminal: ohne Federn, gestuft |
 | Inhalt | `--island-clock-seconds`, `--island-track-display`, `--spark-style` | Terminal: Uhr mit Sekunden, gestufte Sparklines |
 | Komponenten | `--tile-*`, `--slider-*`, `--switch-*`, `--media-*`, `--progress-*` … | Obsidian: aktive Kacheln invertiert |
+| Pausen-Vollbild | `--break-*`, `--type-break` | Terminal: ASCII-Balken statt Ring; Glass: echtes, mattiertes Wallpaper |
 
 ## 3. Das Farbmodell
 
@@ -174,7 +176,25 @@ Obsidian). Dafür gilt:
   die Feder, nie eine Bezier-Kurve für räumliche Bewegung.
 - `--content-blur: 0px` + `--enter-scale: 1` schaltet die weiche Auflösung ab (Terminal, Paper).
 - Eigene Ein-/Ausblendtechnik über gekapselte `.view`-Overrides (Terminal: `clip-path` mit `steps()`).
-- `--island-goo: 1` aktiviert das flüssige Abspalten der zweiten Aktivität (Metaball-Brücke).
+- `--island-goo: 1` aktiviert das flüssige Abspalten der zweiten Aktivität (Metaball-Brücke bzw. weiche Vereinigung im
+  Glas-Shader); `--island-split-pull` bestimmt, wie weit sich der Hals dehnt, bevor er reißt.
+
+## 8a. Liquid Glass
+
+Ein Theme mit `--island-material: glass` bekommt den WebGL-Shader (`web/src/island/glass/liquid-glass.ts`). Er liest:
+
+| Token | Bedeutung | Glass (Standard) |
+|---|---|---|
+| `--glass-bezel` | Breite des gewölbten Rands | `16px` |
+| `--glass-refraction` | Stärke der Lichtbrechung (Faktor) | `1` |
+| `--glass-dispersion` | Farbsaum der Brechung, 0…1 | `0.35` |
+| `--glass-frost` | Milchglas des Körpers, 0…1 | `0.78` |
+| `--glass-edge-light` | Randlicht, 0…1 | `0.55` (hell `0.75`) |
+| `--glass-shadow` | Deckkraft des Schattens | `0.38` (hell `0.22`) |
+| `--glass-tint`, `--glass-tint-expanded` | Tönung kompakt / als Kontrollzentrum | aus `--base-bg` |
+
+Ohne WebGL2 (oder in Vorschauen) zeichnen die CSS-Ebenen `.mat-rim/-core/-tint/-sheen` das Glas. Die Laufzeit setzt
+`data-glass="webgl"` bzw. `"css"` an der Wurzel; ein Theme kann beide Fälle gezielt ansprechen.
 
 ## 9. Theme-Pakete
 

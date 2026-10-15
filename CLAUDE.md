@@ -26,6 +26,8 @@ Mock-Backend; das Rust-Backend (`src-tauri/`) wird nach `docs/BACKEND.md` gebaut
   gleichzeitig in Mock-Backend und `docs/BACKEND.md` nachziehen.
 - Island-Aktivitäten über die Registry (`island/activities.svelte.ts`), Kontrollzentrum-Bereiche über
   `island/panel/sections.ts`, Kacheln über `island/panel/tiles.ts` – neue Module dort registrieren statt Sonderfälle.
+- Fenster: `island.html` (Island + Kontrollzentrum), `settings.html`, `break.html` (Pomodoro-Pause im Vollbild,
+  `web/src/break`). Liquid Glass: WebGL2-Shader in `island/glass/`, CSS-Glas als Rückfall.
 - Rust-Code nach `docs/BACKEND.md` (Fenster, Commands, Sicherheitsregeln: Passwörter nur im Windows-Tresor,
   `shell_open` nur per Whitelist).
 
@@ -37,4 +39,6 @@ Mock-Backend; das Rust-Backend (`src-tauri/`) wird nach `docs/BACKEND.md` gebaut
 - **Visuelle Tests macht der Nutzer selbst** – keine Browser-Automation. Nach Änderungen sagen, was er sich ansehen soll.
 - Statisch: `pnpm verify` (svelte-check ohne Warnungen, Vitest inkl. Smoke-Test, Build).
 - Dateien nicht mit PowerShell `Get-Content`/`Set-Content` umschreiben (Windows PowerShell 5.1 zerstört UTF-8),
-  sondern mit Edit/Write oder Python (`encoding="utf-8"`).
+  sondern mit Edit/Write oder Python (`encoding="utf-8"`). Python-Skripte mit Backslashes (Windows-Pfade, Regex) als
+  Datei schreiben und ausführen – über einen Bash-Heredoc werden doppelte Backslashes zusammengefasst, aus `\r` wird
+  dann ein Steuerzeichen.

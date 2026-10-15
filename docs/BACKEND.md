@@ -115,11 +115,38 @@ aktuellen Hit-Regions plus 32 px Rand verlässt **und** tiefer als 40 px unter d
 
 **Vollbild/Sperrbildschirm:** Bei Sperre (`WTS_SESSION_LOCK`) nichts senden; das Fenster bleibt einfach unsichtbar.
 
+**GPU.** Bei Glas-Themes zeichnet das Frontend das Material per **WebGL2** in eine Canvas des transparenten Fensters
+(vormultipliziertes Alpha). Hardwarebeschleunigung von WebView2 also nicht abschalten (keine `--disable-gpu`-Flags). Fehlt
+WebGL2, fällt das Frontend selbst auf CSS zurück.
+
+**Zwei Pillen.** Die Hit-Regions enthalten bis zu zwei Rechtecke: Island und Bubble. Die Bubble kann beim Überfahren zu
+einer Vorschau mit Schnellaktionen wachsen und schiebt die Island dabei zur Seite – die gemeldeten Rechtecke decken das
+ab. Für das Backend ändert sich dadurch nichts.
+
 ### 3.2 `settings` (bei Bedarf)
 
 `window_open_settings { page? }`: existiert das Fenster, fokussieren und auf `settings.html#<page>` navigieren; sonst
 erzeugen: Titel „rice“, 1120 × 780, min. 900 × 640, normale Dekoration (Mica optional). Das Frontend ist im
 Einstellungsfenster vollständig selbstständig.
+
+### 3.3 `break-<n>` (Pomodoro-Pause im Vollbild, bei Bedarf)
+
+Ist in den Pomodoro-Einstellungen „Pause anzeigen als: Vollbild“ gewählt, legt das Frontend während einer Pause ein
+Fenster über **jeden** Monitor. Der Pomodoro selbst läuft im Island-Fenster; die Pausenfenster zeigen nur an.
+
+| Eigenschaft | Wert |
+|---|---|
+| URL | `break.html` (je Monitor ein Fenster, Label `break-0`, `break-1` …) |
+| Stil | `transparent: true` (die Seite blendet sich selbst ein), `decorations: false`, `alwaysOnTop: true`, `skipTaskbar: true`, `resizable: false`, deckt den **ganzen** Monitor ab (nicht nur die Arbeitsfläche), Fokus auf das Fenster des Island-Monitors |
+| Schließen | Alt+F4/Schließen-Anfragen während der Pause ignorieren (`CloseRequested` → `prevent_close`). Der Ausweg ist der Button „Gedrückt halten zum Überspringen“ in der Seite (`break_finish`); Strg+Alt+Entf und Task-Manager funktionieren wie immer. |
+
+| Command / Event | Verhalten |
+|---|---|
+| `break_show(BreakOverlay)` | Zustand merken, fehlende Fenster öffnen (Monitore per `EnumDisplayMonitors`), dann → `break://state` mit dem Zustand. Erneute Aufrufe aktualisieren nur (Pause angehalten, Pause vorbei). |
+| `break_hide` | → `break://state` mit `null` (die Seiten blenden in ~400 ms aus), nach **450 ms** alle Pausenfenster schließen, Zustand löschen. |
+| `break_state` | Letzter Zustand oder `null` – ein Pausenfenster liest ihn beim Laden. |
+| `break_finish` | Vom Pausenfenster: wie `break_hide`, zusätzlich → `break://finished` (das Island-Fenster startet dann die nächste Fokuszeit). |
+| Monitorwechsel | Während eine Pause läuft, Fenster für neue Monitore öffnen bzw. für entfernte schließen. |
 
 ---
 
@@ -149,7 +176,8 @@ based_on = "paper"        # im JSON: basedOn
 ```
 
 Was das Backend aus den Einstellungen selbst braucht (mit diesen Defaults, falls der Schlüssel fehlt):
-`island.monitor = "primary"`, `island.offsetTop = 10`, `island.hotkey = "Super+Alt+Space"`, `locale = "auto"`.
+`island.monitor = "primary"`, `island.offsetTop = 10`, `island.hotkey = "Super+Alt+Space"`, `locale = "auto"`,
+`notifications.hideWindowsBanners = true` (siehe Mitteilungen).
 
 ### System
 
@@ -227,6 +255,33 @@ mit der Capability `userNotificationListener`, das der Installer registriert. Oh
 | `notifications_dismiss { id }` / `notifications_clear` | `RemoveNotification` / `ClearNotifications`. → `notifications://removed` je Id. |
 | → `notifications://posted` / `removed` | Über `NotificationChanged`; falls das Event in deiner Konfiguration nicht feuert, alle 2 s abgleichen (Diff nach Id). |
 
+**Windows-Banner ausblenden (`notifications.hideWindowsBanners`, Standard `true`).** Solange rice läuft, zeigt nur die
+Island neue Mitteilungen; im Infocenter von Windows bleiben sie. Recherche (Oktober 2026), Ergebnis und Vorgaben:
+
+- „Nicht stören“ lässt sich **nicht** dokumentiert per Programm schalten: `FocusSessionManager.TryStartFocusSession` /
+  `DeactivateFocus` sind ein *Limited Access Feature* mit Freischalt-Token von Microsoft
+  ([Doku](https://learn.microsoft.com/en-us/uwp/api/windows.ui.shell.focussessionmanager.trystartfocussession)).
+  WNF-/CloudStore-Tricks sind undokumentiert und brechen zwischen Windows-Versionen → **nicht verwenden**. Ebenso **nicht**
+  `NOC_GLOBAL_SETTING_TOASTS_ENABLED` (globaler Schalter, Wirkung auf Infocenter und Listener ungeklärt).
+- **Umsetzung:** pro App den Wert „Benachrichtigungsbanner anzeigen“ ausschalten: DWORD `ShowBanner = 0` unter
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\<AUMID>`. Die Einstellung selbst ist
+  [dokumentiert](https://support.microsoft.com/windows/8942c744-6198-fe56-4639-34320cf9444e), der Registry-Wert nicht.
+  Die Tauri/Rust-App Catrace nutzt genau das unter Windows 11 (26200): Mitteilungen landen weiter im Infocenter und beim
+  Listener, wirksam ab der nächsten Mitteilung, ohne Explorer-Neustart
+  ([PR](https://github.com/lanxiuyun/Catrace/pull/87)). **`Enabled` nie anfassen.**
+- **AUMIDs:** alle Unterschlüssel von `…\Notifications\Settings` (rekursiv, Pfad-AUMIDs sind verschachtelt). Ein
+  Unterschlüssel entsteht erst mit der ersten Mitteilung einer App → bei jeder neuen AUMID aus `NotificationChanged`
+  sofort nachziehen (die allererste Mitteilung einer neuen App erscheint daher einmal als Windows-Banner).
+- **Wiederherstellen:** vor jedem Schreiben den Originalzustand („fehlte“ oder alter DWORD) in
+  `%APPDATA%\rice\banner-backup.json` sichern. Zurücksetzen beim Beenden, bei Abmelden/Herunterfahren
+  (`WM_ENDSESSION`), aus einem Panic-Hook und **bei jedem Start** (Reste eines Absturzes), bevor erneut unterdrückt wird.
+  Nur Einträge zurücksetzen, die noch `0` sind (eine zwischenzeitliche Änderung des Nutzers bleibt). Der Deinstaller ruft
+  das Zurücksetzen ebenfalls auf. Setting auf `false` → sofort zurücksetzen.
+- **Sicherheitsnetz:** Ist der Listener-Zugriff nicht `granted` (oder wird entzogen), **nicht** unterdrücken bzw. sofort
+  zurücksetzen – sonst sieht der Nutzer gar keine Mitteilungen mehr.
+- **Offen, früh testen:** ob `ShowBanner = 0` auch Wecker-/Anruf-Toasts betrifft, und ob der Listener Mitteilungen
+  klassischer Desktop-Apps (Discord, Outlook, Signal) sieht.
+
 ### Kalender und Aufgaben (CalDAV, Nextcloud)
 
 | Command / Event | Verhalten |
@@ -258,8 +313,9 @@ Frontend selbst aus `calendar_events` (Vorlauf in `settings.calendar.reminderLea
 
 ## 5. Was das Frontend selbst erledigt (nicht im Backend bauen)
 
-Timer, Stoppuhr, Wecker und Alarmtöne (Wecker werden über `settings.timers.alarms` gespeichert), Erinnerungen an
-Termine, Theme-Anwendung und Theme-Editor (inkl. Erzeugung der `theme.css`), Glas-Vorrendern aus der Wallpaper-Data-URL,
+Timer, Stoppuhr, Wecker, Pomodoro und Alarmtöne (Wecker und Pomodoro-Rhythmus werden über `settings.timers`
+gespeichert; das Backend öffnet für den Pomodoro nur die Pausenfenster), Erinnerungen an Termine, Theme-Anwendung und
+Theme-Editor (inkl. Erzeugung der `theme.css`), Glas-Vorrendern aus der Wallpaper-Data-URL und der Liquid-Glass-Shader,
 Farbextraktion aus Cover/Wallpaper, Übersetzungen (Deutsch/Englisch), „Nicht stören“ (unterdrückt Island-Banner).
 
 ---
@@ -268,12 +324,12 @@ Farbextraktion aus Cover/Wallpaper, Übersetzungen (Deutsch/Englisch), „Nicht 
 
 | Schritt | Inhalt | Fertig, wenn … |
 |---|---|---|
-| 1 | Tauri-Gerüst, Fenster, Config, Themes, Appearance/Wallpaper/Monitore, Island-Fensterverhalten (Klick-durch, Fokus, Überlappung, Kante, Hotkey), Einstellungsfenster, `shell_open` | `pnpm tauri dev` zeigt die Island; Desktop-Icons unter der transparenten Fläche bleiben klickbar; ein maximiertes Fenster blendet die Island aus; Maus an die obere Kante holt sie zurück; Theme-Wechsel im Einstellungsfenster wirkt sofort in der Island |
+| 1 | Tauri-Gerüst, Fenster, Config, Themes, Appearance/Wallpaper/Monitore, Island-Fensterverhalten (Klick-durch, Fokus, Überlappung, Kante, Hotkey), Einstellungsfenster, Pausenfenster, `shell_open` | `pnpm tauri dev` zeigt die Island; Desktop-Icons unter der transparenten Fläche bleiben klickbar; ein maximiertes Fenster blendet die Island aus; Maus an die obere Kante holt sie zurück; Theme-Wechsel im Einstellungsfenster wirkt sofort in der Island; Pomodoro mit „Vollbild“ legt in der Pause über jeden Monitor ein Fenster, „Gedrückt halten“ beendet es; Liquid Glass zeigt Lichtbrechung (WebGL aktiv) |
 | 2 | Medien, Audio, Anzeige, Energie | Spotify/Browser-Medien erscheinen live; Lautstärketasten zeigen das Island-OSD; Mausrad über der Island ändert die Lautstärke |
 | 3 | Systemmonitor | Werte stimmen grob mit dem Task-Manager; ohne geöffneten System-Tab keine Samples |
 | 4 | Netzwerk, Bluetooth | WLAN-Liste (inkl. Standort-Fehlerzustand), Verbinden mit falschem/richtigem Schlüssel, Kopfhörer verbinden/trennen oder sauberer Fallback |
 | 5 | Kalender, Aufgaben | Nextcloud-Konto einrichten, Termine/Aufgaben synchron mit Android (DAVx⁵), Aufgabe abhaken wirkt in Nextcloud |
-| 6 | Mitteilungen + Sparse Package | Mitteilungen anderer Apps erscheinen als Banner und in der Liste |
+| 6 | Mitteilungen + Sparse Package | Mitteilungen anderer Apps erscheinen als Banner in der Island und in der Liste; Windows-Banner bleiben aus und kommen nach dem Beenden (auch nach einem Absturz beim nächsten Start) zurück |
 | 7 | Installer (NSIS/MSI), Autostart, Einzelinstanz | Installierbar, startet mit Windows |
 
 Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` grün. Leistungsbudget aus PLAN §1:
