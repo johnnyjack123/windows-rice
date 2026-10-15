@@ -102,6 +102,11 @@ export class TimersStore {
       .sort((a, b) => this.remainingOf(a) - this.remainingOf(b));
   }
 
+  /** Number of running or paused timers; unlike {@link active} it does not change with every tick. */
+  get activeCount(): number {
+    return this.timers.filter((t) => t.state !== 'done').length;
+  }
+
   /**
    * @param t - Timer.
    * @returns Remaining ms right now.

@@ -36,7 +36,7 @@ export function builtinSections(b: Backend, timers: TimersStore): Record<string,
     { id: 'notifications', label: () => m().notifications, icon: 'notifications', badge: () => b.notifications.items.length, component: NotificationsSection },
     { id: 'calendar', label: () => m().calendar, icon: 'calendar_month', component: CalendarSection },
     { id: 'tasks', label: () => m().tasks, icon: 'task_alt', badge: () => b.tasks.list.filter((t) => !t.done && isDueOrOverdue(t.due)).length, component: TasksSection },
-    { id: 'timers', label: () => m().timers, icon: 'timer', badge: () => timers.active.length, component: TimersSection },
+    { id: 'timers', label: () => m().timers, icon: 'timer', badge: () => timers.activeCount, component: TimersSection },
     { id: 'system', label: () => m().system, icon: 'monitoring', component: SystemSection },
   ];
   return Object.fromEntries(list.map((s) => [s.id, s]));

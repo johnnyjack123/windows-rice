@@ -848,7 +848,9 @@
   gap: 2px;
   height: 14px;
   color: var(--eq-color);
-  transition: scale var(--dur-slow) var(--ease-standard);
+  transition:
+    scale var(--dur-slow) var(--ease-standard),
+    color calc(var(--dur-slow) * 2) var(--ease-standard);
 }
 .eq i {
   width: 3px;

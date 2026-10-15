@@ -618,6 +618,11 @@
   font: var(--type-metric);
 }
 
+/* Hidden views (inactive previews, the closed panel) do not keep animating. */
+.view:not(.is-active) :is(.eq i, .ring-icon) {
+  animation-play-state: paused;
+}
+
 /* ── Bubble contents ────────────────────────────────────────────────────── */
 .view.view--bubble {
   display: grid;

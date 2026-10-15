@@ -30,6 +30,7 @@ describe('timers', () => {
     store.start(10 * 60_000, '');
     expect(new Set(store.timers.map((t) => t.id)).size).toBe(3);
     expect(store.active.map((t) => t.label)).toEqual(['Eggs', 'Tea', '']);
+    expect(store.activeCount).toBe(3);
 
     vi.advanceTimersByTime(30_000);
     const tea = store.timers.find((t) => t.label === 'Tea')!;

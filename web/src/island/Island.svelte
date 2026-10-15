@@ -177,10 +177,27 @@
     }
   }
 
+  // Mice report up to 1000 moves per second; the sheen and the glass light follow once per frame.
+  let pointer: { x: number; y: number } | null = null;
+  let pointerFrame = 0;
+
   function sheen(e: PointerEvent): void {
-    const rect = shell.getBoundingClientRect();
-    bg.style.setProperty('--mx', `${((e.clientX - rect.left) / rect.width) * 100}%`);
-    glass?.setPointer(e.clientX, e.clientY);
+    pointer = { x: e.clientX, y: e.clientY };
+    if (!pointerFrame) {
+      pointerFrame = requestAnimationFrame(() => {
+        pointerFrame = 0;
+        if (pointer) {
+          const rect = shell.getBoundingClientRect();
+          bg.style.setProperty('--mx', `${((pointer.x - rect.left) / rect.width) * 100}%`);
+          glass?.setPointer(pointer.x, pointer.y);
+        }
+      });
+    }
+  }
+
+  function sheenEnd(): void {
+    pointer = null;
+    glass?.setPointer(null);
   }
 </script>
 
@@ -198,7 +215,7 @@
     onpointerup={() => controller.release()}
     onpointercancel={() => controller.release()}
     onpointermove={sheen}
-    onpointerleave={() => glass?.setPointer(null)}
+    onpointerleave={sheenEnd}
   >
     <div class="island__shadow" bind:this={shadow}></div>
     <svg class="island__bridge" aria-hidden="true"><path bind:this={bridge} /></svg>

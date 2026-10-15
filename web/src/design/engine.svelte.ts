@@ -57,6 +57,8 @@ export class ThemeEngine {
   private readonly overrideStyle = this.styleElement('rice-overrides');
   private glassUrls: string[] = [];
   private wallpaperToken = 0;
+  /** Image, fit and monitor size of the last rendered glass layers. */
+  private wallpaperKey = '';
 
   /** @param backend - Backend of this window. */
   constructor(private readonly backend: Backend) {}
@@ -177,14 +179,24 @@ export class ThemeEngine {
   }
 
   private async applyWallpaper(info: WallpaperInfo): Promise<void> {
+    const g = this.glass;
+    if (g.monitorWidth !== info.monitor.width || g.monitorHeight !== info.monitor.height || g.windowX !== info.window.x || g.windowY !== info.window.y) {
+      this.glass = {
+        monitorWidth: info.monitor.width,
+        monitorHeight: info.monitor.height,
+        windowX: info.window.x,
+        windowY: info.window.y,
+      };
+    }
+    // A moved window or a re-sent event only changes the alignment above; colour
+    // extraction and the blurred glass layers depend on the image alone.
+    const key = `${info.url ?? ''}|${info.color}|${info.fit}|${info.monitor.width}x${info.monitor.height}`;
+    if (key === this.wallpaperKey) {
+      return;
+    }
+    this.wallpaperKey = key;
     const token = ++this.wallpaperToken;
     this.root.style.setProperty('--wallpaper-src', info.url ? `url("${info.url}")` : 'none');
-    this.glass = {
-      monitorWidth: info.monitor.width,
-      monitorHeight: info.monitor.height,
-      windowX: info.window.x,
-      windowY: info.window.y,
-    };
     const seed = info.url ? await extractColor(info.url, info.color) : info.color;
     if (token !== this.wallpaperToken) {
       return;

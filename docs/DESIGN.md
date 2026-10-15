@@ -250,6 +250,13 @@ Island-Hülle; der Inhalt hat eine feste Endgröße. Pro Frame werden Werte nur 
   damit Aktualisierungen in einem Bereich (tickende Timer, Sparklines) die anderen nicht neu layouten.
 - Abgeleitete Werte, die pro Sekunde neu entstehen (Datum aus `clock.now`), als Zahl ableiten – sonst rendert alles
   Abhängige jede Sekunde neu.
+- **Keine vererbten Variablen an der Wurzel animieren** (z. B. `--media-color`): Jeder Frame der Überblendung würde das
+  ganze Dokument neu stylen. Die Überblendung gehört an das Element, das die Farbe zeigt.
+- **Zeiger-Effekte pro Frame bündeln:** Mäuse melden bis zu 1000 Bewegungen pro Sekunde; Glanz und Glas-Licht folgen per
+  `requestAnimationFrame` höchstens einmal pro Frame.
+- **Teure Arbeit nur bei echter Änderung:** Fenstergröße (`island_configure`) nur bei neuer Größe senden; Farb-Extraktion
+  und Glas-Vorrendern nur bei neuem Wallpaper, nicht bei jeder Positionsmeldung.
+- Unsichtbare Ansichten animieren nicht weiter (Equalizer, Glocke).
 
 ---
 

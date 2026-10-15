@@ -69,7 +69,7 @@ export function registerBuiltinActivities(registry: ActivityRegistry, ctx: Pick<
   });
   registry.define({
     id: 'timer', priority: PRIORITY.timer, view: TimerView, expandedView: TimerPreview, bubble: TimerBubble, compact: true, section: 'timers',
-    label: () => (ctx.timers.active.length > 1 ? m().island.timersRunning(ctx.timers.active.length) : m().island.timerRunning),
+    label: () => (ctx.timers.activeCount > 1 ? m().island.timersRunning(ctx.timers.activeCount) : m().island.timerRunning),
   });
   registry.define({
     id: 'stopwatch', priority: PRIORITY.stopwatch, view: StopwatchView, expandedView: StopwatchPreview, bubble: StopwatchBubble, compact: true, section: 'timers',
@@ -132,8 +132,9 @@ export function connectSources(ctx: IslandContext): () => void {
       });
     });
 
+    // activeCount, not active: active re-sorts with every 100 ms tick of a running timer.
     $effect(() => {
-      const anyTimer = timers.active.length > 0;
+      const anyTimer = timers.activeCount > 0;
       untrack(() => (anyTimer ? registry.show('timer') : registry.hide('timer')));
     });
 

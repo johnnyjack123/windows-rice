@@ -6,6 +6,9 @@
 
 .view--panel {
   --view-radius: var(--radius-panel);
+  /* Fixed size: while the shell springs open, only the panel's position changes,
+     its content is not laid out again on every frame. */
+  contain: size layout style;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: var(--space-3);
@@ -185,7 +188,9 @@
   background: var(--media-bg);
   color: var(--media-fg);
   box-shadow: var(--elevation-card);
-  transition: background-color var(--dur-slow) var(--ease-standard);
+  /* The album colour cross-fades here only (registered in tokens.css). Animating it on
+     the root would restyle the whole document every frame of the fade. */
+  transition: --media-color calc(var(--dur-slow) * 2) var(--ease-standard);
 }
 .media__backdrop {
   display: none;

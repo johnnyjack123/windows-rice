@@ -63,6 +63,7 @@ export function connectWindow(ctx: IslandContext, state: IslandWindowState): () 
     t.listen('island://toggle', () => controller.toggle()),
   ];
 
+  let configured = '';
   const stop = $effect.root(() => {
     $effect(() => {
       const settings = backend.settings.value.island;
@@ -86,7 +87,13 @@ export function connectWindow(ctx: IslandContext, state: IslandWindowState): () 
         const cs = getComputedStyle(document.documentElement);
         const width = (parseFloat(cs.getPropertyValue('--panel-width')) || 800) + 96;
         const height = (parseFloat(cs.getPropertyValue('--island-top')) || 10) + (parseFloat(cs.getPropertyValue('--panel-height')) || 556) + 96;
-        void t.invoke('island_configure', { width: Math.ceil(width), height: Math.ceil(height) });
+        const size = { width: Math.ceil(width), height: Math.ceil(height) };
+        // Theme edits bump the version constantly; resizing a native window each time is expensive.
+        const key = `${size.width}x${size.height}`;
+        if (key !== configured) {
+          configured = key;
+          void t.invoke('island_configure', size);
+        }
       });
     });
   });

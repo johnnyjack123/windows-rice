@@ -29,8 +29,10 @@
   const overrides: ThemeOverrides = $derived(settings.theme.overrides[themeId] ?? {});
 
   // Theme defaults are read from the CSS itself, so they always match it.
+  // Defaults belong to the theme alone (the probe ignores overrides), so they are
+  // re-read when the theme, scheme or a theme file changes – not on every slider step.
   const defaults: EditorValues = $derived.by(() => {
-    void engine.version;
+    void engine.themes;
     return readThemeDefaults(themeId, scheme);
   });
 
@@ -60,7 +62,7 @@
   }
 
   const material = $derived.by(() => {
-    void engine.version;
+    void engine.themes;
     return readThemeMaterial(themeId, scheme);
   });
   const groups = $derived<ControlGroup[]>(['colors', 'type', 'shape', ...(material === 'glass' ? (['material'] as const) : []), 'motion', 'icons']);
