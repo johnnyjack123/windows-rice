@@ -375,54 +375,58 @@
 .tabs {
   display: flex;
   gap: var(--space-1);
+  height: calc(var(--control-height) + var(--space-1) * 2);
   padding: var(--space-1);
   border-radius: var(--radius-control);
   background: var(--tabs-bg);
+  /* The growing tab relayouts only this row, never the panes below (no paint
+     containment, so focus rings are not clipped). */
+  contain: size layout style;
 }
 .tab {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0;
+  /* "safe" keeps the icon in view while the growing tab is still too narrow for its label. */
+  justify-content: safe center;
+  gap: var(--space-1-5);
   flex: 1 1 0;
   min-width: 0;
   height: var(--control-height);
+  overflow: hidden;
   border-radius: var(--radius-control);
   color: var(--color-text-muted);
   font: var(--type-label);
   letter-spacing: var(--tracking-label);
   text-transform: var(--label-transform);
   white-space: nowrap;
+  /* One layout property animates (flex-grow); the label is clipped by the tab, not resized. */
   transition:
     flex-grow var(--dur-spring-control) var(--ease-spring-control),
     background-color var(--dur-medium) var(--ease-standard),
-    color var(--dur-medium) var(--ease-standard),
-    gap var(--dur-spring-control) var(--ease-spring-control);
+    color var(--dur-medium) var(--ease-standard);
 }
 .tab .ic {
   font-size: var(--icon-size-sm);
 }
 .tab.is-active {
   flex-grow: 3.6;
-  gap: var(--space-1-5);
   background: var(--tabs-indicator);
   color: var(--tabs-fg-active);
   --icon-fill: var(--icon-fill-on);
 }
 .tab__label {
-  max-width: 0;
+  display: none;
   overflow: hidden;
+  text-overflow: ellipsis;
   opacity: 0;
-  transition:
-    max-width var(--dur-spring-control) var(--ease-spring-control),
-    opacity var(--dur-fast) var(--ease-standard);
 }
 .tab.is-active .tab__label {
-  max-width: 130px;
+  display: block;
   opacity: 1;
-  transition:
-    max-width var(--dur-spring-control) var(--ease-spring-control),
-    opacity var(--dur-medium) var(--ease-standard) var(--dur-instant);
+  animation: tab-label-in var(--dur-medium) var(--ease-standard) var(--dur-instant) backwards;
+}
+@keyframes tab-label-in {
+  from { opacity: 0; }
 }
 .tab__badge {
   display: inline-grid;

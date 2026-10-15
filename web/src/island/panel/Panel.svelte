@@ -52,9 +52,9 @@
     });
   });
 
+  /** The tab is remembered when the panel closes (see create.svelte.ts), not on every click. */
   function select(id: string): void {
     panel.section = id;
-    void backend.settings.patch({ panel: { lastSection: id } });
   }
 </script>
 

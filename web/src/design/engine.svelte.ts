@@ -4,7 +4,7 @@
  * One engine per window; it reacts to settings changes from any window.
  */
 import { getContext, setContext, untrack } from 'svelte';
-import type { Scheme, ThemeOverrides, WallpaperInfo } from '$backend/contract';
+import type { Scheme, Settings, ThemeOverrides, WallpaperInfo } from '$backend/contract';
 import type { Backend } from '$backend/index';
 import { i18n } from '$i18n/i18n.svelte';
 import { formatSpring, motionSettings, parseSpring, springToLinear } from '$motion/spring';
@@ -68,31 +68,41 @@ export class ThemeEngine {
    */
   connect(): () => void {
     return $effect.root(() => {
+      // Settings are one object that is replaced on every patch (e.g. the last
+      // panel tab). Re-applying a theme restyles the whole document, so only
+      // the parts that matter are tracked, as strings that compare by value.
+      const themeJson = $derived(JSON.stringify(this.backend.settings.value.theme));
+      const locale = $derived(this.backend.settings.value.locale);
+      const dark = $derived(this.backend.system.appearance.dark);
+      const systemReduced = $derived(this.backend.system.appearance.reducedMotion);
+
       $effect(() => {
         this.userStyle.textContent = this.backend.themes.list.map((t) => t.css).join('\n');
       });
 
       $effect(() => {
-        const settings = this.backend.settings.value;
-        const appearance = this.backend.system.appearance;
-        const meta = this.themes.find((t) => t.id === settings.theme.id) ?? BUILTIN_THEMES[0]!;
-        const wanted: Scheme = settings.theme.scheme === 'auto' ? (appearance.dark ? 'dark' : 'light') : settings.theme.scheme;
+        const theme = JSON.parse(themeJson) as Settings['theme'];
+        const meta = this.themes.find((t) => t.id === theme.id) ?? BUILTIN_THEMES[0]!;
+        const wanted: Scheme = theme.scheme === 'auto' ? (dark ? 'dark' : 'light') : theme.scheme;
         const scheme = meta.schemes.includes(wanted) ? wanted : meta.schemes[0]!;
-        const reduced = this.reducedOverride ?? appearance.reducedMotion;
+        const reduced = this.reducedOverride ?? systemReduced;
 
-        this.overrideStyle.textContent = overridesStylesheet(settings.theme.overrides);
+        const css = overridesStylesheet(theme.overrides);
+        if (this.overrideStyle.textContent !== css) {
+          this.overrideStyle.textContent = css;
+        }
         this.root.dataset.theme = meta.id;
         this.root.dataset.scheme = scheme;
         this.root.dataset.motion = reduced ? 'reduced' : 'full';
         motionSettings.reduced = reduced;
         this.themeId = meta.id;
         this.scheme = scheme;
-        const overrides = settings.theme.overrides[meta.id] ?? {};
+        const overrides = theme.overrides[meta.id] ?? {};
         untrack(() => this.refreshMotion(overrides));
       });
 
       $effect(() => {
-        i18n.apply(this.backend.settings.value.locale);
+        i18n.apply(locale);
       });
 
       $effect(() => {

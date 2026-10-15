@@ -13,7 +13,9 @@
   const startOfDay = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   let selected = $state(startOfDay(new Date()));
 
-  const today = $derived(startOfDay(new Date(clock.now)));
+  // A number compares by value, so the week below is only rebuilt when the day changes, not every second.
+  const todayMs = $derived(startOfDay(new Date(clock.now)).getTime());
+  const today = $derived(new Date(todayMs));
   const week = $derived.by(() => {
     const monday = new Date(today);
     monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));

@@ -121,6 +121,9 @@
   min-height: 0;
   opacity: 0;
   visibility: hidden;
+  /* Each page/pane lays out on its own: updates in one never relayout the others
+     (no paint containment, so focus rings at the edges stay visible). */
+  contain: size layout style;
   translate: calc(var(--dir, 1) * var(--space-6)) 0;
   transition:
     opacity var(--dur-fast) var(--ease-exit),
@@ -144,6 +147,11 @@
 }
 .page.is-leaving {
   translate: calc(var(--dir, 1) * var(--space-6) * -1) 0;
+}
+/* The two panes in motion keep their own GPU layer, so the slide never re-rasterises
+   mid-way or hitches when a layer is created at its start. */
+:is(.page, .pane):is(.is-current, .is-leaving) {
+  will-change: translate, opacity;
 }
 .pane.is-leaving {
   translate: calc(var(--dir, 1) * var(--space-4) * -1) 0;

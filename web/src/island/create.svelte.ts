@@ -34,6 +34,10 @@ export function createIslandContext(backend: Backend, engine: ThemeEngine): { ct
       }
     },
     onCollapse: () => {
+      // Remember the open tab for next time; one write per visit instead of one per click.
+      if (panel.section !== backend.settings.value.panel.lastSection) {
+        void backend.settings.patch({ panel: { lastSection: panel.section } });
+      }
       // Drill-in pages reset once the panel is out of sight.
       resetTimer = setTimeout(() => {
         if (!controller.expanded) {
