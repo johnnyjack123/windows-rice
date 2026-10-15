@@ -81,6 +81,12 @@ export interface ThemeOverrides {
   easing?: number;
   blur?: number;
   liquid?: boolean;
+  /** Liquid glass only: strength of the lensing at the rim (1 = theme). */
+  refraction?: number;
+  /** Liquid glass only: colour fringing of the refraction, 0…1. */
+  dispersion?: number;
+  /** Liquid glass only: how frosted the body is, 0…1. */
+  frost?: number;
   iconStyle?: 'Rounded' | 'Sharp' | 'Outlined';
   iconWeight?: number;
 }
@@ -94,6 +100,21 @@ export interface Alarm {
   /** Weekdays 0 = Monday … 6 = Sunday; empty = once. */
   days: number[];
   enabled: boolean;
+}
+
+/** Pomodoro rhythm and what a break looks like. */
+export interface PomodoroSettings {
+  focusMinutes: number;
+  shortBreakMinutes: number;
+  longBreakMinutes: number;
+  /** Focus sessions per cycle; the cycle ends with a long break. */
+  sessionsUntilLongBreak: number;
+  /** A break starts on its own when a focus session ends. */
+  autoStartBreaks: boolean;
+  /** The next focus session starts on its own when a break ends. */
+  autoStartFocus: boolean;
+  /** "notify": the island announces the break; "overlay": a full-screen break window covers every monitor. */
+  breakMode: 'notify' | 'overlay';
 }
 
 /** All persisted settings. The backend stores them as JSON or TOML. */
@@ -127,6 +148,8 @@ export interface Settings {
   };
   notifications: {
     dnd: boolean;
+    /** Suppress Windows' own toast banners while rice runs (the island shows them instead). */
+    hideWindowsBanners: boolean;
   };
   calendar: {
     /** Minutes before an event when the island shows it. */
@@ -138,6 +161,7 @@ export interface Settings {
     snoozeMinutes: number;
     presets: number[];
     alarms: Alarm[];
+    pomodoro: PomodoroSettings;
   };
 }
 
@@ -446,6 +470,15 @@ export interface Commands {
   island_occlusion: { args: void; result: Occlusion };
 
   window_open_settings: { args: { page?: string }; result: void };
+
+  /** Shows (or updates) the full-screen break window on every monitor. */
+  break_show: { args: BreakOverlay; result: void };
+  /** Closes the break windows (after announcing `null` so they can fade out). */
+  break_hide: { args: void; result: void };
+  /** Current break, read by a break window when it loads. */
+  break_state: { args: void; result: BreakOverlay | null };
+  /** The user leaves the break from a break window. */
+  break_finish: { args: void; result: void };
   shell_open: { args: { target: string }; result: void };
 
   media_get: { args: void; result: MediaState };
@@ -517,6 +550,11 @@ export interface Events {
   /** Global hotkey pressed. */
   'island://toggle': null;
 
+  /** Break shown or updated; null = closing (fade out). */
+  'break://state': BreakOverlay | null;
+  /** The user left the break in a break window. */
+  'break://finished': null;
+
   'media://state': MediaState;
   'audio://state': AudioState;
   'display://state': DisplayState;
@@ -535,6 +573,21 @@ export interface Events {
   'tasks://changed': null;
 
   'system://sample': SystemSample;
+}
+
+/** What the full-screen break window shows. */
+export interface BreakOverlay {
+  /** Epoch ms when the break ends; null while it is paused. */
+  endsAt: number | null;
+  /** Remaining ms (used while paused). */
+  remaining: number;
+  /** Length of the break in ms. */
+  duration: number;
+  kind: 'short' | 'long';
+  /** Focus sessions completed in this cycle. */
+  round: number;
+  /** Focus sessions per cycle. */
+  rounds: number;
 }
 
 /** Manifest of a user theme (theme.toml in the theme folder). */

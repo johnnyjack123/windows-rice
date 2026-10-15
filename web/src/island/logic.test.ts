@@ -21,12 +21,13 @@ describe('activity registry', () => {
 
   it('lets the highest priority own the island and splits the next one off', () => {
     const r = registry();
-    r.show('music');
-    expect(r.main?.id).toBe('music');
-    expect(r.second).toBeNull();
     r.show('timer');
     expect(r.main?.id).toBe('timer');
-    expect(r.second?.id).toBe('music');
+    expect(r.second).toBeNull();
+    // Music keeps the main pill; the running timer moves to the bubble.
+    r.show('music');
+    expect(r.main?.id).toBe('music');
+    expect(r.second?.id).toBe('timer');
   });
 
   it('never splits next to a tall activity', () => {

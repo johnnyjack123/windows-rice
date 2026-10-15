@@ -31,6 +31,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   notifications: {
     dnd: false,
+    hideWindowsBanners: true,
   },
   calendar: {
     reminderLead: 10,
@@ -41,6 +42,15 @@ export const DEFAULT_SETTINGS: Settings = {
     snoozeMinutes: 9,
     presets: [1, 3, 5, 10, 15, 25],
     alarms: [],
+    pomodoro: {
+      focusMinutes: 25,
+      shortBreakMinutes: 5,
+      longBreakMinutes: 15,
+      sessionsUntilLongBreak: 4,
+      autoStartBreaks: true,
+      autoStartFocus: false,
+      breakMode: 'notify',
+    },
   },
 };
 
@@ -92,6 +102,7 @@ export function resolveSettings(stored: StoredSettings | null | undefined): Sett
 /** Settings whose valid values have more than one type. */
 const MIXED_TYPES: Record<string, (value: unknown) => boolean> = {
   'island.monitor': (v) => v === 'primary' || (typeof v === 'number' && Number.isInteger(v) && v >= 0),
+  'timers.pomodoro.breakMode': (v) => v === 'notify' || v === 'overlay',
 };
 
 function sanitize(defaults: unknown, value: unknown, path: string): unknown {

@@ -725,6 +725,101 @@
   display: flex;
   gap: var(--space-2);
 }
+/* Pomodoro: one dial, the controls below, settings on a second face. */
+.pomo {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-2) var(--space-3);
+}
+.pomo__settings {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+}
+.pomo-dial {
+  --p: 1;
+  --ring-color: var(--color-accent);
+  position: relative;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-1-5);
+  width: var(--pomo-dial-size);
+  height: var(--pomo-dial-size);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+}
+.pomo-dial.is-break {
+  --ring-color: var(--color-positive);
+}
+.pomo-dial::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(var(--ring-color) calc(var(--p) * 1turn), var(--color-surface-container-highest) 0);
+  mask: radial-gradient(closest-side, transparent 91%, currentColor 92.5%);
+  transition: --p var(--dur-medium) linear;
+}
+.pomo-dial.is-paused::before {
+  opacity: 0.5;
+}
+.pomo-dial__phase {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--type-label);
+  text-transform: var(--label-transform);
+  color: var(--color-text-muted);
+}
+.pomo-dial__phase .ic {
+  --icon-fill: 1;
+  color: var(--ring-color);
+}
+.pomo-dial__time {
+  font: var(--type-timer);
+  letter-spacing: var(--tracking-display);
+}
+.pomo-dial .pomo-dots {
+  color: var(--color-text);
+}
+.pomo__buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.pomo__hint {
+  font: var(--type-caption);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.pomo-settings {
+  display: grid;
+  gap: var(--space-half);
+  padding: var(--space-1) var(--space-1) var(--space-3);
+}
+.pomo-settings__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-2) var(--space-2) var(--space-3);
+}
+.pomo-settings .row {
+  grid-template-columns: minmax(0, 1fr) 0 auto;
+  min-height: var(--row-height);
+}
+.pomo-settings__mode {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+.pomo-settings__hint {
+  font: var(--type-caption);
+  color: var(--color-text-muted);
+}
+
 .lap {
   display: grid;
   grid-template-columns: 1fr auto auto;

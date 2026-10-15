@@ -5,12 +5,13 @@ import { ActivityRegistry } from './activities.svelte';
 import { registerBuiltinActivities } from './builtins.svelte';
 import { IslandUiState, PanelState, type IslandContext } from './context.svelte';
 import { IslandController } from './controller.svelte';
+import { PomodoroStore } from './pomodoro.svelte';
 import { TimersStore } from './timers.svelte';
 import { IslandWindowState } from './window.svelte';
 
 /**
  * Builds everything one island needs: registry with built-in activities,
- * controller, timers and UI state.
+ * controller, timers, pomodoro and UI state.
  *
  * @param backend - Backend of the window.
  * @param engine - Theme engine of the window.
@@ -22,6 +23,7 @@ export function createIslandContext(backend: Backend, engine: ThemeEngine): { ct
   const panel = new PanelState();
   panel.section = backend.settings.value.panel.lastSection;
   const timers = new TimersStore(() => backend.settings.value, (p) => backend.settings.patch(p));
+  const pomodoro = new PomodoroStore(() => backend.settings.value, backend.transport, timers);
 
   let resetTimer: ReturnType<typeof setTimeout> | undefined;
   const controller: IslandController = new IslandController(registry, backend.transport, {
@@ -43,7 +45,7 @@ export function createIslandContext(backend: Backend, engine: ThemeEngine): { ct
     glass: () => engine.glass,
   });
 
-  const ctx: IslandContext = { backend, engine, registry, controller, timers, ui, panel };
+  const ctx: IslandContext = { backend, engine, registry, controller, timers, pomodoro, ui, panel };
   registerBuiltinActivities(registry, ctx);
   return { ctx, windowState: new IslandWindowState() };
 }

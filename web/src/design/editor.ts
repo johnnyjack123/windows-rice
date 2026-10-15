@@ -12,10 +12,14 @@ export type ControlKey =
   | 'fontUi' | 'fontDisplay' | 'textScale'
   | 'islandHeight' | 'islandRadius' | 'panelRadius' | 'tileRadius' | 'density'
   | 'speed' | 'bounce' | 'easing' | 'blur' | 'liquid'
+  | 'refraction' | 'dispersion' | 'frost'
   | 'iconStyle' | 'iconWeight';
 
 /** Groups shown as sections in the editor. */
-export type ControlGroup = 'colors' | 'type' | 'shape' | 'motion' | 'icons';
+export type ControlGroup = 'colors' | 'type' | 'shape' | 'material' | 'motion' | 'icons';
+
+/** Surface material of a theme's island (`--island-material`). */
+export type IslandMaterial = 'solid' | 'glass';
 
 /** Definition of one control. */
 export interface ControlDef {
@@ -28,6 +32,8 @@ export interface ControlDef {
   /** How the value is shown next to the slider. */
   format?: (value: number) => string;
   options?: readonly string[];
+  /** Only offered for themes with this island material. */
+  material?: IslandMaterial;
 }
 
 /** Concrete values of every control. */
@@ -48,6 +54,9 @@ export interface EditorValues {
   easing: number;
   blur: number;
   liquid: boolean;
+  refraction: number;
+  dispersion: number;
+  frost: number;
   iconStyle: 'Rounded' | 'Sharp' | 'Outlined';
   iconWeight: number;
 }
@@ -77,6 +86,9 @@ export const CONTROLS: readonly ControlDef[] = [
   { key: 'easing', group: 'motion', kind: 'range', min: 0, max: 1.5, step: 0.05, format: pct },
   { key: 'blur', group: 'motion', kind: 'range', min: 0, max: 16, step: 1, format: px },
   { key: 'liquid', group: 'motion', kind: 'toggle' },
+  { key: 'refraction', group: 'material', kind: 'range', min: 0, max: 2, step: 0.05, format: pct, material: 'glass' },
+  { key: 'dispersion', group: 'material', kind: 'range', min: 0, max: 1, step: 0.05, format: pct, material: 'glass' },
+  { key: 'frost', group: 'material', kind: 'range', min: 0, max: 1, step: 0.05, format: pct, material: 'glass' },
   { key: 'iconStyle', group: 'icons', kind: 'select', options: ['Rounded', 'Sharp', 'Outlined'] },
   { key: 'iconWeight', group: 'icons', kind: 'range', min: 100, max: 700, step: 50, format: (v) => String(v) },
 ];
@@ -180,10 +192,24 @@ export function readThemeDefaults(themeId: string, scheme: Scheme): EditorValues
       easing: 1,
       blur: length('--content-blur'),
       liquid: token('--island-goo') === '1',
+      refraction: number('--glass-refraction', 1),
+      dispersion: number('--glass-dispersion', 0.3),
+      frost: number('--glass-frost', 0.8),
       iconStyle: family.endsWith('Sharp') ? 'Sharp' : family.endsWith('Outlined') ? 'Outlined' : 'Rounded',
       iconWeight: number('--icon-weight', 400),
     };
   });
+}
+
+/**
+ * Reads which island material a theme uses.
+ *
+ * @param themeId - Theme to inspect.
+ * @param scheme - Colour scheme.
+ * @returns "glass" for refractive themes, otherwise "solid".
+ */
+export function readThemeMaterial(themeId: string, scheme: Scheme): IslandMaterial {
+  return withProbe(themeId, scheme, (_probe, cs) => (cs.getPropertyValue('--island-material').trim() === 'glass' ? 'glass' : 'solid'));
 }
 
 /**
@@ -315,6 +341,15 @@ export function commonDeclarations(o: ThemeOverrides): string[] {
   }
   if (o.liquid !== undefined) {
     d.push(`--island-goo: ${o.liquid ? 1 : 0}`);
+  }
+  if (o.refraction !== undefined) {
+    d.push(`--glass-refraction: ${o.refraction}`);
+  }
+  if (o.dispersion !== undefined) {
+    d.push(`--glass-dispersion: ${o.dispersion}`);
+  }
+  if (o.frost !== undefined) {
+    d.push(`--glass-frost: ${o.frost}`);
   }
   if (o.iconStyle) {
     d.push(`--icon-family: "Material Symbols ${o.iconStyle}"`);

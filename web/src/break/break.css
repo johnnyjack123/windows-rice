@@ -1,0 +1,257 @@
+/* =============================================================================
+   Break screen: the full-screen pomodoro break (one window per monitor).
+   Calm, theme-coloured ambience, a breathing guide around the countdown and
+   a press-and-hold exit. Themes restyle it through the --break-* tokens and
+   scoped overrides in their own files.
+   Exception to "no endless loops" (DESIGN §11.3): the breathing guide and the
+   drifting ambience are the purpose of this screen; reduced motion stops both.
+   ========================================================================== */
+
+.break {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  justify-items: center;
+  padding: var(--space-8) var(--space-6) var(--space-10);
+  overflow: hidden;
+  background: var(--break-bg);
+  color: var(--break-fg);
+  font: var(--type-body);
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-standard);
+  user-select: none;
+}
+.break.is-in {
+  opacity: 1;
+}
+.break.is-leaving {
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-exit);
+}
+
+/* Content rises in after the background, staggered. */
+.break :is(.break__top, .break__kind, .break__time, .break__sub, .break__dots, .break__tip, .break__actions) {
+  opacity: 0;
+  translate: 0 var(--space-4);
+  transition:
+    opacity var(--dur-medium) var(--ease-standard),
+    translate var(--dur-spring-content) var(--ease-spring-content);
+  transition-delay: calc(var(--dur-medium) + var(--i, 0) * var(--stagger));
+}
+.break.is-in :is(.break__top, .break__kind, .break__time, .break__sub, .break__dots, .break__tip, .break__actions) {
+  opacity: 1;
+  translate: 0 0;
+}
+.break__time,
+.break__kind {
+  transition-property: opacity, translate, color;
+}
+
+/* ── Ambience ─────────────────────────────────────────────────────────── */
+.break__backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.break__orb {
+  position: absolute;
+  display: var(--break-orb-display);
+  width: 46vmax;
+  height: 46vmax;
+  border-radius: var(--radius-full);
+  opacity: var(--break-orb-opacity);
+  filter: blur(var(--break-orb-blur));
+  animation: break-drift var(--break-drift) var(--ease-standard) infinite alternate;
+}
+.break__orb--a {
+  top: -18vmax;
+  left: -10vmax;
+  background: var(--break-orb-a);
+}
+.break__orb--b {
+  right: -14vmax;
+  bottom: -20vmax;
+  background: var(--break-orb-b);
+  animation-duration: calc(var(--break-drift) * 1.23);
+  animation-delay: calc(var(--break-drift) * -0.35);
+}
+.break__orb--c {
+  top: 30%;
+  left: 55%;
+  width: 28vmax;
+  height: 28vmax;
+  background: var(--break-orb-c);
+  opacity: calc(var(--break-orb-opacity) * 0.6);
+  animation-duration: calc(var(--break-drift) * 1.46);
+  animation-delay: calc(var(--break-drift) * -0.65);
+}
+@keyframes break-drift {
+  from { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(6vmax, 4vmax) scale(1.08); }
+  to { transform: translate(-4vmax, 7vmax) scale(0.94); }
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────── */
+.break__top {
+  position: relative;
+  font: var(--type-title);
+  color: var(--break-fg-muted);
+}
+
+/* ── Dial: breathing guide, progress ring, countdown ─────────────────── */
+.break__center {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: var(--break-dial-size);
+  height: var(--break-dial-size);
+}
+.break__breath {
+  position: absolute;
+  inset: 9%;
+  border-radius: var(--break-breath-radius);
+  background: var(--break-breath-fill);
+  scale: 0.8;
+  animation: break-breathe var(--break-breath) var(--ease-breath) infinite;
+}
+@keyframes break-breathe {
+  0%, 100% { scale: 0.8; }
+  50% { scale: 1; }
+}
+.break.is-over .break__breath,
+.break.is-paused .break__breath {
+  animation-play-state: paused;
+}
+.break__ring {
+  position: absolute;
+  inset: 0;
+  display: var(--break-ring-display);
+  width: 100%;
+  height: 100%;
+  rotate: -90deg;
+  overflow: visible;
+}
+.break__ring circle {
+  fill: none;
+  stroke-width: var(--break-ring-width);
+  stroke-linecap: round;
+}
+.break__track {
+  stroke: var(--break-ring-track);
+}
+.break__progress {
+  stroke: var(--break-ring);
+  stroke-dasharray: var(--p, 1) 1;
+  transition: stroke-dasharray var(--dur-slow) linear;
+}
+.break.is-over .break__progress {
+  stroke: var(--color-positive);
+  stroke-dasharray: 1 0;
+}
+.break__content {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+.break__kind {
+  font: var(--type-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: var(--label-transform);
+  color: var(--break-fg-muted);
+}
+.break__time {
+  font: var(--type-break);
+  letter-spacing: var(--tracking-display);
+}
+.break__time--done .ic {
+  font-size: calc(var(--icon-size-xl) * 2.4);
+  color: var(--color-positive);
+  --icon-fill: 1;
+}
+.break__sub {
+  min-height: 1.4em;
+  font: var(--type-title);
+  color: var(--break-fg-muted);
+}
+.break.is-paused .break__breath-label {
+  visibility: hidden;
+}
+.break__ascii {
+  display: var(--break-ascii-display);
+  font: var(--type-title);
+  color: var(--break-ring);
+}
+.break__dots {
+  display: flex;
+  gap: var(--space-2);
+}
+.break__dots i {
+  width: calc(var(--dot-size) + var(--space-half));
+  height: calc(var(--dot-size) + var(--space-half));
+  border-radius: var(--radius-full);
+  background: var(--break-ring-track);
+}
+.break__dots i.is-done {
+  background: var(--break-ring);
+}
+
+/* ── Tip and exit ─────────────────────────────────────────────────────── */
+.break__tip {
+  position: relative;
+  max-width: 44ch;
+  margin-bottom: var(--space-8);
+  font: var(--type-headline);
+  font-weight: 400;
+  text-align: center;
+  color: var(--break-fg);
+  text-wrap: balance;
+}
+.break__actions {
+  position: relative;
+}
+.break__hold {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: calc(var(--control-height) + var(--space-3));
+  padding: 0 var(--space-5);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--break-fg) 8%, transparent);
+  color: var(--break-fg-muted);
+  font: var(--type-label);
+  touch-action: none;
+}
+.break__hold > :not(.break__hold-fill) {
+  position: relative;
+}
+.break__hold-fill {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--break-ring) 30%, transparent);
+  transform-origin: 0 50%;
+  scale: 0 1;
+  transition: scale var(--dur-fast) var(--ease-exit);
+}
+.break__hold.is-holding .break__hold-fill {
+  scale: 1 1;
+  transition: scale var(--break-hold) linear;
+}
+.break__back {
+  height: calc(var(--control-height) + var(--space-4));
+  padding: 0 var(--space-6);
+  font: var(--type-title);
+}
+
+/* ── Reduced motion: still, but just as clear ─────────────────────────── */
+:root[data-motion="reduced"] :is(.break__orb, .break__breath) {
+  animation: none;
+}
+:root[data-motion="reduced"] .break__breath-label {
+  visibility: hidden;
+}

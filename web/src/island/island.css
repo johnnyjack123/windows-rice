@@ -45,6 +45,9 @@
 .island.is-expanded .island__shadow {
   box-shadow: var(--elevation-panel);
 }
+:root[data-glass="webgl"] .island__shadow {
+  box-shadow: none;
+}
 
 /* Liquid bridge between the end cap and the bubble (vector, no filter). */
 .island__bridge {
@@ -93,6 +96,23 @@
   pointer-events: none;
 }
 
+/* WebGL liquid glass (glass themes, when WebGL2 is available). It draws the
+   island's body, bridge and shadow; the CSS material layers stand down. */
+.island-glass {
+  position: fixed;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+:root[data-glass="webgl"] .island-glass {
+  display: block;
+}
+:root[data-glass="webgl"] .island .mat {
+  display: none;
+}
+
 /* Material layers for glass-like themes (hidden otherwise). */
 .mat {
   display: none;
@@ -111,19 +131,25 @@
   overflow: hidden;
 }
 
+/* Size, radius and position are written per frame; the bubble grows into
+   its activity's preview on hover. */
 .bubble-content {
   position: absolute;
   left: 0;
   top: 0;
-  display: grid;
-  place-items: center;
   width: var(--island-height);
   height: var(--island-height);
+  overflow: hidden;
   border-radius: var(--radius-island);
   color: var(--color-on-island);
+  cursor: pointer;
   opacity: 0;
   pointer-events: none;
+  transform-origin: 50% 50%;
   transition: opacity var(--dur-fast) var(--ease-standard);
+}
+.bubble-content:focus-visible {
+  outline-offset: 3px;
 }
 .bubble-content.is-visible {
   opacity: 1;
@@ -197,8 +223,8 @@
   color: var(--color-on-island-muted);
 }
 .island-unread {
-  width: 6px;
-  height: 6px;
+  width: var(--dot-size);
+  height: var(--dot-size);
   border-radius: 50%;
   background: var(--color-accent);
 }
@@ -420,6 +446,132 @@
   font: var(--type-island-clock);
 }
 
+/* ── Quick-action previews (timer, stopwatch, pomodoro) ─────────────────
+   Shown on hover, in the island or grown out of the bubble. */
+.view--timer-expanded,
+.view--stopwatch-expanded,
+.view--pomodoro-expanded {
+  width: var(--live-width-compact);
+}
+.qa-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+.qa-ring,
+.qa-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--app-icon-size) + var(--space-1));
+  height: calc(var(--app-icon-size) + var(--space-1));
+  border-radius: var(--radius-full);
+  color: var(--color-accent-text);
+  --icon-fill: 1;
+}
+.qa-icon {
+  background: color-mix(in srgb, var(--color-on-island) 12%, transparent);
+}
+/* The ring is masked, so it stays a ring on transparent (glass) islands. */
+.qa-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    var(--ring-color, var(--color-accent)) calc(var(--p, 1) * 1turn),
+    color-mix(in srgb, var(--color-on-island) 18%, transparent) 0
+  );
+  mask: radial-gradient(closest-side, transparent 76%, currentColor 79%);
+  transition: --p var(--dur-medium) linear;
+}
+.qa-ring.is-paused {
+  opacity: 0.6;
+}
+.qa-time {
+  font: var(--type-metric);
+  letter-spacing: var(--tracking-display);
+}
+.qa-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-2);
+}
+.qa-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-half);
+  min-width: 0;
+  height: calc(var(--control-height) + var(--space-5));
+  border-radius: max(var(--radius-min), calc(var(--radius-live) - var(--space-4)));
+  background: color-mix(in srgb, var(--color-on-island) 12%, transparent);
+  color: var(--color-on-island);
+  font: var(--type-caption);
+  white-space: nowrap;
+}
+.qa-btn .ic {
+  --icon-fill: 1;
+}
+
+/* ── Pomodoro ───────────────────────────────────────────────────────────── */
+.view--pomodoro {
+  color: var(--color-accent-text);
+}
+/* Breaks read as "rest": the positive colour instead of the accent. */
+.pomo-island {
+  display: contents;
+}
+.pomo-island.is-break,
+.pomo-bubble.is-break,
+.qa-ring.is-break {
+  --ring-color: var(--color-positive);
+  color: var(--color-positive);
+}
+.pomo-island .ic {
+  --icon-fill: 1;
+  font-size: var(--icon-size-sm);
+}
+.pomo-island__phase {
+  color: var(--color-on-island-muted);
+  font-weight: 500;
+}
+.pomo-island.is-paused .timer-time {
+  opacity: 0.55;
+}
+.pomo-dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-1-5);
+}
+.pomo-dots i {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 24%, transparent);
+  transition: background-color var(--dur-medium) var(--ease-standard);
+}
+.pomo-dots i.is-done {
+  background: var(--color-accent);
+}
+.pomo-dots i.is-current {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-accent);
+}
+.ring-icon.is-break {
+  background: var(--color-positive);
+  color: var(--color-on-positive);
+}
+.ring-icon.pomo-phase-icon {
+  animation: none;
+}
+.view--pomodoroPhase {
+  width: var(--live-width-compact);
+}
+
 /* ── Charging ───────────────────────────────────────────────────────────── */
 .view.view--charging {
   justify-content: space-between;
@@ -467,6 +619,13 @@
 }
 
 /* ── Bubble contents ────────────────────────────────────────────────────── */
+.view.view--bubble {
+  display: grid;
+  place-items: center;
+  width: var(--island-height);
+  height: var(--island-height);
+  transform-origin: 50% 50%;
+}
 .art--bubble {
   width: calc(var(--island-height) - var(--space-3));
   height: calc(var(--island-height) - var(--space-3));

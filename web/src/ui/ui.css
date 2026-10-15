@@ -110,6 +110,27 @@
   --icon-fill: 1;
 }
 
+/* ── Stepper (− value +) ────────────────────────────────────────────────── */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-half);
+  padding: var(--space-half);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-container-high);
+  box-shadow: var(--elevation-tile);
+}
+.stepper .icon-btn {
+  color: var(--color-text);
+}
+.stepper__value {
+  min-width: 7ch;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+  font: var(--type-label);
+  text-align: center;
+}
+
 /* ── Chip ───────────────────────────────────────────────────────────────── */
 .chip {
   display: inline-flex;

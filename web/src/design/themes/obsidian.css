@@ -52,3 +52,12 @@
 [data-theme="obsidian"] [data-tile="saver"] { --tile-tint: #30d158; }
 [data-theme="obsidian"] [data-tile="mic"] { --tile-tint: #ff375f; }
 [data-theme="obsidian"] [data-tile="hotspot"] { --tile-tint: #30d158; }
+
+/* ── Break screen: true black, a single cool glow, a white ring ───────── */
+[data-theme="obsidian"] .break {
+  --break-bg: var(--base-bg);
+  --break-ring: var(--base-fg);
+  --break-orb-opacity: 0.2;
+  --break-orb-c: var(--color-accent);
+  --break-breath-fill: color-mix(in srgb, var(--base-fg) 6%, transparent);
+}

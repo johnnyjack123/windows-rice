@@ -22,6 +22,7 @@
       "$backend/*": ["./web/src/backend/*"],
       "$island/*": ["./web/src/island/*"],
       "$settings/*": ["./web/src/settings/*"],
+      "$break/*": ["./web/src/break/*"],
       "$lab/*": ["./web/src/lab/*"]
     }
   },

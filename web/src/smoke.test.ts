@@ -10,6 +10,7 @@ import { ThemeEngine } from '$design/engine.svelte';
 import { CONTROLS, PILL } from '$design/editor';
 import type { IslandContext } from '$island/context.svelte';
 import IslandApp from '$island/IslandApp.svelte';
+import BreakApp from '$break/BreakApp.svelte';
 import LabApp from '$lab/LabApp.svelte';
 import SettingsApp from '$settings/SettingsApp.svelte';
 import GalleryApp from './gallery/GalleryApp.svelte';
@@ -102,6 +103,38 @@ describe('island', () => {
     document.querySelectorAll<HTMLButtonElement>('.tile__toggle, .tile--small, .seg__btn, .day, .chip, .check').forEach((b) => b.click());
     await settle();
 
+    // Second pill: hovering it opens its quick actions, leaving closes them.
+    mock.debug.setOccluded(false);
+    c.controller.collapse();
+    await settle(700);
+    expect(c.controller.bubbleId).not.toBeNull();
+    c.controller.pointerEnter('bubble');
+    await settle(520);
+    expect(c.controller.bubbleExpanded).toBe(true);
+    document.querySelectorAll<HTMLButtonElement>('.bubble-content .qa-btn').forEach((b) => b.click());
+    c.controller.pointerLeave('bubble');
+    await settle(320);
+    expect(c.controller.bubbleExpanded).toBe(false);
+
+    // Pomodoro tab: start, settings face, steppers and switches, stop.
+    c.controller.expand('timers');
+    await settle();
+    [...document.querySelectorAll<HTMLButtonElement>('.timers-mode .seg__btn')].at(-1)?.click();
+    await settle();
+    document.querySelector<HTMLButtonElement>('.pomo__buttons .btn--filled')?.click();
+    await settle();
+    expect(c.pomodoro.state.status).toBe('running');
+    expect(c.registry.has('pomodoro')).toBe(true);
+    document.querySelector<HTMLButtonElement>('.pomo__settings')?.click();
+    await settle();
+    document.querySelectorAll<HTMLButtonElement>('.pomo-settings .stepper .icon-btn, .pomo-settings .switch, .pomo-settings .seg__btn').forEach((b) => b.click());
+    await settle();
+    c.pomodoro.skip();
+    await settle();
+    c.pomodoro.stop();
+    await settle();
+    expect(c.registry.has('pomodoro')).toBe(false);
+
     // Alarm rings and is dismissed
     c.timers.ringNow({ id: 'x', time: '07:00', label: 'Test', days: [], enabled: true });
     await settle();
@@ -160,6 +193,18 @@ describe('other windows', () => {
     await settle();
     expect(document.querySelectorAll('.g-col').length).toBe(7);
     unmount(gallery);
+
+    // Break window: shows the countdown, then the "back to work" face.
+    const now = Date.now();
+    await backend.transport.invoke('break_show', { endsAt: now + 300_000, remaining: 300_000, duration: 300_000, kind: 'short', round: 2, rounds: 4 });
+    const breakApp = mount(BreakApp, { target: document.body, props: { backend, engine } });
+    await settle(60);
+    expect(document.querySelector('.break__time')?.textContent).toMatch(/\d/);
+    await backend.transport.invoke('break_show', { endsAt: now - 1, remaining: 0, duration: 300_000, kind: 'long', round: 4, rounds: 4 });
+    await settle(60);
+    expect(document.querySelector('.break__back')).not.toBeNull();
+    unmount(breakApp);
+    await backend.transport.invoke('break_hide');
     expect(errors).toEqual([]);
   }, 20_000);
 });

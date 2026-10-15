@@ -3,6 +3,7 @@
   import { i18n } from '$i18n/i18n.svelte';
   import { VIEW_CLASS } from './builtins.svelte';
   import { useIsland } from './context.svelte';
+  import { LiquidGlass, readGlassParams } from './glass/liquid-glass';
   import Panel from './panel/Panel.svelte';
   import ClockView from './views/ClockView.svelte';
 
@@ -13,9 +14,20 @@
   let bg: HTMLDivElement;
   let clip: HTMLDivElement;
   let bubble: HTMLDivElement;
-  let bubbleContent: HTMLButtonElement;
+  let bubbleContent: HTMLDivElement;
   let bridge: SVGPathElement;
+  let glassCanvas: HTMLCanvasElement;
+  let glass: LiquidGlass | null = null;
   const views: Record<string, HTMLElement | undefined> = $state({});
+  const bubbleViews: { compact?: HTMLElement; expanded?: HTMLElement } = $state({});
+
+  // Any size change of a visible view (text, fonts, theme) re-targets the shape.
+  const observer = new ResizeObserver((entries) => {
+    const watched = [views[controller.view], bubbleViews.expanded];
+    if (entries.some((entry) => watched.includes(entry.target as HTMLElement))) {
+      controller.refresh();
+    }
+  });
 
   const definitions = registry.definitions;
   const bubbleDef = $derived(controller.bubbleId ? registry.def(controller.bubbleId) : undefined);
@@ -24,8 +36,23 @@
     return main ? registry.def(main.id)?.label() ?? i18n.m.island.label : i18n.m.island.label;
   });
 
+  /** Glass themes get the WebGL material when available, otherwise the CSS layers. */
+  function applyGlass(): void {
+    const root = document.documentElement;
+    const isGlass = getComputedStyle(root).getPropertyValue('--island-material').trim() === 'glass';
+    const on = glass?.setEnabled(isGlass) ?? false;
+    if (on) {
+      glass?.setParams(readGlassParams(root));
+    }
+    root.dataset.glass = on ? 'webgl' : 'css';
+  }
+
   onMount(() => {
-    controller.attach({ shell, shadow, bg, clip, bubble, bubbleContent, bridge, views });
+    glass = new LiquidGlass(glassCanvas, () => {
+      applyGlass();
+      controller.onThemeChange();
+    });
+    controller.attach({ shell, shadow, bg, clip, bubble, bubbleContent, bridge, views, bubbleViews, glass });
 
     // Scrolling over the compact island changes the volume.
     const wheel = (e: WheelEvent): void => {
@@ -38,12 +65,6 @@
     };
     shell.addEventListener('wheel', wheel, { passive: false });
 
-    // Any size change of the visible view (text, fonts, theme) re-targets the shape.
-    const observer = new ResizeObserver((entries) => {
-      if (entries.some((entry) => entry.target === views[controller.view])) {
-        controller.refresh();
-      }
-    });
     for (const view of Object.values(views)) {
       if (view) {
         observer.observe(view);
@@ -72,7 +93,19 @@
       document.removeEventListener('pointerdown', outside);
       document.removeEventListener('keydown', escape);
       controller.detach();
+      glass?.dispose();
+      glass = null;
     };
+  });
+
+  $effect(() => {
+    const layers = engine.glassLayers;
+    untrack(() => void glass?.setLayers(layers));
+  });
+
+  $effect(() => {
+    const placement = engine.glass;
+    untrack(() => glass?.setPlacement(placement));
   });
 
   // Re-arbitrate whenever the owning or splitting activity or the mode changes.
@@ -95,14 +128,26 @@
     });
   });
 
+  // The bubble's preview mounts with the bubble's activity.
+  $effect(() => {
+    const view = bubbleViews.expanded;
+    if (view) {
+      observer.observe(view);
+      return () => observer.unobserve(view);
+    }
+  });
+
   // Theme or editor changes: new springs, sizes and materials.
   $effect(() => {
     void engine.version;
-    untrack(() => controller.onThemeChange());
+    untrack(() => {
+      applyGlass();
+      controller.onThemeChange();
+    });
   });
 
   function click(e: MouseEvent): void {
-    if (controller.expanded || (e.target as Element).closest('button:not(.bubble-content), [role="slider"]')) {
+    if (controller.expanded || (e.target as Element).closest('button, [role="slider"], .bubble-content')) {
       return;
     }
     const main = registry.main;
@@ -116,13 +161,31 @@
     }
   }
 
+  function openBubble(e: MouseEvent): void {
+    e.stopPropagation();
+    // Quick actions inside the bubble's preview act on their own.
+    if (!(e.target as Element).closest('button, [role="slider"]')) {
+      controller.expand(bubbleDef?.section ?? null);
+    }
+  }
+
+  function bubbleKey(e: KeyboardEvent): void {
+    if (e.target === bubbleContent && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      e.stopPropagation();
+      controller.expand(bubbleDef?.section ?? null);
+    }
+  }
+
   function sheen(e: PointerEvent): void {
     const rect = shell.getBoundingClientRect();
     bg.style.setProperty('--mx', `${((e.clientX - rect.left) / rect.width) * 100}%`);
+    glass?.setPointer(e.clientX, e.clientY);
   }
 </script>
 
 <div class="island-anchor">
+  <canvas class="island-glass" bind:this={glassCanvas} aria-hidden="true"></canvas>
   <div
     bind:this={shell}
     class="island"
@@ -132,12 +195,10 @@
     aria-label={controller.expanded ? i18n.m.island.controlCenter : mainLabel}
     onclick={click}
     onkeydown={key}
-    onpointerenter={() => controller.pointerEnter()}
-    onpointerleave={() => controller.pointerLeave()}
-    onpointerdown={() => controller.press()}
     onpointerup={() => controller.release()}
     onpointercancel={() => controller.release()}
     onpointermove={sheen}
+    onpointerleave={() => glass?.setPointer(null)}
   >
     <div class="island__shadow" bind:this={shadow}></div>
     <svg class="island__bridge" aria-hidden="true"><path bind:this={bridge} /></svg>
@@ -148,7 +209,14 @@
       <div class="mat mat-rim"></div><div class="mat mat-core"></div><div class="mat mat-tint"></div><div class="mat mat-sheen"></div>
     </div>
 
-    <div class="island__clip" bind:this={clip}>
+    <div
+      class="island__clip"
+      bind:this={clip}
+      onpointerenter={() => controller.pointerEnter('main')}
+      onpointerleave={() => controller.pointerLeave('main')}
+      onpointerdown={() => controller.press('main')}
+      role="presentation"
+    >
       <div class="view view--clock" data-view="clock" data-compact inert bind:this={views.clock}><ClockView /></div>
       {#each definitions as def (def.id)}
         <div
@@ -169,14 +237,26 @@
       <div class="view view--panel" data-view="panel" inert bind:this={views.panel}><Panel /></div>
     </div>
 
-    <button
+    <div
       class="bubble-content"
       bind:this={bubbleContent}
+      role="button"
       tabindex="-1"
       aria-label={bubbleDef?.label() ?? ''}
-      onclick={(e) => { e.stopPropagation(); controller.expand(bubbleDef?.section ?? null); }}
+      onclick={openBubble}
+      onkeydown={bubbleKey}
+      onpointerenter={() => controller.pointerEnter('bubble')}
+      onpointerleave={() => controller.pointerLeave('bubble')}
+      onpointerdown={() => controller.press('bubble')}
     >
-      {#if bubbleDef?.bubble}<bubbleDef.bubble />{/if}
-    </button>
+      <div class="view view--bubble" inert bind:this={bubbleViews.compact}>
+        {#if bubbleDef?.bubble}<bubbleDef.bubble />{/if}
+      </div>
+      {#if bubbleDef?.expandedView}
+        <div class="view view--live view--{bubbleDef.id}-expanded" inert bind:this={bubbleViews.expanded}>
+          <bubbleDef.expandedView />
+        </div>
+      {/if}
+    </div>
   </div>
 </div>

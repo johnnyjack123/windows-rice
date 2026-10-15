@@ -11,7 +11,7 @@ import { formatSpring, motionSettings, parseSpring, springToLinear } from '$moti
 import { adjustEasing, adjustSpring, overridesStylesheet, SPRING_TOKENS } from './editor';
 import { BUILTIN_THEMES, type ThemeMeta } from './themes/registry';
 import { extractColor } from './color';
-import { prepareGlass } from './wallpaper';
+import { prepareGlass, type GlassLayers } from './wallpaper';
 
 const DURATIONS = ['--dur-instant', '--dur-fast', '--dur-medium', '--dur-slow', '--stagger', '--enter-delay-grow', '--enter-delay-shrink'];
 const EASES = ['--ease-standard', '--ease-enter', '--ease-exit'];
@@ -36,6 +36,8 @@ export class ThemeEngine {
   /** Lab override for reduced motion (null = follow Windows). */
   reducedOverride = $state<boolean | null>(null);
   glass = $state<GlassGeometry>({ monitorWidth: 1920, monitorHeight: 1080, windowX: 0, windowY: 0 });
+  /** Pre-rendered wallpaper layers for glass materials (blob URLs), once ready. */
+  glassLayers = $state<GlassLayers | null>(null);
 
   /** Built-in plus user themes. */
   readonly themes: ThemeMeta[] = $derived.by(() => [
@@ -185,10 +187,15 @@ export class ThemeEngine {
       }
       this.root.style.setProperty('--wallpaper-blurred', `url("${layers.blurred}")`);
       this.root.style.setProperty('--wallpaper-rim', `url("${layers.rim}")`);
-      for (const url of this.glassUrls) {
-        URL.revokeObjectURL(url);
-      }
+      this.glassLayers = layers;
+      const stale = this.glassUrls;
       this.glassUrls = [layers.blurred, layers.rim];
+      // Give image loaders (CSS, WebGL) a moment to switch before revoking.
+      setTimeout(() => {
+        for (const url of stale) {
+          URL.revokeObjectURL(url);
+        }
+      }, 2000);
     } catch (error) {
       console.warn('[theme] glass layers unavailable', error);
     }

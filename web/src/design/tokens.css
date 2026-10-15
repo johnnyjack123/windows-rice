@@ -79,6 +79,7 @@
   --type-display: 600 calc(40px * var(--text-scale))/1 var(--font-numeric);
   --type-timer: 300 calc(46px * var(--text-scale))/1 var(--font-numeric);
   --type-page: 600 calc(28px * var(--text-scale))/1.15 var(--font-display); /* window page titles */
+  --type-break: 200 calc(clamp(88px, 14vh, 172px) * var(--text-scale))/1 var(--font-numeric); /* break screen countdown */
   --type-headline: 600 calc(19px * var(--text-scale))/1.2 var(--font-display);
   --type-title: 600 calc(13.5px * var(--text-scale))/1.3 var(--font-ui);
   --type-body: 400 calc(13px * var(--text-scale))/1.4 var(--font-ui);
@@ -152,6 +153,9 @@
   --icon-size-lg: 24px;
   --icon-size-xl: 34px;
   --live-width: 392px;
+  --live-width-compact: 304px;                 /* quick-action previews (timer, stopwatch, pomodoro) */
+  --dot-size: 6px;                             /* status dots (unread, pomodoro sessions) */
+  --pomo-dial-size: 184px;                     /* pomodoro dial in the control centre */
   --osd-width: 264px;
   --art-size: 56px;
   --app-icon-size: 36px;
@@ -171,6 +175,7 @@
 
   /* ── Material · behaviour ───────────────────────────────────────────── */
   --island-goo: 0;                             /* 1 = liquid bridge between pill and bubble */
+  --island-split-pull: 18px;                   /* how far the bubble stretches the neck before it tears */
   --island-material: solid;                    /* solid | glass */
 
   /* ── Iconography · Material Symbols ─────────────────────────────────── */
@@ -299,4 +304,27 @@
   --media-bg: var(--color-surface-container);
   --media-fg: var(--color-text);
   --media-fg-muted: var(--color-text-muted);
+
+  /* ── Component · break screen (pomodoro, full screen) ───────────────── */
+  --break-bg: color-mix(in srgb, var(--base-fg) 3%, var(--base-bg));
+  --break-fg: var(--base-fg);
+  --break-fg-muted: color-mix(in srgb, var(--base-fg) var(--mix-muted), var(--base-bg));
+  --break-dial-size: min(58vh, 540px);
+  --break-ring: var(--color-accent);
+  --break-ring-track: color-mix(in srgb, var(--base-fg) 10%, transparent);
+  --break-ring-width: 1.1;                     /* in viewBox units of a 100-unit dial */
+  --break-ring-display: block;
+  --break-ascii-display: none;
+  --break-orb-a: var(--color-accent);
+  --break-orb-b: var(--wallpaper-seed, var(--color-accent));
+  --break-orb-c: var(--color-positive);
+  --break-orb-opacity: 0.3;
+  --break-orb-blur: 96px;
+  --break-orb-display: block;
+  --break-breath-fill: color-mix(in srgb, var(--break-ring) 12%, transparent);
+  --break-breath-radius: var(--radius-full);
+  --break-breath: 8s;                          /* one inhale + exhale */
+  --break-drift: 26s;                          /* slow drift of the ambient light */
+  --ease-breath: cubic-bezier(0.45, 0, 0.55, 1);
+  --break-hold: 1600ms;                        /* press-and-hold to skip */
 }

@@ -2,13 +2,31 @@
   import { i18n } from '$i18n/i18n.svelte';
   import Icon from '$ui/Icon.svelte';
   import { useIsland } from '../context.svelte';
+  import { PHASE_ICON, type PomodoroPhase } from '../pomodoro.svelte';
 
-  const { timers, backend } = useIsland();
+  const { timers, pomodoro, backend } = useIsland();
   const ringing = $derived(timers.ringing);
   const t = $derived(i18n.m.timers);
+  const p = $derived(i18n.m.pomodoro);
+  /** For the pomodoro the label is the phase that comes next. */
+  const next = $derived((ringing?.kind === 'pomodoro' ? ringing.label : 'focus') as PomodoroPhase);
 </script>
 
-{#if ringing}
+{#if ringing?.kind === 'pomodoro'}
+  <div class="ring-head">
+    <span class="ring-icon" class:is-break={next !== 'focus'}><Icon name={PHASE_ICON[next]} /></span>
+    <div class="truncate">
+      <div class="live-sub">{next === 'focus' ? p.breakDone : p.focusDone}</div>
+      <div class="ring-time">{p.phaseLength(p.phases[next], Math.round(pomodoro.lengthOf(next) / 60000))}</div>
+    </div>
+  </div>
+  <div class="live-actions">
+    <button class="btn btn--tonal has-state" onclick={() => pomodoro.stop()}><Icon name="stop" />{p.stop}</button>
+    <button class="btn btn--filled has-state" onclick={() => pomodoro.startNext()}>
+      <Icon name="play_arrow" />{next === 'focus' ? p.startFocus : p.startBreak}
+    </button>
+  </div>
+{:else if ringing}
   <div class="ring-head">
     <span class="ring-icon"><Icon name={ringing.kind === 'alarm' ? 'alarm' : 'hourglass_top'} /></span>
     <div class="truncate">

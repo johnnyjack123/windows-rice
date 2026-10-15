@@ -28,6 +28,9 @@
   let reduced = $state(false);
   let message = $state('');
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The break window, shown as a full-page frame like the real overlay. */
+  let breakFrame = $state(false);
+  let breakTimer: ReturnType<typeof setTimeout> | undefined;
 
   const settings = $derived(backend.settings.value);
   const themes = $derived(engine.themes);
@@ -95,11 +98,32 @@
         ctx?.timers.ringNow({ id: 'lab', time, label: l.alarm, days: [], enabled: true });
       },
     },
+    {
+      key: 'p',
+      label: () => l.pomodoro,
+      run: () => {
+        const pomodoro = ctx?.pomodoro;
+        if (pomodoro?.state.status === 'idle') {
+          pomodoro.start();
+        } else {
+          pomodoro?.skip();
+        }
+      },
+    },
   ];
   const TEMPOS = [1, 0.5, 0.2];
 
   onMount(() => {
     const offShell = mock?.onShellOpen.on((target) => toast(l.opens(target)));
+    const offBreak = backend.transport.listen('break://state', (overlay) => {
+      clearTimeout(breakTimer);
+      if (overlay) {
+        breakFrame = true;
+      } else {
+        // Let the break screen fade out first.
+        breakTimer = setTimeout(() => (breakFrame = false), 450);
+      }
+    });
     const key = (e: KeyboardEvent): void => {
       const target = e.target instanceof Element ? e.target : document.body;
       if (e.ctrlKey || e.metaKey || e.altKey || target.closest('input, textarea, select, [contenteditable]')) {
@@ -127,6 +151,8 @@
     document.addEventListener('keydown', key);
     return () => {
       offShell?.();
+      offBreak();
+      clearTimeout(breakTimer);
       document.removeEventListener('keydown', key);
     };
   });
@@ -215,6 +241,14 @@
     </div>
     <label class="lab-check">{l.reduced} <input type="checkbox" checked={reduced} onchange={(e) => setReduced(e.currentTarget.checked)} /></label>
     <label class="lab-check">
+      {l.breakFullscreen}
+      <input
+        type="checkbox"
+        checked={settings.timers.pomodoro.breakMode === 'overlay'}
+        onchange={(e) => void backend.settings.patch({ timers: { pomodoro: { breakMode: e.currentTarget.checked ? 'overlay' : 'notify' } } })}
+      />
+    </label>
+    <label class="lab-check">
       {i18n.m.settings.island.hoverPreview}
       <input type="checkbox" checked={settings.island.hoverPreview} onchange={(e) => void backend.settings.patch({ island: { hoverPreview: e.currentTarget.checked } })} />
     </label>
@@ -222,9 +256,14 @@
     <div class="lab-foot">
       <a href="settings.html" target="rice-settings">{l.openSettings} →</a>
       <a href="gallery.html">{l.gallery} →</a>
+      <a href="break.html?preview" target="rice-break">{l.breakPreview} →</a>
     </div>
     <p class="lab-note">{l.shortcuts}</p>
   </div>
 </aside>
 
 <div class="lab-toast" class:is-visible={Boolean(message)} role="status" aria-live="polite">{message}</div>
+
+{#if breakFrame}
+  <iframe class="lab-break" src="break.html" title={l.breakFrame}></iframe>
+{/if}

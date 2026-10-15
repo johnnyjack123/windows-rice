@@ -33,11 +33,22 @@
     <Setting label={s.hideFullscreen}>
       <Switch checked={island.hideInFullscreen} label={s.hideFullscreen} onchange={(v) => set({ hideInFullscreen: v })} />
     </Setting>
-    <Setting label={s.hoverPreview}>
+    <Setting label={s.hoverPreview} hint={s.hoverPreviewHint}>
       <Switch checked={island.hoverPreview} label={s.hoverPreview} onchange={(v) => set({ hoverPreview: v })} />
     </Setting>
     <Setting label={s.scrollVolume}>
       <Switch checked={island.scrollVolume} label={s.scrollVolume} onchange={(v) => set({ scrollVolume: v })} />
+    </Setting>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-card__title">{s.notifications}</div>
+    <Setting label={s.hideWindowsBanners} hint={s.hideWindowsBannersHint}>
+      <Switch
+        checked={backend.settings.value.notifications.hideWindowsBanners}
+        label={s.hideWindowsBanners}
+        onchange={(v) => void backend.settings.patch({ notifications: { hideWindowsBanners: v } })}
+      />
     </Setting>
   </section>
 

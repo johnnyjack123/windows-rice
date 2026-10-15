@@ -5,17 +5,24 @@
  */
 import type { Component } from 'svelte';
 
-/** Priorities of built-in activities; extensions pick values in between. */
+/**
+ * Priorities of built-in activities; extensions pick values in between.
+ * Music keeps the main pill while it plays; running clocks split off into
+ * the bubble, where hovering shows their quick actions.
+ */
 export const PRIORITY = {
   alarm: 110,
   timerDone: 105,
+  pomodoroDone: 104,
   notification: 100,
+  pomodoroPhase: 95,
   osd: 90,
   charging: 80,
   event: 60,
+  music: 57,
+  pomodoro: 55,
   timer: 50,
   stopwatch: 45,
-  music: 40,
 } as const;
 
 /** Definition of an activity type. */

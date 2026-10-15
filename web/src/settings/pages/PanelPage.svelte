@@ -34,9 +34,10 @@
   }
 </script>
 
-{#snippet tileList(key: 'tilesLarge' | 'tilesSmall', title: string)}
+{#snippet tileList(key: 'tilesLarge' | 'tilesSmall', title: string, hint?: string)}
   <section class="settings-card">
     <div class="settings-card__title">{title}</div>
+    {#if hint}<div class="settings-card__hint">{hint}</div>{/if}
     {#each panel[key] as id, i (id)}
       <div class="order-row">
         <Icon name="dashboard" class="ic--sm" />
@@ -90,6 +91,6 @@
     {/each}
   </section>
 
-  {@render tileList('tilesLarge', p.tilesLarge)}
+  {@render tileList('tilesLarge', p.tilesLarge, p.tilesHint)}
   {@render tileList('tilesSmall', p.tilesSmall)}
 </div>

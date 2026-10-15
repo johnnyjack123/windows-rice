@@ -45,6 +45,7 @@
 
   --elevation-panel: 0 24px 60px -18px rgb(0 0 0 / 0.55);
 
+  --island-goo: 1;
   --spring-island: 0.46 0.2;
   --spring-bubble: 0.5 0.25;
   --spring-content: 0.34 0.06;
@@ -149,4 +150,21 @@
 }
 [data-theme="monet"] .media__backdrop {
   display: block;
+}
+
+/* ── Break screen: seed-tinted ambience, the breathing shape morphs ────── */
+[data-theme="monet"] .break {
+  --break-bg: var(--color-surface-container);
+  --break-orb-opacity: 0.42;
+  --break-orb-c: var(--color-accent-container);
+  --break-ring-width: 2.4;
+  --break-breath-fill: var(--color-accent-container);
+}
+[data-theme="monet"] .break__breath {
+  animation-name: monet-breathe;
+}
+/* Material 3 expressive: a soft "cookie" on the inhale, a circle on the exhale. */
+@keyframes monet-breathe {
+  0%, 100% { scale: 0.8; border-radius: 50%; rotate: 0deg; }
+  50% { scale: 1; border-radius: 42% 58% 46% 54% / 55% 44% 56% 45%; rotate: 25deg; }
 }

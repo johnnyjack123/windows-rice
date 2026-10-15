@@ -4,9 +4,12 @@
    rim, specular edge light that follows the pointer, gel-like springs.
 
    Honest constraint: a shaped, transparent window on Windows cannot blur
-   what is behind it. The glass shows a PRE-BLURRED copy of the wallpaper,
+   what is behind it. The glass shows a PRE-RENDERED copy of the wallpaper,
    aligned to screen coordinates by the runtime. Windows behind the island
    are not refracted — exactly like in the real app.
+   With WebGL2 (always in WebView2) a shader draws real lensing, colour
+   fringing and a liquid union of island and bubble (island/glass/). The
+   CSS layers below are the fallback and power previews (gallery, cards).
    Inputs: --base-bg is the glass tint, --base-fg the text colour.
    Schemes: dark (default), light.
    ========================================================================== */
@@ -14,6 +17,15 @@
 [data-theme="glass"] {
   color-scheme: dark;
   --island-material: glass;
+  --island-goo: 1;
+
+  /* Optics of the WebGL material (liquid-glass.ts); the editor scales them. */
+  --glass-bezel: 16px;
+  --glass-refraction: 1;
+  --glass-dispersion: 0.35;
+  --glass-frost: 0.78;
+  --glass-edge-light: 0.55;
+  --glass-shadow: 0.38;
 
   --base-bg: #101014;
   --base-fg: #ffffff;
@@ -83,6 +95,8 @@
 
 [data-theme="glass"][data-scheme="light"] {
   color-scheme: light;
+  --glass-edge-light: 0.75;
+  --glass-shadow: 0.22;
 
   --base-bg: #ffffff;
   --base-fg: #111114;
@@ -173,4 +187,43 @@
     inset 0 -1px 1px var(--glass-edge-low),
     inset 0 0 0 0.5px var(--glass-edge-low);
   background: radial-gradient(140% 90% at var(--mx, 30%) -10%, var(--glass-sheen), transparent 46%);
+}
+
+/* ── Break screen: the real wallpaper, frosted, with a glass dial ───────
+   In its own full-screen window the glass can blur for real: the wallpaper
+   layer is part of the page. */
+[data-theme="glass"] .break {
+  --break-bg: var(--base-bg);
+  --break-orb-display: none;
+  --break-ring: var(--base-fg);
+  --break-ring-track: color-mix(in srgb, var(--base-fg) 18%, transparent);
+  --break-breath-fill: color-mix(in srgb, var(--base-fg) 7%, transparent);
+}
+[data-theme="glass"] .break__backdrop {
+  background: var(--wallpaper-src) center / cover no-repeat;
+}
+[data-theme="glass"] .break__backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--glass-tint-expanded);
+  backdrop-filter: blur(48px) saturate(1.7);
+}
+[data-theme="glass"] .break__center::before {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  border-radius: var(--radius-full);
+  background: radial-gradient(120% 90% at 30% 0%, var(--glass-sheen), transparent 55%), var(--glass-tint);
+  backdrop-filter: blur(24px) saturate(1.5) brightness(1.06);
+  box-shadow:
+    inset 0 1.5px 1px var(--glass-edge),
+    inset 0 -1px 1px var(--glass-edge-low),
+    inset 0 0 0 0.5px var(--glass-edge-low),
+    var(--elevation-panel);
+}
+[data-theme="glass"] .break__hold {
+  background: var(--glass-tint);
+  backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow: inset 0 1px 0.5px var(--glass-edge), inset 0 0 0 0.5px var(--glass-edge-low);
 }

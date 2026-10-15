@@ -4,7 +4,7 @@
  * reviewed without Windows APIs. The lab drives it through `debug`.
  */
 import type {
-  AppNotification, Appearance, ArgsOf, AudioState, BackendError, BluetoothState, CalendarAccount,
+  AppNotification, Appearance, ArgsOf, AudioState, BackendError, BluetoothState, BreakOverlay, CalendarAccount,
   CalendarEvent, CommandName, DisplayState, EventName, Events, MediaState, NetworkState,
   NotificationsState, Occlusion, PowerState, ProcessInfo, Rect, ResultOf, StoredSettings,
   SystemSample, Task, UserTheme, WallpaperInfo, WifiNetwork,
@@ -20,12 +20,15 @@ import {
 type Handlers = { [C in CommandName]: (args: ArgsOf<C>) => ResultOf<C> | Promise<ResultOf<C>> };
 
 /** Events that are relayed to other open pages (settings ↔ island). */
-const SHARED_EVENTS = new Set<EventName>(['config://changed', 'theme://user-changed', 'calendar://accounts', 'calendar://changed']);
+const SHARED_EVENTS = new Set<EventName>([
+  'config://changed', 'theme://user-changed', 'calendar://accounts', 'calendar://changed', 'break://state', 'break://finished',
+]);
 
 const KEYS = {
   settings: 'rice-mock-settings',
   themes: 'rice-mock-themes',
   accounts: 'rice-mock-accounts',
+  break: 'rice-mock-break',
 };
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -162,7 +165,14 @@ export class MockBackend implements Transport {
       this.userThemes = payload as UserTheme[];
     } else if (event === 'calendar://accounts') {
       this.accounts = payload as CalendarAccount[];
+    } else if (event === 'break://state') {
+      this.setBreak(payload as BreakOverlay | null);
     }
+  }
+
+  /** Break state is shared through storage so a frame loaded later can read it. */
+  private setBreak(overlay: BreakOverlay | null): void {
+    save(KEYS.break, overlay);
   }
 
   // ── Command handlers (must cover the whole contract) ────────────────────
@@ -213,6 +223,22 @@ export class MockBackend implements Transport {
     shell_open: ({ target }) => {
       console.info(`[mock] shell_open ${target}`);
       this.onShellOpen.emit(target);
+    },
+
+    // The lab shows the break window as a full-page frame (see LabApp).
+    break_show: (overlay) => {
+      this.setBreak(overlay);
+      this.emit('break://state', overlay);
+    },
+    break_hide: () => {
+      this.setBreak(null);
+      this.emit('break://state', null);
+    },
+    break_state: () => load<BreakOverlay | null>(KEYS.break, null),
+    break_finish: () => {
+      this.setBreak(null);
+      this.emit('break://state', null);
+      this.emit('break://finished', null);
     },
 
     media_get: () => this.mediaState(),

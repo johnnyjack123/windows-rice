@@ -39,8 +39,9 @@ function uid(prefix: string): string {
 
 /** Something currently ringing. */
 export interface Ringing {
-  kind: 'timer' | 'alarm';
+  kind: 'timer' | 'alarm' | 'pomodoro';
   id: string;
+  /** Timer or alarm name; for the pomodoro the phase that comes next. */
   label: string;
   /** "HH:MM" for alarms. */
   time: string;
@@ -230,6 +231,27 @@ export class TimersStore {
   /** @param id - Alarm to delete. */
   removeAlarm(id: string): Promise<void> {
     return this.saveAlarms(this.alarms.filter((a) => a.id !== id));
+  }
+
+  /**
+   * Rings (or queues) the signal of another clock feature, e.g. the pomodoro.
+   *
+   * @param ringing - What rings; its id identifies it for {@link clearSignal}.
+   */
+  signal(ringing: Ringing): void {
+    this.ring(ringing);
+  }
+
+  /**
+   * Stops a signal raised with {@link signal}, or drops it from the queue.
+   *
+   * @param id - Id of the signal.
+   */
+  clearSignal(id: string): void {
+    this.pending = this.pending.filter((r) => r.id !== id);
+    if (this.ringing?.id === id) {
+      this.silence();
+    }
   }
 
   /** Rings an alarm immediately (lab). */

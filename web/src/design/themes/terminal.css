@@ -203,3 +203,46 @@
 [data-theme="terminal"] :is(.art, .media__art) {
   filter: grayscale(0.6) contrast(1.15);
 }
+
+/* ── Break screen: a phosphor screen with scanlines and an ASCII bar ──── */
+[data-theme="terminal"] .break {
+  --break-bg: var(--base-bg);
+  --break-orb-display: none;
+  --break-ring-display: none;
+  --break-ascii-display: block;
+  --break-breath-radius: 0;
+  --break-breath-fill: transparent;
+  --break-ring: var(--accent);
+}
+[data-theme="terminal"] .break__backdrop {
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--base-fg) 4%, transparent) 0 1px,
+    transparent 1px 3px
+  );
+}
+/* The breathing guide becomes a stepped bracket frame. */
+[data-theme="terminal"] .break__breath {
+  inset: 18%;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  animation-timing-function: steps(6, jump-none);
+}
+[data-theme="terminal"] .break__time::after {
+  content: "▌";
+  margin-left: 0.1em;
+  color: var(--accent);
+  animation: terminal-cursor 1.1s steps(1, end) infinite;
+}
+[data-theme="terminal"] .break__dots i {
+  border-radius: 0;
+}
+[data-theme="terminal"] .break__hold {
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+@keyframes terminal-cursor {
+  50% { opacity: 0; }
+}
+:root[data-motion="reduced"][data-theme="terminal"] .break__time::after {
+  animation: none;
+}

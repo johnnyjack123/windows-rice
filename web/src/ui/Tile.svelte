@@ -17,11 +17,20 @@
     state?: '' | 'hover' | 'pressed' | 'focus';
     ontoggle?: () => void;
     onopen?: () => void;
+    /** Right-click (or the context-menu key) opens the matching system settings. */
+    onsettings?: () => void;
   }
 
   let {
-    id, label, sub, icon, on, detail = false, unavailable = false, state = '', ontoggle, onopen,
+    id, label, sub, icon, on, detail = false, unavailable = false, state = '', ontoggle, onopen, onsettings,
   }: Props = $props();
+
+  function contextmenu(e: MouseEvent): void {
+    if (onsettings) {
+      e.preventDefault();
+      onsettings();
+    }
+  }
 </script>
 
 <div class="tile" class:is-on={on} class:is-pressed={state === 'pressed'} class:is-unavailable={unavailable} data-tile={id}>
@@ -31,6 +40,7 @@
     aria-label={i18n.m.common.toggle(label)}
     disabled={unavailable}
     onclick={() => ontoggle?.()}
+    oncontextmenu={contextmenu}
   >
     <Icon name={icon} />
   </button>
@@ -42,6 +52,7 @@
     aria-pressed={detail ? undefined : on}
     disabled={unavailable}
     onclick={() => (detail ? onopen?.() : ontoggle?.())}
+    oncontextmenu={contextmenu}
   >
     <span class="stack">
       <span class="tile__label">{label}</span>

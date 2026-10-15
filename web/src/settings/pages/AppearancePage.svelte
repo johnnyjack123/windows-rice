@@ -3,7 +3,7 @@
   import type { Scheme, SchemePreference, ThemeOverrides } from '$backend/contract';
   import { useBackend } from '$backend/index';
   import { contrastRatio, mixHex } from '$design/color';
-  import { buildUserThemeCss, CONTROLS, readThemeDefaults, type ControlDef, type ControlGroup, type EditorValues } from '$design/editor';
+  import { buildUserThemeCss, CONTROLS, readThemeDefaults, readThemeMaterial, type ControlDef, type ControlGroup, type EditorValues } from '$design/editor';
   import { useEngine } from '$design/engine.svelte';
   import { themeIdFrom } from '$design/themes/registry';
   import { fmt, i18n } from '$i18n/i18n.svelte';
@@ -59,8 +59,12 @@
     void backend.settings.patch({ theme: { overrides: { [themeId]: null } } });
   }
 
-  const groups: ControlGroup[] = ['colors', 'type', 'shape', 'motion', 'icons'];
-  const byGroup = (g: ControlGroup): ControlDef[] => CONTROLS.filter((c) => c.group === g);
+  const material = $derived.by(() => {
+    void engine.version;
+    return readThemeMaterial(themeId, scheme);
+  });
+  const groups = $derived<ControlGroup[]>(['colors', 'type', 'shape', ...(material === 'glass' ? (['material'] as const) : []), 'motion', 'icons']);
+  const byGroup = (g: ControlGroup): ControlDef[] => CONTROLS.filter((c) => c.group === g && (!c.material || c.material === material));
   const anyModified = $derived(Object.keys(overrides).length > 0);
 
   // Contrast of the user's colours, so unreadable combinations are flagged.

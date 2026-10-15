@@ -5,8 +5,9 @@ import { fileURLToPath, URL } from 'node:url';
 const path = (p: string): string => fileURLToPath(new URL(p, import.meta.url));
 
 /**
- * One Vite app, one HTML page per window. Tauri loads `island.html` and
- * `settings.html`; `lab.html` and `gallery.html` are browser-only dev tools.
+ * One Vite app, one HTML page per window. Tauri loads `island.html`,
+ * `settings.html` and `break.html`; `lab.html` and `gallery.html` are
+ * browser-only dev tools.
  */
 export default defineConfig({
   root: 'web',
@@ -23,6 +24,7 @@ export default defineConfig({
       $backend: path('./web/src/backend'),
       $island: path('./web/src/island'),
       $settings: path('./web/src/settings'),
+      $break: path('./web/src/break'),
       $lab: path('./web/src/lab'),
     },
   },
@@ -39,6 +41,7 @@ export default defineConfig({
       input: {
         island: path('./web/island.html'),
         settings: path('./web/settings.html'),
+        break: path('./web/break.html'),
         lab: path('./web/lab.html'),
         gallery: path('./web/gallery.html'),
       },

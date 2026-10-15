@@ -15,16 +15,24 @@ import MusicPlayerView from './views/MusicPlayerView.svelte';
 import MusicView from './views/MusicView.svelte';
 import NotificationView from './views/NotificationView.svelte';
 import OsdView from './views/OsdView.svelte';
+import PomodoroBubble from './views/PomodoroBubble.svelte';
+import PomodoroPhaseView from './views/PomodoroPhaseView.svelte';
+import PomodoroPreview from './views/PomodoroPreview.svelte';
+import PomodoroView from './views/PomodoroView.svelte';
 import RingingView from './views/RingingView.svelte';
 import StopwatchBubble from './views/StopwatchBubble.svelte';
+import StopwatchPreview from './views/StopwatchPreview.svelte';
 import StopwatchView from './views/StopwatchView.svelte';
 import TimerBubble from './views/TimerBubble.svelte';
+import TimerPreview from './views/TimerPreview.svelte';
 import TimerView from './views/TimerView.svelte';
 
 /** Extra classes per activity view (layout family). */
 export const VIEW_CLASS: Record<string, string> = {
   alarm: 'view--live',
   timerDone: 'view--live',
+  pomodoroDone: 'view--live',
+  pomodoroPhase: 'view--live',
 };
 
 /**
@@ -33,10 +41,22 @@ export const VIEW_CLASS: Record<string, string> = {
  * @param registry - Registry of the island.
  * @param ctx - Island context (labels read live data).
  */
-export function registerBuiltinActivities(registry: ActivityRegistry, ctx: Pick<IslandContext, 'backend' | 'timers' | 'ui'>): void {
+export function registerBuiltinActivities(registry: ActivityRegistry, ctx: Pick<IslandContext, 'backend' | 'timers' | 'pomodoro' | 'ui'>): void {
   const m = () => i18n.m;
   registry.define({ id: 'alarm', priority: PRIORITY.alarm, view: RingingView, compact: false, transient: true, critical: true, section: 'timers', label: () => m().island.alarm });
   registry.define({ id: 'timerDone', priority: PRIORITY.timerDone, view: RingingView, compact: false, transient: true, critical: true, section: 'timers', label: () => m().island.timerDone });
+  registry.define({
+    id: 'pomodoroDone', priority: PRIORITY.pomodoroDone, view: RingingView, compact: false, transient: true, critical: true, section: 'timers',
+    label: () => (ctx.pomodoro.state.phase === 'focus' ? m().pomodoro.breakDone : m().pomodoro.focusDone),
+  });
+  registry.define({
+    id: 'pomodoroPhase', priority: PRIORITY.pomodoroPhase, view: PomodoroPhaseView, compact: false, transient: true, section: 'timers',
+    label: () => m().island.pomodoro(m().pomodoro.phases[ctx.pomodoro.state.phase]),
+  });
+  registry.define({
+    id: 'pomodoro', priority: PRIORITY.pomodoro, view: PomodoroView, expandedView: PomodoroPreview, bubble: PomodoroBubble, compact: true, section: 'timers',
+    label: () => m().island.pomodoro(m().pomodoro.phases[ctx.pomodoro.state.phase]),
+  });
   registry.define({
     id: 'notification', priority: PRIORITY.notification, view: NotificationView, compact: false, transient: true, section: 'notifications',
     label: () => (ctx.ui.notification ? `${ctx.ui.notification.appName}: ${ctx.ui.notification.title}` : m().sections.notifications),
@@ -48,10 +68,13 @@ export function registerBuiltinActivities(registry: ActivityRegistry, ctx: Pick<
     label: () => (ctx.ui.event ? m().island.eventSoon(ctx.ui.event.title, '') : m().sections.calendar),
   });
   registry.define({
-    id: 'timer', priority: PRIORITY.timer, view: TimerView, bubble: TimerBubble, compact: true, section: 'timers',
+    id: 'timer', priority: PRIORITY.timer, view: TimerView, expandedView: TimerPreview, bubble: TimerBubble, compact: true, section: 'timers',
     label: () => (ctx.timers.active.length > 1 ? m().island.timersRunning(ctx.timers.active.length) : m().island.timerRunning),
   });
-  registry.define({ id: 'stopwatch', priority: PRIORITY.stopwatch, view: StopwatchView, bubble: StopwatchBubble, compact: true, section: 'timers', label: () => m().island.stopwatch });
+  registry.define({
+    id: 'stopwatch', priority: PRIORITY.stopwatch, view: StopwatchView, expandedView: StopwatchPreview, bubble: StopwatchBubble, compact: true, section: 'timers',
+    label: () => m().island.stopwatch,
+  });
   registry.define({
     id: 'music', priority: PRIORITY.music, view: MusicView, expandedView: MusicPlayerView, bubble: MusicBubble, compact: true,
     label: () => {
@@ -68,7 +91,7 @@ export function registerBuiltinActivities(registry: ActivityRegistry, ctx: Pick<
  * @returns Disconnect function.
  */
 export function connectSources(ctx: IslandContext): () => void {
-  const { backend, registry, timers, ui, controller } = ctx;
+  const { backend, registry, timers, pomodoro, ui, controller } = ctx;
   const offs: Array<() => void> = [];
 
   offs.push(backend.notifications.posted.on((n) => {
@@ -114,9 +137,10 @@ export function connectSources(ctx: IslandContext): () => void {
       untrack(() => (anyTimer ? registry.show('timer') : registry.hide('timer')));
     });
 
+    // A paused stopwatch stays until it is reset, so it can be resumed from the island.
     $effect(() => {
-      const running = timers.stopwatch.running;
-      untrack(() => (running ? registry.show('stopwatch') : registry.hide('stopwatch')));
+      const visible = timers.stopwatch.running || timers.stopwatch.elapsed > 0;
+      untrack(() => (visible ? registry.show('stopwatch') : registry.hide('stopwatch')));
     });
 
     $effect(() => {
@@ -131,6 +155,26 @@ export function connectSources(ctx: IslandContext): () => void {
           registry.show('timerDone');
         } else {
           registry.hide('timerDone');
+        }
+        if (kind === 'pomodoro') {
+          registry.show('pomodoroDone');
+        } else {
+          registry.hide('pomodoroDone');
+        }
+      });
+    });
+
+    $effect(() => {
+      const active = pomodoro.active;
+      untrack(() => (active ? registry.show('pomodoro') : registry.hide('pomodoro')));
+    });
+
+    // Automatic phase changes are announced briefly (also over other windows).
+    $effect(() => {
+      const change = pomodoro.change;
+      untrack(() => {
+        if (change && !controller.expanded) {
+          registry.show('pomodoroPhase', { ttl: 5200, bump: true });
         }
       });
     });

@@ -15,6 +15,12 @@
   const small = $derived(config.tilesSmall.map((id) => tiles[id]).filter((t): t is TileDef => Boolean(t)));
   const volume = $derived(backend.audio.state.muted ? 0 : backend.audio.state.volume);
   const brightness = $derived(backend.display.state.brightness);
+
+  /** Hands the tile over to the Windows settings, like a long-press on Android. */
+  function settingsOf(tile: TileDef): (() => void) | undefined {
+    const target = tile.settings;
+    return target ? () => void backend.transport.invoke('shell_open', { target }) : undefined;
+  }
 </script>
 
 {#if large.length}
@@ -30,6 +36,7 @@
         detail={Boolean(tile.page)}
         ontoggle={tile.toggle}
         onopen={() => (panel.page = tile.page ?? 'home')}
+        onsettings={settingsOf(tile)}
       />
     {/each}
   </div>
@@ -38,7 +45,15 @@
 {#if small.length}
   <div class="tiles tiles--small" data-stagger style:--i={2}>
     {#each small as tile (tile.id)}
-      <SmallTile id={tile.id} label={tile.label()} icon={tile.icon()} on={tile.on()} unavailable={!tile.available()} ontoggle={tile.toggle} />
+      <SmallTile
+        id={tile.id}
+        label={tile.label()}
+        icon={tile.icon()}
+        on={tile.on()}
+        unavailable={!tile.available()}
+        ontoggle={tile.toggle}
+        onsettings={settingsOf(tile)}
+      />
     {/each}
   </div>
 {/if}

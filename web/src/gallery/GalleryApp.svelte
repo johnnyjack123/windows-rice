@@ -18,6 +18,7 @@
   import Slider from '$ui/Slider.svelte';
   import SmallTile from '$ui/SmallTile.svelte';
   import Spark from '$ui/Spark.svelte';
+  import Stepper from '$ui/Stepper.svelte';
   import Switch from '$ui/Switch.svelte';
   import Tabs from '$ui/Tabs.svelte';
   import Tile from '$ui/Tile.svelte';
@@ -63,6 +64,16 @@
           <div class="g-island"><div class="view view--clock" data-compact><span class="island-clock num">14:32<span class="island-clock__sec">:07</span></span><span class="island-unread"></span></div></div>
           <div class="g-island"><div class="view view--timer" data-compact><Icon name="hourglass_top" /><span class="timer-time num">4:59</span></div></div>
           <div class="g-island">
+            <div class="view view--pomodoro" data-compact>
+              <span class="pomo-island"><Icon name="target" /><span class="pomo-island__phase">{m.pomodoro.phases.focus}</span><span class="timer-time num">18:42</span></span>
+            </div>
+          </div>
+          <div class="g-island">
+            <div class="view view--pomodoro" data-compact>
+              <span class="pomo-island is-break"><Icon name="coffee" /><span class="pomo-island__phase">{m.pomodoro.phases.short}</span><span class="timer-time num">3:10</span></span>
+            </div>
+          </div>
+          <div class="g-island">
             <div class="view view--music" data-compact>
               <Art src={COVERS.nachtfahrt ?? null} class="art--island" />
               <span class="island-track"><span class="island-track__title">Nachtfahrt</span><span class="island-track__artist">Kollektiv Ost</span></span>
@@ -88,6 +99,33 @@
             </div>
           </div>
           <div class="g-island"><div class="view view--osd"><span class="osd-icon"><Icon name="volume_down" /></span><div class="osd-bar"><div class="osd__fill" style:--v={0.48}></div></div><span class="osd-value num">48</span></div></div>
+          <div class="g-island g-island--live">
+            <div class="view view--live view--timer-expanded">
+              <div class="qa-head">
+                <span class="qa-ring" style:--p={0.62}><Icon name="hourglass_top" class="ic--sm" /></span>
+                <span class="stack"><span class="live-sub truncate">{m.timers.defaultName} · {m.timers.moreTimers(1)}</span><span class="qa-time num">3:06</span></span>
+              </div>
+              <div class="qa-actions">
+                <button class="qa-btn has-state"><Icon name="more_time" />{m.timers.addMinute}</button>
+                <button class="qa-btn has-state is-hover"><Icon name="pause" />{m.timers.pause}</button>
+                <button class="qa-btn has-state"><Icon name="close" />{m.timers.cancel}</button>
+              </div>
+            </div>
+          </div>
+          <div class="g-island g-island--live">
+            <div class="view view--live view--pomodoro-expanded">
+              <div class="qa-head">
+                <span class="qa-ring is-break" style:--p={0.35}><Icon name="coffee" class="ic--sm" /></span>
+                <span class="stack"><span class="live-sub truncate">{m.pomodoro.phases.short}</span><span class="qa-time num">1:45</span></span>
+              </div>
+              <span class="pomo-dots"><i class="is-done"></i><i class="is-done"></i><i></i><i></i></span>
+              <div class="qa-actions">
+                <button class="qa-btn has-state"><Icon name="pause" />{m.pomodoro.pause}</button>
+                <button class="qa-btn has-state"><Icon name="skip_next" />{m.pomodoro.skip}</button>
+                <button class="qa-btn has-state" disabled><Icon name="stop" />{m.pomodoro.stop}</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -121,6 +159,10 @@
             <Switch checked={false} disabled label={m.common.notAvailable} />
           </div>
           <Range value={0.6} min={0} max={1} step={0.05} label={m.settings.editor.textScale} oninput={() => {}} />
+          <div class="g-inline">
+            <Stepper value={25} min={5} max={120} step={5} label={m.pomodoro.focusMinutes} text={m.timers.minutesShort(25)} onchange={() => {}} />
+            <Stepper value={2} min={2} max={8} label={m.pomodoro.sessionsUntilLongBreak} text={m.pomodoro.sessions(2)} onchange={() => {}} />
+          </div>
         </div>
       </div>
 
@@ -141,7 +183,17 @@
             <span class="chip is-selected">Rice</span>
             <span class="chip chip--accent">{m.format.until(25)}</span>
           </div>
-          <Segmented label={m.sections.timers} value="timer" options={[{ value: 'timer', label: m.timers.modes.timer }, { value: 'stopwatch', label: m.timers.modes.stopwatch }, { value: 'alarm', label: m.timers.modes.alarm }]} onchange={() => {}} />
+          <Segmented
+            label={m.sections.timers}
+            value="timer"
+            options={[
+              { value: 'timer', label: m.timers.modes.timer },
+              { value: 'stopwatch', label: m.timers.modes.stopwatch },
+              { value: 'alarm', label: m.timers.modes.alarm },
+              { value: 'pomodoro', label: m.timers.modes.pomodoro },
+            ]}
+            onchange={() => {}}
+          />
         </div>
       </div>
 
@@ -167,6 +219,17 @@
         <div class="section-label">{m.wifi.available} <Icon name="progress_activity" class="spin" /></div>
         <div class="net"><div class="row has-state is-hover"><Icon name="network_wifi_2_bar" /><span class="stack"><span class="row__title">o2-WLAN61</span><span class="row__sub is-error">{m.wifi.wrongKey}</span></span><span class="row__trail"><Icon name="lock" class="ic--sm" /></span></div></div>
         <div class="net is-connected"><div class="row"><Icon name="headphones" /><span class="stack"><span class="row__title">WH-1000XM5</span><span class="row__sub">{m.bluetooth.statusConnected(m.bluetooth.kinds.headphones)}</span></span><span class="row__trail"><span class="device__battery num"><Battery level={0.78} />78</span></span></div></div>
+      </div>
+
+      <div class="g-section">
+        <h3>{g.pomodoro}</h3>
+        <div class="g-inline g-inline--center">
+          <div class="pomo-dial" style:--p={0.64}>
+            <span class="pomo-dial__phase"><Icon name="target" class="ic--sm" />{m.pomodoro.phases.focus}</span>
+            <span class="pomo-dial__time num">16:02</span>
+            <span class="pomo-dots"><i class="is-done"></i><i class="is-current"></i><i></i><i></i></span>
+          </div>
+        </div>
       </div>
 
       <div class="g-section">

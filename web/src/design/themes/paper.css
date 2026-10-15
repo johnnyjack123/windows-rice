@@ -181,3 +181,21 @@
 [data-theme="paper"] :is(.art, .media__art) {
   filter: sepia(0.25) saturate(0.85);
 }
+
+/* ── Break screen: a quiet page, an ink ring, serif numerals ──────────── */
+[data-theme="paper"] .break {
+  --break-bg: var(--base-bg);
+  --break-orb-display: none;
+  --break-ring: var(--accent);
+  --break-ring-track: color-mix(in srgb, var(--base-fg) 16%, transparent);
+  --break-ring-width: 0.5;
+  --break-breath-fill: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+[data-theme="paper"] .break__backdrop {
+  background-image: var(--surface-texture);
+  opacity: var(--surface-texture-opacity);
+}
+[data-theme="paper"] .break__tip {
+  font-family: var(--font-display);
+  font-style: italic;
+}

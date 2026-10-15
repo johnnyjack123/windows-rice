@@ -1,16 +1,23 @@
 <script lang="ts">
-  import type { Settings } from '$backend/contract';
+  import type { PomodoroSettings, Settings } from '$backend/contract';
   import { useBackend } from '$backend/index';
   import { i18n } from '$i18n/i18n.svelte';
   import { playSignal } from '$island/sound';
   import Icon from '$ui/Icon.svelte';
   import Range from '$ui/Range.svelte';
+  import Segmented from '$ui/Segmented.svelte';
+  import Stepper from '$ui/Stepper.svelte';
+  import Switch from '$ui/Switch.svelte';
   import Setting from '../Setting.svelte';
 
   const backend = useBackend();
   const s = $derived(i18n.m.settings.timers);
   const timers = $derived(backend.settings.value.timers);
   const SOUNDS: Array<Settings['timers']['sound']> = ['chime', 'pulse', 'digital'];
+  const p = $derived(i18n.m.pomodoro);
+  const pomo = $derived(timers.pomodoro);
+  const setPomo = (patch: Partial<PomodoroSettings>): void => void backend.settings.patch({ timers: { pomodoro: patch } });
+  const minutes = (n: number): string => i18n.m.timers.minutesShort(n);
 
   function setPresets(text: string): void {
     const presets = text
@@ -55,6 +62,46 @@
     </Setting>
     <Setting label={s.presets} hint={s.presetsHint}>
       <label class="field"><input value={timers.presets.join(', ')} aria-label={s.presets} onchange={(e) => setPresets(e.currentTarget.value)} /></label>
+    </Setting>
+  </section>
+
+  <section class="settings-card">
+    <div class="settings-card__title">{s.pomodoro}</div>
+    <Setting label={p.focusMinutes}>
+      <Stepper value={pomo.focusMinutes} min={5} max={120} step={5} label={p.focusMinutes} text={minutes(pomo.focusMinutes)} onchange={(v) => setPomo({ focusMinutes: v })} />
+    </Setting>
+    <Setting label={p.shortBreakMinutes}>
+      <Stepper value={pomo.shortBreakMinutes} min={1} max={30} label={p.shortBreakMinutes} text={minutes(pomo.shortBreakMinutes)} onchange={(v) => setPomo({ shortBreakMinutes: v })} />
+    </Setting>
+    <Setting label={p.longBreakMinutes}>
+      <Stepper value={pomo.longBreakMinutes} min={5} max={60} step={5} label={p.longBreakMinutes} text={minutes(pomo.longBreakMinutes)} onchange={(v) => setPomo({ longBreakMinutes: v })} />
+    </Setting>
+    <Setting label={p.sessionsUntilLongBreak}>
+      <Stepper
+        value={pomo.sessionsUntilLongBreak}
+        min={2}
+        max={8}
+        label={p.sessionsUntilLongBreak}
+        text={p.sessions(pomo.sessionsUntilLongBreak)}
+        onchange={(v) => setPomo({ sessionsUntilLongBreak: v })}
+      />
+    </Setting>
+    <Setting label={p.breakMode} hint={p.breakModeHint}>
+      <Segmented
+        label={p.breakMode}
+        value={pomo.breakMode}
+        options={[
+          { value: 'notify', label: p.breakModes.notify },
+          { value: 'overlay', label: p.breakModes.overlay },
+        ]}
+        onchange={(v) => setPomo({ breakMode: v })}
+      />
+    </Setting>
+    <Setting label={p.autoStartBreaks}>
+      <Switch checked={pomo.autoStartBreaks} label={p.autoStartBreaks} onchange={(v) => setPomo({ autoStartBreaks: v })} />
+    </Setting>
+    <Setting label={p.autoStartFocus}>
+      <Switch checked={pomo.autoStartFocus} label={p.autoStartFocus} onchange={(v) => setPomo({ autoStartFocus: v })} />
     </Setting>
   </section>
 </div>

@@ -4,6 +4,7 @@ import type { Backend } from '$backend/index';
 import type { ThemeEngine } from '$design/engine.svelte';
 import type { ActivityRegistry } from './activities.svelte';
 import type { IslandController } from './controller.svelte';
+import type { PomodoroStore } from './pomodoro.svelte';
 import type { TimersStore } from './timers.svelte';
 
 /** Data the transient views display. */
@@ -28,6 +29,7 @@ export interface IslandContext {
   registry: ActivityRegistry;
   controller: IslandController;
   timers: TimersStore;
+  pomodoro: PomodoroStore;
   ui: IslandUiState;
   panel: PanelState;
 }

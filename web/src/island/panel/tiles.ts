@@ -22,6 +22,8 @@ export interface TileDef {
   toggle: () => void;
   /** Opens a drill-in page from the text zone. */
   page?: TilePage;
+  /** Windows settings page opened on right-click (`ms-settings:` URI). */
+  settings?: string;
 }
 
 /**
@@ -43,6 +45,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       available: () => net().wifi.available,
       toggle: () => void b.network.setWifi(!net().wifi.enabled),
       page: 'wifi',
+      settings: 'ms-settings:network-wifi',
     },
     {
       id: 'bluetooth',
@@ -59,6 +62,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       available: () => b.bluetooth.state.available,
       toggle: () => void b.bluetooth.setEnabled(!b.bluetooth.state.enabled),
       page: 'bluetooth',
+      settings: 'ms-settings:bluetooth',
     },
     {
       id: 'dnd',
@@ -68,6 +72,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       on: () => b.settings.value.notifications.dnd,
       available: () => true,
       toggle: () => void b.settings.patch({ notifications: { dnd: !b.settings.value.notifications.dnd } }),
+      settings: 'ms-settings:notifications',
     },
     {
       id: 'night',
@@ -77,6 +82,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       on: () => b.display.state.nightLight === true,
       available: () => b.display.state.nightLight !== null,
       toggle: () => void b.display.setNightLight(!b.display.state.nightLight),
+      settings: 'ms-settings:nightlight',
     },
     {
       id: 'airplane',
@@ -86,6 +92,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       on: () => net().airplane,
       available: () => true,
       toggle: () => void b.network.setAirplane(!net().airplane),
+      settings: 'ms-settings:network-airplanemode',
     },
     {
       id: 'saver',
@@ -95,6 +102,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       on: () => b.power.state.energySaver,
       available: () => b.power.state.energySaverSupported,
       toggle: () => void b.power.setEnergySaver(!b.power.state.energySaver),
+      settings: 'ms-settings:powersleep',
     },
     {
       id: 'mic',
@@ -104,6 +112,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       on: () => !b.audio.state.micMuted,
       available: () => b.audio.state.micAvailable,
       toggle: () => void b.audio.setMicMuted(!b.audio.state.micMuted),
+      settings: 'ms-settings:sound',
     },
     {
       id: 'hotspot',
@@ -113,6 +122,7 @@ export function builtinTiles(b: Backend): Record<string, TileDef> {
       on: () => net().hotspot.enabled,
       available: () => net().hotspot.supported,
       toggle: () => void b.network.setHotspot(!net().hotspot.enabled),
+      settings: 'ms-settings:network-mobilehotspot',
     },
   ];
   return Object.fromEntries(list.map((t) => [t.id, t]));

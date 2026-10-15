@@ -16,6 +16,7 @@ import '$ui/ui.css';
 import '$island/island.css';
 import '$island/panel.css';
 import '$settings/settings.css';
+import '$break/break.css';
 import './themes/obsidian.css';
 import './themes/monet.css';
 import './themes/glass.css';
