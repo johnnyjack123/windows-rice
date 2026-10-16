@@ -4,13 +4,26 @@ Ein Windows-Desktop-Rice: eine **Dynamic Island**, die per Klick zum Kontrollzen
 Kalender, Aufgaben, Timer, Systemmonitor, Schnelleinstellungen mit WLAN-/Bluetooth-Untermenüs). Später kommen
 Taskleiste, App-Launcher und weitere Module dazu. Stack: Tauri 2 + Rust + Svelte 5.
 
-> **Status: Phase 1 – Frontend fertig, Rust-Backend als Nächstes.** Das komplette Frontend läuft im Browser gegen ein
-> Mock-Backend. Den Auftrag für das Backend beschreibt [`docs/BACKEND.md`](docs/BACKEND.md), Plan und Roadmap
-> [`docs/PLAN.md`](docs/PLAN.md).
+> **Status: Phase 1 – Frontend fertig, Rust-Backend im Aufbau.** Das komplette Frontend läuft im Browser gegen ein
+> Mock-Backend. Das Rust-Backend entsteht schrittweise nach [`docs/BACKEND.md`](docs/BACKEND.md) (Stand: §7); Plan und
+> Roadmap [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Starten
 
-Voraussetzungen: Node 22+ und pnpm.
+### Als Desktop-App (Tauri)
+
+Voraussetzungen: Node 22+, pnpm, Rust (stable, MSVC), Visual Studio Build Tools mit C++-Workload, WebView2-Runtime.
+
+```powershell
+pnpm install
+pnpm tauri dev
+```
+
+Startet Vite und die App. Die Island erscheint oben mittig auf dem Hauptbildschirm; Einstellungen und Daten liegen in
+`%APPDATA%\rice`. Läuft `pnpm dev` schon, bricht `pnpm tauri dev` mit „Port 1420 is already in use“ ab – dann den
+laufenden Server beenden oder nur das Backend starten: `cargo run -p rice`.
+
+### Im Browser (Mock-Backend)
 
 ```powershell
 pnpm install
@@ -77,6 +90,9 @@ eigenes Theme speichern. Eigene Themes von Hand: [`docs/THEMING.md`](docs/THEMIN
 | `pnpm build` | Produktions-Build nach `dist/` |
 | `pnpm verify` | alles drei nacheinander – vor jedem Commit |
 | `pnpm icons` | Icon-Subset neu erzeugen (nach Änderungen an `web/src/design/icons.json`, braucht Python mit `fonttools` + `brotli`) |
+| `pnpm tauri dev` | Desktop-App mit Vite-Server starten |
+| `cargo clippy -- -D warnings` | Rust-Lints (Warnungen sind Fehler) |
+| `cargo test` | Rust-Tests (Vertragsabgleich, Geometrie, Einstellungen, Dateien) |
 
 ## Struktur
 
@@ -99,6 +115,9 @@ web/
     settings/           Einstellungsfenster
     lab/ gallery/       Entwicklungsseiten
 scripts/                Hilfsskripte (Icon-Subset)
+src-tauri/              Tauri-App: Fenster, Commands, Events (Rust)
+crates/
+  rice-core/            Vertragstypen und Logik ohne Windows-Abhängigkeit
+  rice-services/        Konfiguration, Themes, Bildkodierung
+  rice-win/             Windows-API-Wrapper
 ```
-
-Das Rust-Backend (`src-tauri/`) entsteht als Nächstes nach [`docs/BACKEND.md`](docs/BACKEND.md).

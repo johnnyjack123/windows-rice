@@ -340,3 +340,55 @@ Farbextraktion aus Cover/Wallpaper, Übersetzungen (Deutsch/Englisch), „Nicht 
 
 Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` grün. Leistungsbudget aus PLAN §1:
 < 0,5 % CPU im Leerlauf, kein Polling außer Cursor (60 Hz) und abonniertem Systemmonitor.
+
+---
+
+## 7. Umsetzungsstand
+
+**Schritt 1 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 2–6) sind registriert und
+liefern neutrale Zustände (`media_get` ohne Sitzungen, `network_get` mit `available: false`, `notifications_get` mit
+`permission: 'unsupported'` …) bzw. `not_supported` für Aktionen – siehe `src-tauri/src/commands/pending.rs`. Jeder
+Schritt ersetzt dort seinen Block. Ein Test (`commands::tests`) prüft, dass genau die Commands aus `contract.ts`
+registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
+
+**Aufbau**
+
+| Crate | Inhalt |
+|---|---|
+| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest |
+| `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG-Data-URL |
+| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread, Shell |
+| `src-tauri` | Fenster, Commands, Events, Hotkey |
+
+**Präzisierungen gegenüber §3/§4**
+
+- **Fenster entstehen im Code**, nicht in `tauri.conf.json` (`app.windows` ist leer). Alle Fenster benutzen dieselben
+  Browser-Argumente (`webview::BROWSER_ARGS`) – WebView2 teilt sich einen Browser-Prozess, abweichende Argumente lassen
+  das Erzeugen weiterer Fenster scheitern.
+- **Island und Pausenfenster gehören einem unsichtbaren Besitzerfenster.** `skipTaskbar` allein lässt sie in Alt+Tab
+  stehen (tao setzt `WS_EX_APPWINDOW`); als „owned windows“ erscheinen sie weder in der Taskleiste noch in Alt+Tab.
+- **`NOACTIVATE` und Klick-durch** laufen über `set_focusable` bzw. `set_ignore_cursor_events`, weil tao die erweiterten
+  Fensterstile bei jeder Änderung komplett neu schreibt. Solange eine Maustaste gedrückt ist, bleibt die Island
+  klickbar (Regler ziehen über den Rand hinaus).
+- **Aufklappen/Zuklappen:** Beim Zuklappen bekommt das zuvor aktive Fenster die Tastatur zurück. `island://focus-lost`
+  wird erst gesendet, wenn nach 40 ms wirklich ein anderes Fenster im Vordergrund ist (der Fokuswechsel in das
+  WebView-Kindfenster löst sonst Fehlalarme aus).
+- **Überlappung:** Zusätzlich zu §3.1 zählen Fenster mit `WS_EX_TRANSPARENT` nicht (durchklickbare Overlays von Spielen
+  und Aufnahme-Tools). Die Zone beginnt an der Oberkante der Arbeitsfläche. `fullscreen` gilt außer im
+  Präsentationsmodus nur, wenn das Vordergrundfenster auf dem Island-Monitor liegt.
+- **`shell_open` mit Pfaden:** innerhalb von `configDir` nur Ordner und Textdateien (`.css`, `.json`, `.log`, `.toml`,
+  `.txt`), damit nie ein Programm gestartet wird.
+- **Wallpaper:** Data-URL wird nach Datei, Änderungszeit und Zielgröße gecacht, damit wiederholte Events denselben String
+  tragen. Unlesbare Formate (HEIC …) fallen auf Windows' JPEG-Kopie `TranscodedWallpaper` zurück. `system://wallpaper`
+  geht nur bei echten Änderungen raus.
+- **Alt+F4** schließt die Island nie (sie ist die App); Pausenfenster nur außerhalb einer Pause.
+
+**Bekannt / offen**
+
+- Das Frontend setzt `settings.island.offsetTop` noch nicht um (`--island-top` ist ein festes Token). Das Backend nutzt
+  den Wert nur für die Island-Zone.
+- Der Standard-Hotkey `Super+Alt+Space` kann belegt sein (z. B. PowerToys Command Palette); das Backend loggt dann eine
+  Warnung, die Island funktioniert weiter.
+- Wenig freier Arbeitsspeicher: Der erste Build kompiliert die große `windows`-Crate; bei „Die Auslagerungsdatei ist zu
+  klein“ (os error 1455) mit weniger Jobs bauen (`$env:CARGO_BUILD_JOBS=4`).
+- CSP ist noch aus (`csp: null`); sie kommt mit dem Installer (Schritt 7).
