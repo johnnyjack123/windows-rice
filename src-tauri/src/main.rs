@@ -17,6 +17,7 @@ mod media;
 mod power;
 mod settings_window;
 mod state;
+mod sysmon;
 mod system;
 mod webview;
 
@@ -25,6 +26,7 @@ use rice_services::config::ConfigStore;
 use rice_services::themes::ThemeStore;
 use state::{AppState, Paths};
 use std::sync::Mutex;
+use tauri::webview::PageLoadEvent;
 use tauri::{AppHandle, Manager, Window, WindowEvent};
 
 fn main() {
@@ -34,6 +36,12 @@ fn main() {
         .invoke_handler(commands::handler())
         .setup(|app| setup(app.handle()))
         .on_window_event(on_window_event)
+        .on_page_load(|webview, payload| {
+            // A reloaded page starts without subscriptions.
+            if payload.event() == PageLoadEvent::Started {
+                sysmon::forget(webview.app_handle(), webview.label());
+            }
+        })
         .run(tauri::generate_context!());
     if let Err(error) = app {
         eprintln!("rice: {error}");
@@ -64,6 +72,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         audio: audio::Audio::default(),
         display: display::Display::default(),
         power: power::Power::default(),
+        sysmon: sysmon::Monitor::default(),
         owner,
         watchers: Mutex::new(Vec::new()),
     });
@@ -91,6 +100,7 @@ fn on_window_event(window: &Window, event: &WindowEvent) {
         }
         WindowEvent::Focused(false) if label == island::LABEL => island::on_blur(app),
         WindowEvent::ScaleFactorChanged { .. } if label == island::LABEL => island::reposition(app),
+        WindowEvent::Destroyed => sysmon::forget(app, label),
         _ => {}
     }
 }

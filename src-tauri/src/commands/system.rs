@@ -1,9 +1,9 @@
 //! Appearance, wallpaper, fonts and monitors.
 
-use crate::system;
+use crate::{sysmon, system};
 use rice_core::BackendResult;
-use rice_core::contract::{Appearance, MonitorInfo, WallpaperInfo};
-use tauri::AppHandle;
+use rice_core::contract::{Appearance, LimitArgs, MonitorInfo, PidArgs, ProcessInfo, SubscribeArgs, WallpaperInfo};
+use tauri::{AppHandle, Webview};
 
 #[tauri::command]
 pub async fn system_appearance() -> BackendResult<Appearance> {
@@ -23,4 +23,27 @@ pub async fn system_fonts() -> BackendResult<Vec<String>> {
 #[tauri::command]
 pub async fn system_monitors() -> BackendResult<Vec<MonitorInfo>> {
     Ok(system::monitors())
+}
+
+/// Counted per calling window (see `sysmon`).
+#[tauri::command]
+pub async fn system_subscribe(app: AppHandle, webview: Webview, args: SubscribeArgs) -> BackendResult<()> {
+    sysmon::subscribe(&app, webview.label(), args.interval_ms);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn system_unsubscribe(app: AppHandle, webview: Webview) -> BackendResult<()> {
+    sysmon::unsubscribe(&app, webview.label());
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn system_processes(app: AppHandle, args: LimitArgs) -> BackendResult<Vec<ProcessInfo>> {
+    sysmon::processes(&app, args.limit).await
+}
+
+#[tauri::command]
+pub async fn system_kill(args: PidArgs) -> BackendResult<()> {
+    sysmon::kill(args.pid).await
 }

@@ -13,6 +13,7 @@ pub mod media;
 pub mod patch;
 pub mod settings;
 pub mod shell;
+pub mod sysmon;
 pub mod theme;
 pub mod time;
 

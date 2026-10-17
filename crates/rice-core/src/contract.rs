@@ -253,7 +253,84 @@ pub enum PowerAction {
     Shutdown,
 }
 
+/// CPU part of a [`SystemSample`].
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct CpuSample {
+    /// Percent of total CPU, 0…100.
+    pub usage: f64,
+    pub name: String,
+    pub ghz: Option<f64>,
+}
+
+/// Memory part of a [`SystemSample`].
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemorySample {
+    pub used_bytes: u64,
+    pub total_bytes: u64,
+}
+
+/// GPU part of a [`SystemSample`].
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GpuSample {
+    pub usage: f64,
+    pub name: String,
+    pub vram_used_bytes: u64,
+    pub vram_total_bytes: u64,
+}
+
+/// Network part of a [`SystemSample`].
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkSample {
+    pub down_bytes_per_sec: f64,
+    pub up_bytes_per_sec: f64,
+}
+
+/// One sample of system load (`system://sample`).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct SystemSample {
+    pub time: String,
+    pub cpu: CpuSample,
+    pub memory: MemorySample,
+    pub gpu: Option<GpuSample>,
+    pub network: NetworkSample,
+}
+
+/// A running process (top entries only).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProcessInfo {
+    pub pid: u32,
+    pub name: String,
+    /// Percent of total CPU, 0…100.
+    pub cpu: f64,
+    pub memory_bytes: u64,
+    /// Icon as data URL; null → letter avatar.
+    pub icon_url: Option<String>,
+}
+
 // ── Command arguments ────────────────────────────────────────────────────
+
+/// `system_subscribe`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscribeArgs {
+    pub interval_ms: f64,
+}
+
+/// `system_processes`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct LimitArgs {
+    pub limit: f64,
+}
+
+/// `system_kill`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct PidArgs {
+    pub pid: u32,
+}
 
 /// `media_control`.
 #[derive(Debug, Clone, Deserialize)]
@@ -375,6 +452,7 @@ pub mod events {
     pub const AUDIO_STATE: &str = "audio://state";
     pub const DISPLAY_STATE: &str = "display://state";
     pub const POWER_STATE: &str = "power://state";
+    pub const SYSTEM_SAMPLE: &str = "system://sample";
 }
 
 #[cfg(test)]
@@ -486,6 +564,34 @@ mod tests {
             serde_json::to_value(power).unwrap(),
             json!({ "battery": null, "charging": false, "energySaver": true, "energySaverSupported": false })
         );
+    }
+
+    #[test]
+    fn serialises_system_samples() {
+        let sample = SystemSample {
+            time: "2026-10-17T11:00:00.000+02:00".into(),
+            cpu: CpuSample { usage: 12.5, name: "Snapdragon X Elite".into(), ghz: None },
+            memory: MemorySample { used_bytes: 8, total_bytes: 16 },
+            gpu: Some(GpuSample { usage: 3.0, name: "Adreno".into(), vram_used_bytes: 1, vram_total_bytes: 2 }),
+            network: NetworkSample { down_bytes_per_sec: 1.5, up_bytes_per_sec: 0.0 },
+        };
+        assert_eq!(
+            serde_json::to_value(sample).unwrap(),
+            json!({
+                "time": "2026-10-17T11:00:00.000+02:00",
+                "cpu": { "usage": 12.5, "name": "Snapdragon X Elite", "ghz": null },
+                "memory": { "usedBytes": 8, "totalBytes": 16 },
+                "gpu": { "usage": 3.0, "name": "Adreno", "vramUsedBytes": 1, "vramTotalBytes": 2 },
+                "network": { "downBytesPerSec": 1.5, "upBytesPerSec": 0.0 },
+            })
+        );
+        let process = ProcessInfo { pid: 42, name: "Code.exe".into(), cpu: 3.1, memory_bytes: 9, icon_url: None };
+        assert_eq!(
+            serde_json::to_value(process).unwrap(),
+            json!({ "pid": 42, "name": "Code.exe", "cpu": 3.1, "memoryBytes": 9, "iconUrl": null })
+        );
+        let subscribe: SubscribeArgs = serde_json::from_value(json!({ "intervalMs": 1000 })).unwrap();
+        assert_eq!(subscribe.interval_ms, 1000.0);
     }
 
     #[test]

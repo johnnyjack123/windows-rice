@@ -15,7 +15,9 @@ pub mod media;
 pub mod monitors;
 pub mod occlusion;
 pub mod power;
+pub mod processes;
 pub mod shell;
+pub mod sysmon;
 pub mod wallpaper;
 pub mod window;
 

@@ -7,6 +7,7 @@ use crate::display::Display;
 use crate::island::Island;
 use crate::media::Media;
 use crate::power::Power;
+use crate::sysmon::Monitor;
 use crate::system::SystemState;
 use rice_core::contract::UserTheme;
 use rice_core::settings::BackendSettings;
@@ -56,6 +57,7 @@ pub struct AppState {
     pub audio: Audio,
     pub display: Display,
     pub power: Power,
+    pub sysmon: Monitor,
     /// Invisible owner of the island and break windows (keeps them out of Alt+Tab).
     pub owner: isize,
     pub watchers: Mutex<Vec<WatchGuard>>,

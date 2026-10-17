@@ -9,28 +9,6 @@ fn later(step: u8) -> BackendError {
     BackendError::not_supported(format!("not built yet (docs/BACKEND.md §6, step {step})"))
 }
 
-// ── Step 3: system monitor ───────────────────────────────────────────────
-
-#[tauri::command]
-pub async fn system_subscribe() -> BackendResult<()> {
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn system_unsubscribe() -> BackendResult<()> {
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn system_processes() -> BackendResult<Value> {
-    Ok(json!([]))
-}
-
-#[tauri::command]
-pub async fn system_kill() -> BackendResult<()> {
-    Err(later(3))
-}
-
 // ── Step 4: network, Bluetooth ───────────────────────────────────────────
 
 #[tauri::command]

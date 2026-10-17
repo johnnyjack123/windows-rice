@@ -81,10 +81,10 @@ commands![
     pending::tasks_create,
     pending::tasks_update,
     pending::tasks_delete,
-    pending::system_subscribe,
-    pending::system_unsubscribe,
-    pending::system_processes,
-    pending::system_kill,
+    system::system_subscribe,
+    system::system_unsubscribe,
+    system::system_processes,
+    system::system_kill,
 ];
 
 #[cfg(test)]
@@ -145,6 +145,7 @@ mod tests {
             events::AUDIO_STATE,
             events::DISPLAY_STATE,
             events::POWER_STATE,
+            events::SYSTEM_SAMPLE,
         ];
         for name in used {
             assert!(declared.contains(name), "{name} is not in contract.ts");

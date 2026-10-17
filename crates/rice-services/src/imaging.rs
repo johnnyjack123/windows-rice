@@ -60,6 +60,15 @@ pub fn bytes_to_jpeg_data_url(bytes: &[u8], max_width: u32, max_height: u32, sca
     image_to_jpeg_data_url(&image, max_width, max_height, scaling)
 }
 
+/// Encodes raw RGBA pixels as a PNG data URL. Icons need transparency, which
+/// JPEG lacks.
+pub fn rgba_to_png_data_url(width: u32, height: u32, rgba: Vec<u8>) -> Result<String, String> {
+    let image = image::RgbaImage::from_raw(width, height, rgba).ok_or("pixel buffer does not match the size")?;
+    let mut bytes = Vec::new();
+    image.write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png).map_err(|e| e.to_string())?;
+    Ok(format!("data:image/png;base64,{}", STANDARD.encode(&bytes)))
+}
+
 /// Encodes an already decoded image like [`file_to_jpeg_data_url`].
 pub fn image_to_jpeg_data_url(image: &DynamicImage, max_width: u32, max_height: u32, scaling: Scaling) -> Result<String, String> {
     let (width, height) = scaled_size(image.width(), image.height(), max_width, max_height, scaling);
@@ -119,6 +128,16 @@ mod tests {
         let decoded = image::load_from_memory(&bytes).unwrap();
         assert_eq!((decoded.width(), decoded.height()), (300, 200));
         assert!(bytes_to_jpeg_data_url(b"junk", 300, 300, Scaling::Contain).is_err());
+    }
+
+    #[test]
+    fn encodes_icons_as_png_with_alpha() {
+        let pixels = [10u8, 20, 30, 0].repeat(4 * 4);
+        let url = rgba_to_png_data_url(4, 4, pixels).unwrap();
+        let bytes = STANDARD.decode(url.strip_prefix("data:image/png;base64,").unwrap()).unwrap();
+        let decoded = image::load_from_memory(&bytes).unwrap().to_rgba8();
+        assert_eq!(decoded.get_pixel(0, 0).0, [10, 20, 30, 0]);
+        assert!(rgba_to_png_data_url(4, 4, vec![0; 3]).is_err());
     }
 
     #[test]
