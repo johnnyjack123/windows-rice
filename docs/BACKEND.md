@@ -345,7 +345,7 @@ Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` gr
 
 ## 7. Umsetzungsstand
 
-**Schritte 1 und 2 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 3–6) sind
+**Schritte 1–3 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 4–6) sind
 registriert und liefern neutrale Zustände (`network_get` mit `available: false`, `notifications_get` mit
 `permission: 'unsupported'` …) bzw. `not_supported` für Aktionen – siehe `src-tauri/src/commands/pending.rs`. Jeder
 Schritt ersetzt dort seinen Block. Ein Test (`commands::tests`) prüft, dass genau die Commands aus `contract.ts`
@@ -357,8 +357,8 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
 |---|---|
 | `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen |
 | `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG-Data-URL |
-| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie |
-| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie |
+| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse |
+| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor |
 
 **Präzisierungen gegenüber §3/§4**
 
@@ -403,6 +403,25 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
 - **Energie:** `charging` heißt „Akku vorhanden und Netzteil angeschlossen“ (auch bei 100 %), damit Einstecken immer die
   Lade-Aktivität zeigt. Energiesparen wird gelesen (`SystemStatusFlag`), lässt sich aber nicht dokumentiert schalten →
   `energySaverSupported: false`. Herunterfahren mit `EWX_POWEROFF` (ohne Schnellstart-Hybrid).
+
+**Schritt 3 (Systemmonitor)** – ohne `sysinfo`, direkt über dokumentierte APIs:
+
+- **CPU:** Auslastung aus `GetSystemTimes`-Deltas, Name aus der Registry (`ProcessorNameString`). `ghz` wie im
+  Task-Manager: PDH `Processor Frequency` × `% Processor Performance` (`sysinfo` liefert unter Windows nur den
+  Nenntakt). **RAM:** `GlobalMemoryStatusEx`, belegt = gesamt − verfügbar.
+- **Netz:** `GetIfTable2`, nur Hardware-Schnittstellen, die aktiv sind; Filtertreiber (QoS, WFP) und Loopback zählen
+  nicht, sonst wäre der Verkehr doppelt.
+- **GPU:** Adapter = Hardware-Adapter mit dem meisten dedizierten Speicher (DXGI, Name und Größe). Auslastung = PDH
+  `GPU Engine(*engtype_3D)` je Adapter summiert (max. 100). **Belegter VRAM über PDH `GPU Adapter Memory`**
+  (`Dedicated Usage`, bei integrierten GPUs `Shared Usage`), nicht über DXGI `QueryVideoMemoryInfo` – das misst nur
+  den eigenen Prozess. Gesamt = dedizierter bzw. bei integrierten GPUs geteilter Speicher.
+- **Abos:** je Fenster gezählt; lädt ein Fenster neu oder schließt es, verfallen seine Abos (sonst liefe der Takt nach
+  einem Reload ewig weiter). Takt 250 ms–10 s, erstes Sample nach 300 ms.
+- **Prozesse:** Toolhelp-Snapshot + `GetProcessTimes`/`GetProcessMemoryInfo` mit `PROCESS_QUERY_LIMITED_INFORMATION`;
+  Prozesse, die sich nicht öffnen lassen, fehlen. CPU-Anteil seit dem letzten Aufruf (ist der älter als 10 s, wird
+  300 ms gemessen). Icons 48 px als **PNG**-Data-URL (Transparenz), nach Exe-Pfad gecacht.
+- **Beenden:** `TerminateProcess`; PID 0, 4 und rice selbst → `access_denied`, unbekannte PID → `not_found`.
+- Diagnose: `cargo test -p rice-win prints_a_sample -- --ignored --nocapture` gibt einen Messpunkt aus.
 
 **Bekannt / offen**
 
