@@ -5,11 +5,16 @@
 // No console window in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod audio;
+mod blocking;
 mod breaks;
 mod commands;
 mod config;
+mod display;
 mod hotkey;
 mod island;
+mod media;
+mod power;
 mod settings_window;
 mod state;
 mod system;
@@ -55,6 +60,10 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         island: island::Island::default(),
         breaks: breaks::Breaks::default(),
         system: system::SystemState::default(),
+        media: media::Media::default(),
+        audio: audio::Audio::default(),
+        display: display::Display::default(),
+        power: power::Power::default(),
         owner,
         watchers: Mutex::new(Vec::new()),
     });
@@ -62,6 +71,9 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     hotkey::register(app, &hotkey);
     config::start_watchers(app);
     system::start(app)?;
+    media::start(app);
+    audio::start(app);
+    display::start(app);
     log::info!("rice {} started; config in {}", app.package_info().version, app.state::<AppState>().paths.config_dir.display());
     Ok(())
 }

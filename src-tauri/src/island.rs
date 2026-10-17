@@ -332,6 +332,7 @@ mod tests {
             device: format!("\\\\.\\DISPLAY{}", index + 1),
             name: format!("Monitor {index}"),
             primary,
+            internal: false,
             rect: PhysRect::default(),
             work: PhysRect::default(),
             scale: 1.0,

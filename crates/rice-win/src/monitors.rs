@@ -6,8 +6,10 @@ use std::collections::HashMap;
 use std::mem;
 use windows::Win32::Devices::Display::{
     DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME, DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME, DISPLAYCONFIG_MODE_INFO,
-    DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME, DISPLAYCONFIG_TARGET_DEVICE_NAME, DisplayConfigGetDeviceInfo,
-    GetDisplayConfigBufferSizes, QDC_ONLY_ACTIVE_PATHS, QueryDisplayConfig,
+    DISPLAYCONFIG_OUTPUT_TECHNOLOGY_DISPLAYPORT_EMBEDDED, DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL,
+    DISPLAYCONFIG_OUTPUT_TECHNOLOGY_UDI_EMBEDDED, DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
+    DISPLAYCONFIG_TARGET_DEVICE_NAME, DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QDC_ONLY_ACTIVE_PATHS,
+    QueryDisplayConfig,
 };
 use windows::Win32::Foundation::{ERROR_SUCCESS, LPARAM, RECT};
 use windows::Win32::Graphics::Gdi::{
@@ -29,6 +31,8 @@ pub struct Monitor {
     /// Friendly name, e.g. "LG ULTRAGEAR".
     pub name: String,
     pub primary: bool,
+    /// Built-in panel (laptop): brightness goes through WMI, not DDC/CI.
+    pub internal: bool,
     pub rect: PhysRect,
     pub work: PhysRect,
     /// DPI / 96.
@@ -43,15 +47,18 @@ pub fn list() -> Vec<Monitor> {
     unsafe {
         let _ = EnumDisplayMonitors(None, None, Some(collect), LPARAM(&mut handles as *mut Vec<HMONITOR> as isize));
     }
-    let names = friendly_names();
+    let targets = targets();
     handles
         .into_iter()
         .filter_map(describe)
         .enumerate()
         .map(|(index, mut monitor)| {
             monitor.index = index;
-            if let Some(name) = names.get(&monitor.device).filter(|n| !n.is_empty()) {
-                monitor.name = name.clone();
+            if let Some(target) = targets.get(&monitor.device) {
+                monitor.internal = target.internal;
+                if !target.name.is_empty() {
+                    monitor.name = target.name.clone();
+                }
             }
             monitor
         })
@@ -87,6 +94,7 @@ fn describe(handle: HMONITOR) -> Option<Monitor> {
         name: adapter_monitor_name(&device).unwrap_or_else(|| device.trim_start_matches("\\\\.\\").to_owned()),
         device,
         primary: info.monitorInfo.dwFlags & MONITORINFOF_PRIMARY != 0,
+        internal: false,
         rect: PhysRect::from_edges(r.left, r.top, r.right, r.bottom),
         work: PhysRect::from_edges(w.left, w.top, w.right, w.bottom),
         scale: f64::from(dpi_x.max(1)) / 96.0,
@@ -102,8 +110,15 @@ fn adapter_monitor_name(device: &str) -> Option<String> {
     ok.as_bool().then(|| from_wide(&entry.DeviceString)).filter(|n| !n.is_empty())
 }
 
-/// Maps GDI device names to EDID friendly names via the display configuration API.
-fn friendly_names() -> HashMap<String, String> {
+/// What the display configuration knows about the monitor behind a GDI device.
+struct Target {
+    /// EDID friendly name, e.g. "LG ULTRAGEAR".
+    name: String,
+    internal: bool,
+}
+
+/// Maps GDI device names to their display targets.
+fn targets() -> HashMap<String, Target> {
     let mut names = HashMap::new();
     let (mut path_count, mut mode_count) = (0u32, 0u32);
     // SAFETY: out-pointers to locals.
@@ -134,7 +149,14 @@ fn friendly_names() -> HashMap<String, String> {
         // SAFETY: each packet starts with its header and declares its own size.
         let ok = unsafe { DisplayConfigGetDeviceInfo(&mut source.header) == 0 && DisplayConfigGetDeviceInfo(&mut target.header) == 0 };
         if ok {
-            names.insert(from_wide(&source.viewGdiDeviceName), from_wide(&target.monitorFriendlyDeviceName));
+            let technology = target.outputTechnology;
+            let internal = technology == DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL
+                || technology == DISPLAYCONFIG_OUTPUT_TECHNOLOGY_DISPLAYPORT_EMBEDDED
+                || technology == DISPLAYCONFIG_OUTPUT_TECHNOLOGY_UDI_EMBEDDED;
+            names.insert(
+                from_wide(&source.viewGdiDeviceName),
+                Target { name: from_wide(&target.monitorFriendlyDeviceName), internal },
+            );
         }
     }
     names

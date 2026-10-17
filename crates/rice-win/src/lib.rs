@@ -6,11 +6,15 @@
 #![cfg(windows)]
 
 pub mod appearance;
+pub mod audio;
+pub mod brightness;
 pub mod com;
 pub mod events;
 pub mod fonts;
+pub mod media;
 pub mod monitors;
 pub mod occlusion;
+pub mod power;
 pub mod shell;
 pub mod wallpaper;
 pub mod window;

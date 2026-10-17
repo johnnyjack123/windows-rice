@@ -2,7 +2,9 @@
 //! notifications (settings, displays, window movement).
 
 use crate::breaks;
+use crate::display;
 use crate::island;
+use crate::power;
 use crate::state::{AppState, Locked};
 use rice_core::contract::{Appearance, MonitorInfo, WallpaperFit, WallpaperInfo, events};
 use rice_core::geometry::{self, PhysRect};
@@ -58,9 +60,13 @@ fn on_change(app: &AppHandle, change: SystemChange) {
         emit_wallpaper(app);
     }
     if change.displays {
+        display::reset(app);
         // Creating windows waits for the UI thread; this thread must keep pumping messages.
         let handle = app.clone();
         tauri::async_runtime::spawn_blocking(move || breaks::sync_monitors(&handle));
+    }
+    if change.power {
+        power::refresh(app);
     }
 }
 

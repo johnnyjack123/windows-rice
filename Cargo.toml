@@ -14,6 +14,7 @@ rice-services = { path = "crates/rice-services" }
 rice-win = { path = "crates/rice-win" }
 
 base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "tiff", "webp"] }
 log = "0.4"
 notify = "8.2"
@@ -24,6 +25,7 @@ tokio = { version = "1", features = ["sync", "time"] }
 toml = "1"
 url = "2"
 windows = "0.62.2"
+windows-core = "0.62.2"
 
 [workspace.lints.rust]
 unsafe_op_in_unsafe_fn = "deny"

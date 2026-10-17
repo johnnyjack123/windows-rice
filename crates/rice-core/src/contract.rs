@@ -149,7 +149,163 @@ pub struct UserTheme {
     pub css: String,
 }
 
+/// One media session (GSMTC).
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaSession {
+    pub id: String,
+    pub app_name: String,
+    pub title: String,
+    pub artist: String,
+    pub album: String,
+    /// Cover as JPEG data URL; null if none.
+    pub art_url: Option<String>,
+    pub playing: bool,
+    /// Position in seconds at `position_at`.
+    pub position: f64,
+    /// When the position was sampled (ISO 8601 with offset).
+    pub position_at: String,
+    pub duration: f64,
+    pub can_previous: bool,
+    pub can_next: bool,
+    pub can_seek: bool,
+}
+
+/// All media sessions.
+#[derive(Debug, Clone, PartialEq, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaState {
+    pub sessions: Vec<MediaSession>,
+    /// Session Windows considers current.
+    pub current_id: Option<String>,
+}
+
+/// Transport action of `media_control`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MediaAction {
+    Play,
+    Pause,
+    Toggle,
+    Next,
+    Previous,
+}
+
+/// Device categories with icons in the UI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AudioDeviceKind {
+    Speakers,
+    Headphones,
+    Hdmi,
+    Bluetooth,
+    Usb,
+    Other,
+}
+
+/// Output or input device.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AudioDevice {
+    pub id: String,
+    pub name: String,
+    pub kind: AudioDeviceKind,
+}
+
+/// Audio endpoint state.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioState {
+    pub volume: f64,
+    pub muted: bool,
+    pub device: Option<AudioDevice>,
+    pub devices: Vec<AudioDevice>,
+    pub mic_muted: bool,
+    pub mic_available: bool,
+}
+
+/// Display state; null fields are unsupported on this machine.
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DisplayState {
+    pub brightness: Option<f64>,
+    pub night_light: Option<bool>,
+}
+
+/// Power state.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PowerState {
+    /// Null on machines without a battery.
+    pub battery: Option<f64>,
+    pub charging: bool,
+    pub energy_saver: bool,
+    pub energy_saver_supported: bool,
+}
+
+/// Session action of `power_action`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PowerAction {
+    Lock,
+    Sleep,
+    Signout,
+    Restart,
+    Shutdown,
+}
+
 // ── Command arguments ────────────────────────────────────────────────────
+
+/// `media_control`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaControlArgs {
+    pub session_id: Option<String>,
+    pub action: MediaAction,
+}
+
+/// `media_seek`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MediaSeekArgs {
+    pub session_id: Option<String>,
+    pub position: f64,
+}
+
+/// `audio_set_volume`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct VolumeArgs {
+    pub volume: f64,
+}
+
+/// `audio_set_muted`, `audio_set_mic_muted`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct MutedArgs {
+    pub muted: bool,
+}
+
+/// `audio_set_device`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeviceIdArgs {
+    pub id: String,
+}
+
+/// `display_set_brightness`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct BrightnessArgs {
+    pub value: f64,
+}
+
+/// Every `{ enabled }` command (night light, energy saver …).
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct EnabledArgs {
+    pub enabled: bool,
+}
+
+/// `power_action`.
+#[derive(Debug, Clone, Copy, Deserialize)]
+pub struct PowerActionArgs {
+    pub action: PowerAction,
+}
 
 /// `config_set`.
 #[derive(Debug, Clone, Deserialize)]
@@ -215,6 +371,10 @@ pub mod events {
     pub const ISLAND_TOGGLE: &str = "island://toggle";
     pub const BREAK_STATE: &str = "break://state";
     pub const BREAK_FINISHED: &str = "break://finished";
+    pub const MEDIA_STATE: &str = "media://state";
+    pub const AUDIO_STATE: &str = "audio://state";
+    pub const DISPLAY_STATE: &str = "display://state";
+    pub const POWER_STATE: &str = "power://state";
 }
 
 #[cfg(test)]
@@ -272,6 +432,71 @@ mod tests {
         let parsed: UserTheme = serde_json::from_value(theme.clone()).unwrap();
         assert_eq!(parsed.manifest.schemes, vec![Scheme::Light]);
         assert_eq!(serde_json::to_value(parsed).unwrap(), theme);
+    }
+
+    #[test]
+    fn serialises_device_states() {
+        let media = MediaState {
+            current_id: Some("Spotify.exe".into()),
+            sessions: vec![MediaSession {
+                id: "Spotify.exe".into(),
+                app_name: "Spotify".into(),
+                title: "T".into(),
+                artist: "A".into(),
+                album: "B".into(),
+                art_url: None,
+                playing: true,
+                position: 12.5,
+                position_at: "2026-10-16T12:00:00.000+02:00".into(),
+                duration: 200.0,
+                can_previous: true,
+                can_next: false,
+                can_seek: true,
+            }],
+        };
+        assert_eq!(
+            serde_json::to_value(media).unwrap(),
+            json!({
+                "currentId": "Spotify.exe",
+                "sessions": [{
+                    "id": "Spotify.exe", "appName": "Spotify", "title": "T", "artist": "A", "album": "B", "artUrl": null,
+                    "playing": true, "position": 12.5, "positionAt": "2026-10-16T12:00:00.000+02:00", "duration": 200.0,
+                    "canPrevious": true, "canNext": false, "canSeek": true,
+                }],
+            })
+        );
+        let audio = AudioState {
+            volume: 0.62,
+            muted: false,
+            device: Some(AudioDevice { id: "{0.0.0}".into(), name: "WH-1000XM5".into(), kind: AudioDeviceKind::Bluetooth }),
+            devices: vec![],
+            mic_muted: true,
+            mic_available: true,
+        };
+        assert_eq!(
+            serde_json::to_value(audio).unwrap(),
+            json!({
+                "volume": 0.62, "muted": false, "device": { "id": "{0.0.0}", "name": "WH-1000XM5", "kind": "bluetooth" },
+                "devices": [], "micMuted": true, "micAvailable": true,
+            })
+        );
+        assert_eq!(serde_json::to_value(DisplayState::default()).unwrap(), json!({ "brightness": null, "nightLight": null }));
+        let power = PowerState { battery: None, charging: false, energy_saver: true, energy_saver_supported: false };
+        assert_eq!(
+            serde_json::to_value(power).unwrap(),
+            json!({ "battery": null, "charging": false, "energySaver": true, "energySaverSupported": false })
+        );
+    }
+
+    #[test]
+    fn parses_device_arguments() {
+        let control: MediaControlArgs = serde_json::from_value(json!({ "sessionId": null, "action": "toggle" })).unwrap();
+        assert_eq!((control.session_id, control.action), (None, MediaAction::Toggle));
+        let seek: MediaSeekArgs = serde_json::from_value(json!({ "sessionId": "x", "position": 30.5 })).unwrap();
+        assert_eq!(seek.session_id.as_deref(), Some("x"));
+        let action: PowerActionArgs = serde_json::from_value(json!({ "action": "signout" })).unwrap();
+        assert_eq!(action.action, PowerAction::Signout);
+        assert!(serde_json::from_value::<PowerActionArgs>(json!({ "action": "format-c" })).is_err());
     }
 
     #[test]

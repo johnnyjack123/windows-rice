@@ -2,6 +2,7 @@
 //! one parameter named `args`; all are async so they never block the UI thread.
 
 mod app;
+mod devices;
 mod island;
 mod pending;
 mod system;
@@ -41,20 +42,20 @@ commands![
     island::island_set_hit_regions,
     island::island_set_expanded,
     island::island_occlusion,
-    pending::media_get,
-    pending::media_control,
-    pending::media_seek,
-    pending::audio_get,
-    pending::audio_set_volume,
-    pending::audio_set_muted,
-    pending::audio_set_device,
-    pending::audio_set_mic_muted,
-    pending::display_get,
-    pending::display_set_brightness,
-    pending::display_set_night_light,
-    pending::power_get,
-    pending::power_set_energy_saver,
-    pending::power_action,
+    devices::media_get,
+    devices::media_control,
+    devices::media_seek,
+    devices::audio_get,
+    devices::audio_set_volume,
+    devices::audio_set_muted,
+    devices::audio_set_device,
+    devices::audio_set_mic_muted,
+    devices::display_get,
+    devices::display_set_brightness,
+    devices::display_set_night_light,
+    devices::power_get,
+    devices::power_set_energy_saver,
+    devices::power_action,
     pending::network_get,
     pending::network_scan,
     pending::network_set_wifi,
@@ -140,6 +141,10 @@ mod tests {
             events::ISLAND_TOGGLE,
             events::BREAK_STATE,
             events::BREAK_FINISHED,
+            events::MEDIA_STATE,
+            events::AUDIO_STATE,
+            events::DISPLAY_STATE,
+            events::POWER_STATE,
         ];
         for name in used {
             assert!(declared.contains(name), "{name} is not in contract.ts");

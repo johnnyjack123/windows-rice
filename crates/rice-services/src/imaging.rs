@@ -54,6 +54,12 @@ pub fn file_to_jpeg_data_url(path: &Path, max_width: u32, max_height: u32, scali
     image_to_jpeg_data_url(&image, max_width, max_height, scaling)
 }
 
+/// Decodes image bytes (cover art, icons) like [`file_to_jpeg_data_url`].
+pub fn bytes_to_jpeg_data_url(bytes: &[u8], max_width: u32, max_height: u32, scaling: Scaling) -> Result<String, String> {
+    let image = image::load_from_memory(bytes).map_err(|e| e.to_string())?;
+    image_to_jpeg_data_url(&image, max_width, max_height, scaling)
+}
+
 /// Encodes an already decoded image like [`file_to_jpeg_data_url`].
 pub fn image_to_jpeg_data_url(image: &DynamicImage, max_width: u32, max_height: u32, scaling: Scaling) -> Result<String, String> {
     let (width, height) = scaled_size(image.width(), image.height(), max_width, max_height, scaling);
@@ -100,6 +106,19 @@ mod tests {
         let bytes = STANDARD.decode(encoded).unwrap();
         let decoded = image::load_from_memory(&bytes).unwrap();
         assert_eq!((decoded.width(), decoded.height()), (32, 16));
+    }
+
+    #[test]
+    fn encodes_covers_from_bytes() {
+        let mut png = Vec::new();
+        RgbaImage::from_pixel(600, 400, Rgba([200, 30, 30, 255]))
+            .write_to(&mut Cursor::new(&mut png), image::ImageFormat::Png)
+            .unwrap();
+        let url = bytes_to_jpeg_data_url(&png, 300, 300, Scaling::Contain).unwrap();
+        let bytes = STANDARD.decode(url.strip_prefix("data:image/jpeg;base64,").unwrap()).unwrap();
+        let decoded = image::load_from_memory(&bytes).unwrap();
+        assert_eq!((decoded.width(), decoded.height()), (300, 200));
+        assert!(bytes_to_jpeg_data_url(b"junk", 300, 300, Scaling::Contain).is_err());
     }
 
     #[test]

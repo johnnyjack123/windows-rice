@@ -11,16 +11,18 @@ use std::rc::Rc;
 use std::thread;
 use windows::Foundation::TypedEventHandler;
 use windows::UI::ViewManagement::UISettings;
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{HANDLE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Power::RegisterPowerSettingNotification;
+use windows::Win32::System::SystemServices::{GUID_ACDC_POWER_SOURCE, GUID_BATTERY_PERCENTAGE_REMAINING, GUID_POWER_SAVING_STATUS};
 use windows::Win32::UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook};
 use windows::Win32::UI::WindowsAndMessaging::{
-    CHILDID_SELF, CreateWindowExW, DefWindowProcW, DispatchMessageW, EVENT_OBJECT_CLOAKED, EVENT_OBJECT_HIDE,
-    EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_SHOW, EVENT_OBJECT_UNCLOAKED, EVENT_SYSTEM_FOREGROUND,
+    CHILDID_SELF, CreateWindowExW, DEVICE_NOTIFY_WINDOW_HANDLE, DefWindowProcW, DispatchMessageW, EVENT_OBJECT_CLOAKED,
+    EVENT_OBJECT_HIDE, EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_SHOW, EVENT_OBJECT_UNCLOAKED, EVENT_SYSTEM_FOREGROUND,
     EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GA_ROOT, GetAncestor, GetMessageW, KillTimer, MSG, OBJID_WINDOW,
-    PostMessageW, RegisterClassW, SPI_SETDESKWALLPAPER, SPI_SETWORKAREA, SetTimer, TranslateMessage, WINEVENT_OUTOFCONTEXT,
-    WINEVENT_SKIPOWNPROCESS, WM_APP, WM_DISPLAYCHANGE, WM_SETTINGCHANGE, WM_TIMER, WNDCLASSW, WS_EX_NOACTIVATE,
-    WS_EX_TOOLWINDOW, WS_POPUP,
+    PBT_APMPOWERSTATUSCHANGE, PBT_APMRESUMEAUTOMATIC, PBT_POWERSETTINGCHANGE, PostMessageW, RegisterClassW,
+    SPI_SETDESKWALLPAPER, SPI_SETWORKAREA, SetTimer, TranslateMessage, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS, WM_APP,
+    WM_DISPLAYCHANGE, WM_POWERBROADCAST, WM_SETTINGCHANGE, WM_TIMER, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_POPUP,
 };
 use windows::core::w;
 
@@ -34,6 +36,8 @@ pub struct SystemChange {
     pub work_area: bool,
     /// Monitors were added, removed or changed resolution.
     pub displays: bool,
+    /// Charger, battery level or energy saver changed.
+    pub power: bool,
 }
 
 /// Events delivered to the handler, always on the system-events thread.
@@ -110,6 +114,14 @@ fn run(handler: Rc<dyn Fn(SystemEvent)>) -> windows::core::Result<()> {
         }
     }
 
+    // Battery level, charger and energy saver arrive as WM_POWERBROADCAST.
+    for setting in [GUID_BATTERY_PERCENTAGE_REMAINING, GUID_ACDC_POWER_SOURCE, GUID_POWER_SAVING_STATUS] {
+        // SAFETY: registration for our own window; it lives as long as the thread.
+        if let Err(error) = unsafe { RegisterPowerSettingNotification(HANDLE(hwnd.0), &setting, DEVICE_NOTIFY_WINDOW_HANDLE) } {
+            log::warn!("system events: power setting {setting:?}: {error}");
+        }
+    }
+
     // Accent colour changes do not always come with WM_SETTINGCHANGE.
     let raw = hwnd.0 as isize;
     let ui_settings = UISettings::new().ok();
@@ -158,6 +170,20 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         WM_APP_COLORS => {
             mark(SETTINGS_DELAY_MS, |c| c.appearance = true);
             LRESULT(0)
+        }
+        WM_POWERBROADCAST => {
+            match wparam.0 as u32 {
+                PBT_POWERSETTINGCHANGE | PBT_APMPOWERSTATUSCHANGE => mark(SETTINGS_DELAY_MS, |c| c.power = true),
+                // Monitors and chargers may have changed while asleep.
+                PBT_APMRESUMEAUTOMATIC => mark(DISPLAY_DELAY_MS, |c| {
+                    c.power = true;
+                    c.displays = true;
+                    c.work_area = true;
+                }),
+                _ => {}
+            }
+            // TRUE: grant every request.
+            LRESULT(1)
         }
         WM_TIMER => {
             // SAFETY: our own timers on our own window.
