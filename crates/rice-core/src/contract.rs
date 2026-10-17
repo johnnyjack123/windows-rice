@@ -419,6 +419,39 @@ pub struct BluetoothState {
     pub devices: Vec<BluetoothDevice>,
 }
 
+/// A notification mirrored from Windows.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppNotification {
+    pub id: String,
+    /// AUMID of the sending app.
+    pub app_id: String,
+    pub app_name: String,
+    /// App icon as data URL; null → letter avatar.
+    pub icon_url: Option<String>,
+    pub title: String,
+    pub body: String,
+    pub time: String,
+}
+
+/// Notification access state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum NotificationPermission {
+    Granted,
+    Denied,
+    Unknown,
+    /// No package identity (sparse package not registered).
+    Unsupported,
+}
+
+/// Notification centre state.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct NotificationsState {
+    pub permission: NotificationPermission,
+    pub items: Vec<AppNotification>,
+}
+
 /// A calendar collection (events, tasks or both).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -698,6 +731,9 @@ pub mod events {
     pub const NETWORK_STATE: &str = "network://state";
     pub const NETWORK_SCAN: &str = "network://scan";
     pub const BLUETOOTH_STATE: &str = "bluetooth://state";
+    pub const NOTIFICATIONS_POSTED: &str = "notifications://posted";
+    pub const NOTIFICATIONS_REMOVED: &str = "notifications://removed";
+    pub const NOTIFICATIONS_STATE: &str = "notifications://state";
     pub const CALENDAR_ACCOUNTS: &str = "calendar://accounts";
     pub const CALENDAR_CHANGED: &str = "calendar://changed";
     pub const TASKS_CHANGED: &str = "tasks://changed";
@@ -897,6 +933,31 @@ mod tests {
         );
         let args: WifiConnectArgs = serde_json::from_value(json!({ "ssid": "Home", "key": null })).unwrap();
         assert_eq!(args.key, None);
+    }
+
+    #[test]
+    fn serialises_notifications() {
+        let state = NotificationsState {
+            permission: NotificationPermission::Granted,
+            items: vec![AppNotification {
+                id: "17".into(),
+                app_id: "com.squirrel.Discord.Discord".into(),
+                app_name: "Discord".into(),
+                icon_url: None,
+                title: "Joni".into(),
+                body: "Hallo".into(),
+                time: "2026-10-17T12:00:00+02:00".into(),
+            }],
+        };
+        assert_eq!(
+            serde_json::to_value(state).unwrap(),
+            json!({
+                "permission": "granted",
+                "items": [{ "id": "17", "appId": "com.squirrel.Discord.Discord", "appName": "Discord", "iconUrl": null,
+                    "title": "Joni", "body": "Hallo", "time": "2026-10-17T12:00:00+02:00" }],
+            })
+        );
+        assert_eq!(serde_json::to_value(NotificationPermission::Unsupported).unwrap(), json!("unsupported"));
     }
 
     #[test]

@@ -1,5 +1,6 @@
 //! System notifications on a dedicated thread: a hidden top-level window
-//! receives broadcast messages (settings, wallpaper, displays), WinEvent hooks
+//! receives broadcast messages (settings, wallpaper, displays, end of the
+//! session), WinEvent hooks
 //! report window movement, and `UISettings` reports accent changes.
 //!
 //! Bursts are coalesced with window timers so the handler sees one event per
@@ -22,7 +23,8 @@ use windows::Win32::UI::WindowsAndMessaging::{
     EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GA_ROOT, GetAncestor, GetMessageW, KillTimer, MSG, OBJID_WINDOW,
     PBT_APMPOWERSTATUSCHANGE, PBT_APMRESUMEAUTOMATIC, PBT_POWERSETTINGCHANGE, PostMessageW, RegisterClassW,
     SPI_SETDESKWALLPAPER, SPI_SETWORKAREA, SetTimer, TranslateMessage, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS, WM_APP,
-    WM_DISPLAYCHANGE, WM_POWERBROADCAST, WM_SETTINGCHANGE, WM_TIMER, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_POPUP,
+    WM_DISPLAYCHANGE, WM_ENDSESSION, WM_POWERBROADCAST, WM_SETTINGCHANGE, WM_TIMER, WNDCLASSW, WS_EX_NOACTIVATE,
+    WS_EX_TOOLWINDOW, WS_POPUP,
 };
 use windows::core::w;
 
@@ -47,6 +49,10 @@ pub enum SystemEvent {
     /// A top-level window moved, appeared, vanished or came to the front
     /// (at most every 50 ms while it keeps happening).
     WindowsMoved,
+    /// The user logs off or Windows shuts down: Windows may end the process
+    /// as soon as the handler returns, so it runs synchronously and should
+    /// only do the most important cleanup.
+    SessionEnding,
 }
 
 const TIMER_SETTINGS: usize = 1;
@@ -184,6 +190,11 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
             }
             // TRUE: grant every request.
             LRESULT(1)
+        }
+        // wParam TRUE: the session really ends (not just a cancelled query).
+        WM_ENDSESSION if wparam.0 != 0 => {
+            dispatch(SystemEvent::SessionEnding);
+            LRESULT(0)
         }
         WM_TIMER => {
             // SAFETY: our own timers on our own window.

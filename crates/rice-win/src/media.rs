@@ -228,7 +228,8 @@ pub fn app_display_name(aumid: &str) -> Option<String> {
     (!name.is_empty()).then_some(name)
 }
 
-fn read_all(reference: &IRandomAccessStreamReference) -> windows::core::Result<Vec<u8>> {
+/// Reads a whole image stream (covers, app logos); empty if implausibly large.
+pub(crate) fn read_all(reference: &IRandomAccessStreamReference) -> windows::core::Result<Vec<u8>> {
     let stream = reference.OpenReadAsync()?.join()?;
     let size = u32::try_from(stream.Size()?).unwrap_or(u32::MAX);
     if size == 0 || size > MAX_COVER_BYTES {

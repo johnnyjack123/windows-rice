@@ -1,4 +1,5 @@
-//! Running processes: CPU share, working set, exe path and icon, terminating.
+//! Running processes: CPU share, working set, exe path and icon, terminating;
+//! app icons by AUMID.
 
 use crate::from_wide;
 use rice_core::sysmon::process_cpu;
@@ -19,7 +20,9 @@ use windows::Win32::System::Threading::{
     GetActiveProcessorCount, GetProcessTimes, OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
     PROCESS_TERMINATE, QueryFullProcessImageNameW, TerminateProcess,
 };
-use windows::Win32::UI::Shell::SHDefExtractIconW;
+use crate::com::ComGuard;
+use windows::Win32::Foundation::SIZE;
+use windows::Win32::UI::Shell::{IShellItemImageFactory, SHCreateItemFromParsingName, SHDefExtractIconW, SIIGBF_ICONONLY};
 use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO};
 use windows::core::{HSTRING, PWSTR};
 
@@ -182,6 +185,34 @@ pub fn icon_rgba(path: &std::path::Path, size: u32) -> Option<(u32, u32, Vec<u8>
     }
 }
 
+/// The Start menu icon of an app by AUMID (`shell:AppsFolder\<AUMID>`) as
+/// RGBA pixels. Works for packaged and classic apps alike.
+pub fn app_icon_rgba(aumid: &str, size: u32) -> Option<(u32, u32, Vec<u8>)> {
+    if aumid.is_empty() {
+        return None;
+    }
+    let _com = ComGuard::sta();
+    let side = i32::try_from(size).ok()?;
+    // SAFETY: NUL-terminated parsing name; the bitmap is deleted below.
+    unsafe {
+        let item: IShellItemImageFactory = SHCreateItemFromParsingName(&HSTRING::from(format!(r"shell:AppsFolder\{aumid}")), None).ok()?;
+        let bitmap = item.GetImage(SIZE { cx: side, cy: side }, SIIGBF_ICONONLY).ok()?;
+        let dc = CreateCompatibleDC(None);
+        let result = (|| {
+            let (width, height) = bitmap_size(bitmap)?;
+            let mut pixels = dib(dc, bitmap, width, height)?;
+            // BGRA → RGBA
+            for pixel in pixels.as_chunks_mut::<4>().0 {
+                pixel.swap(0, 2);
+            }
+            Some((width, height, pixels))
+        })();
+        let _ = DeleteDC(dc);
+        let _ = DeleteObject(bitmap.into());
+        result
+    }
+}
+
 /// # Safety
 /// `icon` must be a valid icon handle.
 unsafe fn icon_pixels(icon: HICON) -> Option<(u32, u32, Vec<u8>)> {
@@ -282,5 +313,15 @@ mod tests {
         let (width, height, pixels) = icon_rgba(&explorer, 48).expect("explorer icon");
         assert_eq!(pixels.len(), (width * height * 4) as usize);
         assert!(pixels.as_chunks::<4>().0.iter().any(|p| p[3] > 0), "icon is not fully transparent");
+    }
+
+    #[test]
+    fn finds_app_icons_by_aumid() {
+        // File Explorer's AUMID exists on every Windows 11 installation.
+        let (width, height, pixels) = app_icon_rgba("Microsoft.Windows.Explorer", 48).expect("explorer app icon");
+        assert_eq!(pixels.len(), (width * height * 4) as usize);
+        assert!(pixels.as_chunks::<4>().0.iter().any(|p| p[3] > 0), "icon is not fully transparent");
+        assert!(app_icon_rgba("rice.test.NoSuchApp", 48).is_none());
+        assert!(app_icon_rgba("", 48).is_none());
     }
 }

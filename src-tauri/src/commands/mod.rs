@@ -6,7 +6,7 @@ mod calendar;
 mod connectivity;
 mod devices;
 mod island;
-mod pending;
+mod notifications;
 mod system;
 
 /// Registers commands and records their names for the contract test.
@@ -69,10 +69,10 @@ commands![
     connectivity::bluetooth_set_enabled,
     connectivity::bluetooth_connect,
     connectivity::bluetooth_disconnect,
-    pending::notifications_get,
-    pending::notifications_request_access,
-    pending::notifications_dismiss,
-    pending::notifications_clear,
+    notifications::notifications_get,
+    notifications::notifications_request_access,
+    notifications::notifications_dismiss,
+    notifications::notifications_clear,
     calendar::calendar_accounts,
     calendar::calendar_add_account,
     calendar::calendar_remove_account,
@@ -151,6 +151,9 @@ mod tests {
             events::NETWORK_STATE,
             events::NETWORK_SCAN,
             events::BLUETOOTH_STATE,
+            events::NOTIFICATIONS_POSTED,
+            events::NOTIFICATIONS_REMOVED,
+            events::NOTIFICATIONS_STATE,
             events::CALENDAR_ACCOUNTS,
             events::CALENDAR_CHANGED,
             events::TASKS_CHANGED,

@@ -1,6 +1,7 @@
 //! Appearance, wallpaper, monitors and fonts, plus the reaction to system
 //! notifications (settings, displays, window movement).
 
+use crate::banners;
 use crate::breaks;
 use crate::display;
 use crate::island;
@@ -45,6 +46,8 @@ pub fn start(app: &AppHandle) -> std::io::Result<()> {
             island::refresh_occlusion(&handle);
         }
         SystemEvent::Changed(change) => on_change(&handle, change),
+        // Logoff or shutdown: Windows may end rice right after this returns.
+        SystemEvent::SessionEnding => banners::shutdown(),
     })
 }
 

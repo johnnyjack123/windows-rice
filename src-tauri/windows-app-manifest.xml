@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Application manifest of rice.exe (embedded by build.rs).
+  Tauri's default (Common Controls 6) plus the link to the sparse package in
+  package/AppxManifest.xml: once that package is registered, Windows starts
+  rice.exe with package identity, which UserNotificationListener needs.
+  Without a registered package rice simply runs unpackaged.
+  publisher, packageName and applicationId must match the package manifest.
+-->
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <assemblyIdentity type="win32" name="io.github.johnnyjack123.rice" version="0.1.0.0"/>
+  <msix xmlns="urn:schemas-microsoft-com:msix.v1"
+        publisher="CN=rice"
+        packageName="io.github.johnnyjack123.rice"
+        applicationId="rice"/>
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity
+        type="win32"
+        name="Microsoft.Windows.Common-Controls"
+        version="6.0.0.0"
+        processorArchitecture="*"
+        publicKeyToken="6595b64144ccf1df"
+        language="*"
+      />
+    </dependentAssembly>
+  </dependency>
+</assembly>

@@ -7,15 +7,18 @@
 
 pub mod appearance;
 pub mod audio;
+pub mod banners;
 pub mod bluetooth;
 pub mod brightness;
 pub mod com;
+pub mod console;
 pub mod credentials;
 pub mod events;
 pub mod fonts;
 pub mod locale;
 pub mod media;
 pub mod monitors;
+pub mod notifications;
 pub mod occlusion;
 pub mod power;
 pub mod processes;

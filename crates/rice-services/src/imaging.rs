@@ -1,4 +1,4 @@
-//! Image files → JPEG data URLs (wallpaper today, covers and icons later).
+//! Images → data URLs: JPEG for wallpapers and covers, PNG for icons.
 //!
 //! Data URLs keep the frontend's canvas untainted, so it can extract colours
 //! and pre-render the glass layers (docs/BACKEND.md §2).
@@ -67,6 +67,19 @@ pub fn rgba_to_png_data_url(width: u32, height: u32, rgba: Vec<u8>) -> Result<St
     let mut bytes = Vec::new();
     image.write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png).map_err(|e| e.to_string())?;
     Ok(format!("data:image/png;base64,{}", STANDARD.encode(&bytes)))
+}
+
+/// Decodes image bytes (app logos), shrinks them into the box and encodes a
+/// PNG data URL, keeping transparency.
+pub fn bytes_to_png_data_url(bytes: &[u8], max_width: u32, max_height: u32) -> Result<String, String> {
+    let image = image::load_from_memory(bytes).map_err(|e| e.to_string())?;
+    let (width, height) = scaled_size(image.width(), image.height(), max_width, max_height, Scaling::Contain);
+    let rgba = if (width, height) == (image.width(), image.height()) {
+        image.to_rgba8()
+    } else {
+        image.resize_exact(width, height, FilterType::Triangle).to_rgba8()
+    };
+    rgba_to_png_data_url(width, height, rgba.into_raw())
 }
 
 /// Encodes an already decoded image like [`file_to_jpeg_data_url`].
@@ -138,6 +151,20 @@ mod tests {
         let decoded = image::load_from_memory(&bytes).unwrap().to_rgba8();
         assert_eq!(decoded.get_pixel(0, 0).0, [10, 20, 30, 0]);
         assert!(rgba_to_png_data_url(4, 4, vec![0; 3]).is_err());
+    }
+
+    #[test]
+    fn shrinks_logos_into_pngs() {
+        let mut png = Vec::new();
+        RgbaImage::from_pixel(96, 64, Rgba([200, 30, 30, 128]))
+            .write_to(&mut Cursor::new(&mut png), image::ImageFormat::Png)
+            .unwrap();
+        let url = bytes_to_png_data_url(&png, 48, 48).unwrap();
+        let bytes = STANDARD.decode(url.strip_prefix("data:image/png;base64,").unwrap()).unwrap();
+        let decoded = image::load_from_memory(&bytes).unwrap().to_rgba8();
+        assert_eq!(decoded.dimensions(), (48, 32));
+        assert_eq!(decoded.get_pixel(10, 10).0[3], 128);
+        assert!(bytes_to_png_data_url(b"junk", 48, 48).is_err());
     }
 
     #[test]

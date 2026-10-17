@@ -3,6 +3,7 @@
 
 use crate::hotkey;
 use crate::island;
+use crate::notifications;
 use crate::state::{AppState, Locked};
 use rice_core::contract::events;
 use rice_core::settings::BackendSettings;
@@ -28,6 +29,9 @@ pub fn on_config_changed(app: &AppHandle, stored: &Value) {
     }
     if previous.hotkey != next.hotkey {
         hotkey::register(app, &next.hotkey);
+    }
+    if previous.hide_windows_banners != next.hide_windows_banners {
+        notifications::on_setting_changed(app);
     }
 }
 

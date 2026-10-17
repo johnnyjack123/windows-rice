@@ -17,6 +17,7 @@ rice-core.workspace = true
 log.workspace = true
 windows-core.workspace = true
 windows-collections.workspace = true
+windows-future.workspace = true
 
 [dependencies.windows]
 workspace = true
@@ -31,6 +32,8 @@ features = [
   "Networking_Connectivity",
   "Networking_NetworkOperators",
   "Storage_Streams",
+  "UI_Notifications",
+  "UI_Notifications_Management",
   "UI_ViewManagement",
   "Win32_Devices_Display",
   "Win32_Devices_FunctionDiscovery",
@@ -50,8 +53,10 @@ features = [
   "Win32_Networking_WinSock",
   "Win32_Security",
   "Win32_Security_Credentials",
+  "Win32_Storage_Packaging_Appx",
   "Win32_System_Com",
   "Win32_System_Com_StructuredStorage",
+  "Win32_System_Console",
   "Win32_System_Diagnostics_ToolHelp",
   "Win32_System_LibraryLoader",
   "Win32_System_Ole",

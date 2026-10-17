@@ -9,6 +9,7 @@ use crate::display::Display;
 use crate::island::Island;
 use crate::media::Media;
 use crate::network::Network;
+use crate::notifications::Notifications;
 use crate::power::Power;
 use crate::sysmon::Monitor;
 use crate::system::SystemState;
@@ -63,6 +64,7 @@ pub struct AppState {
     pub sysmon: Monitor,
     pub network: Network,
     pub bluetooth: Bluetooth,
+    pub notifications: Notifications,
     pub calendar: Calendars,
     /// Invisible owner of the island and break windows (keeps them out of Alt+Tab).
     pub owner: isize,

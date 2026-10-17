@@ -6,6 +6,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod audio;
+mod banners;
 mod blocking;
 mod bluetooth;
 mod breaks;
@@ -17,6 +18,7 @@ mod hotkey;
 mod island;
 mod media;
 mod network;
+mod notifications;
 mod power;
 mod settings_window;
 mod state;
@@ -30,9 +32,14 @@ use rice_services::themes::ThemeStore;
 use state::{AppState, Paths};
 use std::sync::Mutex;
 use tauri::webview::PageLoadEvent;
-use tauri::{AppHandle, Manager, Window, WindowEvent};
+use tauri::{AppHandle, Manager, RunEvent, Window, WindowEvent};
 
 fn main() {
+    // For the uninstaller (and by hand): bring Windows' banners back, then quit.
+    if std::env::args().skip(1).any(|arg| arg == "--restore-banners") {
+        banners::shutdown();
+        return;
+    }
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         .plugin(hotkey::plugin())
@@ -45,15 +52,23 @@ fn main() {
                 sysmon::forget(webview.app_handle(), webview.label());
             }
         })
-        .run(tauri::generate_context!());
-    if let Err(error) = app {
-        eprintln!("rice: {error}");
-        std::process::exit(1);
+        .build(tauri::generate_context!());
+    match app {
+        Ok(app) => app.run(|_, event| {
+            if let RunEvent::Exit = event {
+                banners::shutdown();
+            }
+        }),
+        Err(error) => {
+            eprintln!("rice: {error}");
+            std::process::exit(1);
+        }
     }
 }
 
 fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let paths = Paths::resolve(app)?;
+    banners::init(&paths.config_dir);
     std::fs::create_dir_all(&paths.themes_dir)?;
     let config = ConfigStore::open(paths.config_file());
     let settings = BackendSettings::from_stored(&config.get());
@@ -79,6 +94,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         sysmon: sysmon::Monitor::default(),
         network: network::Network::default(),
         bluetooth: bluetooth::Bluetooth::default(),
+        notifications: notifications::Notifications::default(),
         calendar: calendars,
         owner,
         watchers: Mutex::new(Vec::new()),
@@ -93,6 +109,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     network::start(app);
     bluetooth::start(app);
     calendar::start(app);
+    notifications::start(app);
     log::info!("rice {} started; config in {}", app.package_info().version, app.state::<AppState>().paths.config_dir.display());
     Ok(())
 }

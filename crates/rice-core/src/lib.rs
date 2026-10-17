@@ -11,6 +11,7 @@ pub mod error;
 pub mod geometry;
 pub mod media;
 pub mod network;
+pub mod notifications;
 pub mod patch;
 pub mod settings;
 pub mod shell;
