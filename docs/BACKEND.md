@@ -345,8 +345,8 @@ Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` gr
 
 ## 7. Umsetzungsstand
 
-**Schritt 1 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 2–6) sind registriert und
-liefern neutrale Zustände (`media_get` ohne Sitzungen, `network_get` mit `available: false`, `notifications_get` mit
+**Schritte 1 und 2 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 3–6) sind
+registriert und liefern neutrale Zustände (`network_get` mit `available: false`, `notifications_get` mit
 `permission: 'unsupported'` …) bzw. `not_supported` für Aktionen – siehe `src-tauri/src/commands/pending.rs`. Jeder
 Schritt ersetzt dort seinen Block. Ein Test (`commands::tests`) prüft, dass genau die Commands aus `contract.ts`
 registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
@@ -355,10 +355,10 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
 
 | Crate | Inhalt |
 |---|---|
-| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest |
+| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen |
 | `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG-Data-URL |
-| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread, Shell |
-| `src-tauri` | Fenster, Commands, Events, Hotkey |
+| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie |
+| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie |
 
 **Präzisierungen gegenüber §3/§4**
 
@@ -382,6 +382,27 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
   tragen. Unlesbare Formate (HEIC …) fallen auf Windows' JPEG-Kopie `TranscodedWallpaper` zurück. `system://wallpaper`
   geht nur bei echten Änderungen raus.
 - **Alt+F4** schließt die Island nie (sie ist die App); Pausenfenster nur außerhalb einer Pause.
+
+**Schritt 2 (Medien, Audio, Anzeige, Energie)**
+
+- **Medien:** Sitzungs-Id = AUMID (bei mehreren Sitzungen derselben App `AUMID#2` …). `appName` aus
+  `AppInfo.GetFromAppUserModelId`, sonst aus der AUMID abgeleitet (`Spotify.exe` → „Spotify“). Titel und Cover werden
+  nur bei `MediaPropertiesChanged` neu gelesen; Cover ≤ 300 px, nach Inhalts-Hash gecacht. `media://state` geht nur
+  raus, wenn sich etwas ändert, das das Frontend nicht selbst hochrechnen kann – Timeline-Meldungen, die weniger als
+  1,5 s von der hochgerechneten Position abweichen, werden verschluckt (manche Apps melden sekündlich).
+- **Audio:** Ein eigener Thread besitzt alle Core-Audio-Objekte (in windows-rs nicht threadsicher); Commands schicken
+  ihm Aufträge. Bursts (Lautstärketasten) werden zu einer Meldung zusammengefasst. Lautstärke auf drei Nachkommastellen
+  gerundet, damit `0.62` als `0.62` zurückkommt. `kind`: Bluetooth/USB aus der Geräte-Id des verbundenen Treibers
+  (Gerätetopologie), sonst aus dem Formfaktor. `audio_set_device` über `IPolicyConfig` hinter dem Cargo-Feature
+  `policy-config` (Standard an); das Frontend ruft es derzeit nicht auf.
+- **Helligkeit:** Eingebautes Display → WMI inkl. `WmiMonitorBrightnessEvent` (Helligkeitstasten zeigen das OSD), externes
+  → DDC/CI (keine Events). Die Quelle wird je Island-Monitor einmal ermittelt. Eigene Änderungen werden mit genau dem
+  angefragten Wert bestätigt; ihr WMI-Echo wird 1,5 s lang ignoriert.
+- **Nachtlicht: `null`** (Kachel „Wird nicht unterstützt“). Der einzige Schalter ist ein undokumentiertes
+  CloudStore-Blob, dessen Format zwischen Windows-Versionen wechselt – nach §4 „bei Unsicherheit null“.
+- **Energie:** `charging` heißt „Akku vorhanden und Netzteil angeschlossen“ (auch bei 100 %), damit Einstecken immer die
+  Lade-Aktivität zeigt. Energiesparen wird gelesen (`SystemStatusFlag`), lässt sich aber nicht dokumentiert schalten →
+  `energySaverSupported: false`. Herunterfahren mit `EWX_POWEROFF` (ohne Schnellstart-Hybrid).
 
 **Bekannt / offen**
 
