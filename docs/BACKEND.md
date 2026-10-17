@@ -345,8 +345,8 @@ Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` gr
 
 ## 7. Umsetzungsstand
 
-**Schritte 1–3 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 4–6) sind
-registriert und liefern neutrale Zustände (`network_get` mit `available: false`, `notifications_get` mit
+**Schritte 1–4 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 5–6) sind
+registriert und liefern neutrale Zustände (`calendar_accounts` leer, `notifications_get` mit
 `permission: 'unsupported'` …) bzw. `not_supported` für Aktionen – siehe `src-tauri/src/commands/pending.rs`. Jeder
 Schritt ersetzt dort seinen Block. Ein Test (`commands::tests`) prüft, dass genau die Commands aus `contract.ts`
 registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
@@ -357,8 +357,8 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
 |---|---|
 | `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen |
 | `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG-Data-URL |
-| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse |
-| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor |
+| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse, WLAN, Funk/Hotspot, Bluetooth |
+| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor/Netzwerk/Bluetooth |
 
 **Präzisierungen gegenüber §3/§4**
 
@@ -422,6 +422,32 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
   300 ms gemessen). Icons 48 px als **PNG**-Data-URL (Transparenz), nach Exe-Pfad gecacht.
 - **Beenden:** `TerminateProcess`; PID 0, 4 und rice selbst → `access_denied`, unbekannte PID → `not_found`.
 - Diagnose: `cargo test -p rice-win prints_a_sample -- --ignored --nocapture` gibt einen Messpunkt aus.
+
+**Schritt 4 (Netzwerk, Bluetooth)**
+
+- **WLAN** über `wlanapi` mit Benachrichtigungen (Scan fertig, Verbindung fertig/fehlgeschlagen, Funk, Schnittstellen).
+  `detail` = Band aus der Kanalfrequenz des verbundenen BSSID bzw. des stärksten Access Points („2,4 GHz“ mit Komma bei
+  deutscher Oberfläche) + Sicherheit („WPA2“, „WPA3“ …, offen → nur das Band).
+- **Standort:** `ERROR_ACCESS_DENIED` der WLAN-Abfragen → `permission: 'location_required'` bzw. beim Scan
+  `permission_required`. Name und Balken der aktuellen Verbindung kommen dann aus dem Verbindungsprofil
+  (`NetworkInformation`), das keine Standortfreigabe braucht.
+- **Verbinden:** bekanntes Netz ohne Schlüssel → vorhandenes Profil. Sonst neues Profil (WPA2-Personal, WPA3-SAE oder
+  offen; SSID als Hex, Schlüssel XML-escaped) und Verbindung; Ergebnis aus der Verbindungsbenachrichtigung (max. 15 s).
+  Sicherheitsfehler (`WLAN_REASON_CODE_MSMSEC_*`) → `wrong_key`; ein neu angelegtes Profil wird bei jedem Fehlschlag
+  wieder gelöscht, sonst probiert Windows es endlos. Enterprise-Netze → `failed` (Anmeldedaten nur über Windows).
+- **Funk/Flugmodus** über `Windows.Devices.Radios` (`StateChanged` → `network://state` und `bluetooth://state`).
+  `airplane` = alle Funkmodule aus; Flugmodus an = alle aus (vorherige Zustände gemerkt), aus = gemerkte wieder an.
+  WLAN einschalten beendet den Flugmodus.
+- **Hotspot:** `supported` nur, wenn `GetTetheringCapabilityFromConnectionProfile` `Enabled` meldet.
+- **Bluetooth:** gekoppelte Geräte (klassisch + LE, zusammengefasst nach Container-Id), `connected` aus
+  `System.Devices.Aep.IsConnected`, `kind` aus Class of Device bzw. LE-Appearance (Name verfeinert „Buds“/„AirPods“ →
+  Earbuds), `battery` aus `{104EA319…} 2` der Geräteknoten – nur für verbundene Geräte (Windows behält sonst den
+  letzten Stand).
+- **Verbinden/Trennen** für Audiogeräte mit eigenem Bluetooth-Audiofilter (`bthenum`): `IKsControl` über das
+  Filtergerät (`IMMDeviceEnumerator::GetDevice(<Filter-Id>)`, nicht über `IPart`), Property `KSPROPSETID_BtAudio`
+  `ONESHOT_RECONNECT/DISCONNECT`, danach bis 10 s auf den Verbindungsstatus warten. Geteilte Offload-Filter (z. B.
+  Qualcomm `aucd` auf Snapdragon) und LE-Audio-Geräte → `canConnect: false` (das Frontend öffnet die Einstellungen).
+- Diagnose (nur lesend): `cargo test -p rice-win prints_wifi -- --ignored --nocapture`, ebenso `prints_connectivity`.
 
 **Bekannt / offen**
 
