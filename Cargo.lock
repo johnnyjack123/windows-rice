@@ -2772,6 +2772,7 @@ dependencies = [
  "tauri-plugin-global-shortcut",
  "tauri-plugin-log",
  "tokio",
+ "windows-core",
 ]
 
 [[package]]
@@ -2805,6 +2806,7 @@ dependencies = [
  "log",
  "rice-core",
  "windows",
+ "windows-collections",
  "windows-core",
 ]
 

@@ -9,67 +9,6 @@ fn later(step: u8) -> BackendError {
     BackendError::not_supported(format!("not built yet (docs/BACKEND.md §6, step {step})"))
 }
 
-// ── Step 4: network, Bluetooth ───────────────────────────────────────────
-
-#[tauri::command]
-pub async fn network_get() -> BackendResult<Value> {
-    Ok(json!({
-        "wifi": { "available": false, "enabled": false, "connected": null, "permission": "granted" },
-        "airplane": false,
-        "hotspot": { "supported": false, "enabled": false },
-    }))
-}
-
-#[tauri::command]
-pub async fn network_scan() -> BackendResult<Value> {
-    Ok(json!([]))
-}
-
-#[tauri::command]
-pub async fn network_set_wifi() -> BackendResult<()> {
-    Err(later(4))
-}
-
-#[tauri::command]
-pub async fn network_connect() -> BackendResult<()> {
-    Err(later(4))
-}
-
-#[tauri::command]
-pub async fn network_disconnect() -> BackendResult<()> {
-    Err(later(4))
-}
-
-#[tauri::command]
-pub async fn network_set_airplane() -> BackendResult<()> {
-    Err(later(4))
-}
-
-#[tauri::command]
-pub async fn network_set_hotspot() -> BackendResult<()> {
-    Err(later(4))
-}
-
-#[tauri::command]
-pub async fn bluetooth_get() -> BackendResult<Value> {
-    Ok(json!({ "available": false, "enabled": false, "devices": [] }))
-}
-
-#[tauri::command]
-pub async fn bluetooth_set_enabled() -> BackendResult<()> {
-    Err(later(4))
-}
-
-#[tauri::command]
-pub async fn bluetooth_connect() -> BackendResult<()> {
-    Err(later(4))
-}
-
-#[tauri::command]
-pub async fn bluetooth_disconnect() -> BackendResult<()> {
-    Err(later(4))
-}
-
 // ── Step 5: calendar, tasks ──────────────────────────────────────────────
 
 #[tauri::command]

@@ -7,18 +7,22 @@
 
 pub mod appearance;
 pub mod audio;
+pub mod bluetooth;
 pub mod brightness;
 pub mod com;
 pub mod events;
 pub mod fonts;
+pub mod locale;
 pub mod media;
 pub mod monitors;
 pub mod occlusion;
 pub mod power;
 pub mod processes;
+pub mod radios;
 pub mod shell;
 pub mod sysmon;
 pub mod wallpaper;
+pub mod wifi;
 pub mod window;
 
 /// Converts a NUL-terminated UTF-16 buffer to a `String`.

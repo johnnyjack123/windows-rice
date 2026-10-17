@@ -311,7 +311,122 @@ pub struct ProcessInfo {
     pub icon_url: Option<String>,
 }
 
+/// A Wi-Fi network.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WifiNetwork {
+    pub ssid: String,
+    /// 0…4 bars.
+    pub signal: u8,
+    pub secure: bool,
+    /// Windows has a stored profile for it.
+    pub known: bool,
+    /// e.g. "5 GHz · WPA3"; empty if unknown.
+    pub detail: String,
+}
+
+/// Whether Wi-Fi details are readable (location access since Windows 11 24H2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum WifiPermission {
+    Granted,
+    LocationRequired,
+}
+
+/// Wi-Fi part of [`NetworkState`].
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WifiState {
+    pub available: bool,
+    pub enabled: bool,
+    pub connected: Option<WifiNetwork>,
+    pub permission: WifiPermission,
+}
+
+/// Mobile hotspot part of [`NetworkState`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct HotspotState {
+    pub supported: bool,
+    pub enabled: bool,
+}
+
+/// Network state.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct NetworkState {
+    pub wifi: WifiState,
+    pub airplane: bool,
+    pub hotspot: HotspotState,
+}
+
+/// Why a connection attempt failed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConnectError {
+    WrongKey,
+    Timeout,
+    Failed,
+}
+
+/// Result of a connection attempt.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct ConnectResult {
+    pub ok: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<ConnectError>,
+}
+
+impl ConnectResult {
+    /// The attempt worked.
+    pub const OK: Self = Self { ok: true, error: None };
+
+    /// The attempt failed for `error`.
+    pub fn failed(error: ConnectError) -> Self {
+        Self { ok: false, error: Some(error) }
+    }
+}
+
+/// Device categories with icons and labels in the UI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BluetoothKind {
+    Headphones,
+    Earbuds,
+    Mouse,
+    Keyboard,
+    Speaker,
+    Phone,
+    Gamepad,
+    Other,
+}
+
+/// A paired Bluetooth device.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BluetoothDevice {
+    pub id: String,
+    pub name: String,
+    pub kind: BluetoothKind,
+    pub connected: bool,
+    /// 0…1 or null if unknown.
+    pub battery: Option<f64>,
+    /// Whether connect/disconnect is possible from the app (else: open settings).
+    pub can_connect: bool,
+}
+
+/// Bluetooth state.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct BluetoothState {
+    pub available: bool,
+    pub enabled: bool,
+    pub devices: Vec<BluetoothDevice>,
+}
+
 // ── Command arguments ────────────────────────────────────────────────────
+
+/// `network_connect`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct WifiConnectArgs {
+    pub ssid: String,
+    pub key: Option<String>,
+}
 
 /// `system_subscribe`.
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -453,6 +568,9 @@ pub mod events {
     pub const DISPLAY_STATE: &str = "display://state";
     pub const POWER_STATE: &str = "power://state";
     pub const SYSTEM_SAMPLE: &str = "system://sample";
+    pub const NETWORK_STATE: &str = "network://state";
+    pub const NETWORK_SCAN: &str = "network://scan";
+    pub const BLUETOOTH_STATE: &str = "bluetooth://state";
 }
 
 #[cfg(test)]
@@ -592,6 +710,63 @@ mod tests {
         );
         let subscribe: SubscribeArgs = serde_json::from_value(json!({ "intervalMs": 1000 })).unwrap();
         assert_eq!(subscribe.interval_ms, 1000.0);
+    }
+
+    #[test]
+    fn serialises_connectivity_states() {
+        let state = NetworkState {
+            wifi: WifiState {
+                available: true,
+                enabled: true,
+                connected: Some(WifiNetwork {
+                    ssid: "Home".into(),
+                    signal: 4,
+                    secure: true,
+                    known: true,
+                    detail: "5 GHz · WPA3".into(),
+                }),
+                permission: WifiPermission::LocationRequired,
+            },
+            airplane: false,
+            hotspot: HotspotState { supported: false, enabled: false },
+        };
+        assert_eq!(
+            serde_json::to_value(state).unwrap(),
+            json!({
+                "wifi": {
+                    "available": true, "enabled": true, "permission": "location_required",
+                    "connected": { "ssid": "Home", "signal": 4, "secure": true, "known": true, "detail": "5 GHz · WPA3" },
+                },
+                "airplane": false,
+                "hotspot": { "supported": false, "enabled": false },
+            })
+        );
+        assert_eq!(serde_json::to_value(ConnectResult::OK).unwrap(), json!({ "ok": true }));
+        assert_eq!(
+            serde_json::to_value(ConnectResult::failed(ConnectError::WrongKey)).unwrap(),
+            json!({ "ok": false, "error": "wrong_key" })
+        );
+        let bluetooth = BluetoothState {
+            available: true,
+            enabled: true,
+            devices: vec![BluetoothDevice {
+                id: "BluetoothLE#x".into(),
+                name: "MX Master".into(),
+                kind: BluetoothKind::Mouse,
+                connected: true,
+                battery: Some(0.8),
+                can_connect: false,
+            }],
+        };
+        assert_eq!(
+            serde_json::to_value(bluetooth).unwrap(),
+            json!({
+                "available": true, "enabled": true,
+                "devices": [{ "id": "BluetoothLE#x", "name": "MX Master", "kind": "mouse", "connected": true, "battery": 0.8, "canConnect": false }],
+            })
+        );
+        let args: WifiConnectArgs = serde_json::from_value(json!({ "ssid": "Home", "key": null })).unwrap();
+        assert_eq!(args.key, None);
     }
 
     #[test]

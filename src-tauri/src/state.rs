@@ -2,10 +2,12 @@
 //! through `AppHandle::state`).
 
 use crate::audio::Audio;
+use crate::bluetooth::Bluetooth;
 use crate::breaks::Breaks;
 use crate::display::Display;
 use crate::island::Island;
 use crate::media::Media;
+use crate::network::Network;
 use crate::power::Power;
 use crate::sysmon::Monitor;
 use crate::system::SystemState;
@@ -58,6 +60,8 @@ pub struct AppState {
     pub display: Display,
     pub power: Power,
     pub sysmon: Monitor,
+    pub network: Network,
+    pub bluetooth: Bluetooth,
     /// Invisible owner of the island and break windows (keeps them out of Alt+Tab).
     pub owner: isize,
     pub watchers: Mutex<Vec<WatchGuard>>,

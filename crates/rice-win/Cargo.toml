@@ -16,19 +16,26 @@ policy-config = []
 rice-core.workspace = true
 log.workspace = true
 windows-core.workspace = true
+windows-collections.workspace = true
 
 [dependencies.windows]
 workspace = true
 features = [
   "ApplicationModel",
+  "Devices_Bluetooth",
+  "Devices_Enumeration",
+  "Devices_Radios",
   "Foundation",
   "Foundation_Collections",
   "Media_Control",
+  "Networking_Connectivity",
+  "Networking_NetworkOperators",
   "Storage_Streams",
   "UI_ViewManagement",
   "Win32_Devices_Display",
   "Win32_Devices_FunctionDiscovery",
   "Win32_Foundation",
+  "Win32_Globalization",
   "Win32_Graphics_DirectWrite",
   "Win32_Graphics_Dwm",
   "Win32_Graphics_Dxgi",
@@ -36,8 +43,10 @@ features = [
   "Win32_Graphics_Gdi",
   "Win32_Media_Audio",
   "Win32_Media_Audio_Endpoints",
+  "Win32_Media_KernelStreaming",
   "Win32_NetworkManagement_IpHelper",
   "Win32_NetworkManagement_Ndis",
+  "Win32_NetworkManagement_WiFi",
   "Win32_Networking_WinSock",
   "Win32_Security",
   "Win32_System_Com",

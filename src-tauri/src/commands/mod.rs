@@ -2,6 +2,7 @@
 //! one parameter named `args`; all are async so they never block the UI thread.
 
 mod app;
+mod connectivity;
 mod devices;
 mod island;
 mod pending;
@@ -56,17 +57,17 @@ commands![
     devices::power_get,
     devices::power_set_energy_saver,
     devices::power_action,
-    pending::network_get,
-    pending::network_scan,
-    pending::network_set_wifi,
-    pending::network_connect,
-    pending::network_disconnect,
-    pending::network_set_airplane,
-    pending::network_set_hotspot,
-    pending::bluetooth_get,
-    pending::bluetooth_set_enabled,
-    pending::bluetooth_connect,
-    pending::bluetooth_disconnect,
+    connectivity::network_get,
+    connectivity::network_scan,
+    connectivity::network_set_wifi,
+    connectivity::network_connect,
+    connectivity::network_disconnect,
+    connectivity::network_set_airplane,
+    connectivity::network_set_hotspot,
+    connectivity::bluetooth_get,
+    connectivity::bluetooth_set_enabled,
+    connectivity::bluetooth_connect,
+    connectivity::bluetooth_disconnect,
     pending::notifications_get,
     pending::notifications_request_access,
     pending::notifications_dismiss,
@@ -146,6 +147,9 @@ mod tests {
             events::DISPLAY_STATE,
             events::POWER_STATE,
             events::SYSTEM_SAMPLE,
+            events::NETWORK_STATE,
+            events::NETWORK_SCAN,
+            events::BLUETOOTH_STATE,
         ];
         for name in used {
             assert!(declared.contains(name), "{name} is not in contract.ts");

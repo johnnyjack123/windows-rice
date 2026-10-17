@@ -7,6 +7,7 @@
 
 mod audio;
 mod blocking;
+mod bluetooth;
 mod breaks;
 mod commands;
 mod config;
@@ -14,6 +15,7 @@ mod display;
 mod hotkey;
 mod island;
 mod media;
+mod network;
 mod power;
 mod settings_window;
 mod state;
@@ -73,6 +75,8 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         display: display::Display::default(),
         power: power::Power::default(),
         sysmon: sysmon::Monitor::default(),
+        network: network::Network::default(),
+        bluetooth: bluetooth::Bluetooth::default(),
         owner,
         watchers: Mutex::new(Vec::new()),
     });
@@ -83,6 +87,8 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     media::start(app);
     audio::start(app);
     display::start(app);
+    network::start(app);
+    bluetooth::start(app);
     log::info!("rice {} started; config in {}", app.package_info().version, app.state::<AppState>().paths.config_dir.display());
     Ok(())
 }
