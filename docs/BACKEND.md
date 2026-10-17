@@ -345,20 +345,19 @@ Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` gr
 
 ## 7. Umsetzungsstand
 
-**Schritte 1–5 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritt 6) sind
-registriert und liefern neutrale Zustände (`notifications_get` mit `permission: 'unsupported'` …) bzw. `not_supported` für Aktionen – siehe `src-tauri/src/commands/pending.rs`. Jeder
-Schritt ersetzt dort seinen Block. Ein Test (`commands::tests`) prüft, dass genau die Commands aus `contract.ts`
-registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
+**Schritte 1–6 umgesetzt** (Branch `feat/rust-backend`), damit alle Commands des Vertrags. Ein Test
+(`commands::tests`) prüft, dass genau die Commands aus `contract.ts` registriert sind und alle gesendeten Event-Namen im
+Vertrag stehen.
 
 **Aufbau**
 
 | Crate | Inhalt |
 |---|---|
-| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen |
-| `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG/PNG-Data-URL |
+| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen, Regeln für Mitteilungen und Banner |
+| `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG/PNG-Data-URL, Banner ausblenden mit Backup |
 | `crates/rice-caldav` | iCalendar lesen/schreiben, Wiederholungen, Zeitzonen, WebDAV-XML, HTTP-Client, Discovery, Sync, SQLite-Cache, `accounts.json` |
-| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse, WLAN, Funk/Hotspot, Bluetooth |
-| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor/Netzwerk/Bluetooth |
+| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse, WLAN, Funk/Hotspot, Bluetooth, Anmeldeinformationen, Mitteilungen (`UserNotificationListener`), Banner-Schalter in der Registry, Konsolen-Handler |
+| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor/Netzwerk/Bluetooth/Kalender/Mitteilungen; `package/` (Sparse Package), `windows-app-manifest.xml` |
 
 **Präzisierungen gegenüber §3/§4**
 
@@ -476,7 +475,42 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
 - **Tests:** `crates/rice-caldav/tests/fake_server.rs` spielt Discovery, Sync und Schreibzugriffe gegen einen Server, der
   wie Nextcloud antwortet (Weiterleitung, Basic Auth, Sync-Token, ETags).
 
+**Schritt 6 (Mitteilungen, Sparse Package)**
+
+- **Paket-Identität:** `src-tauri/package/AppxManifest.xml` ist ein Sparse Package nach Microsofts Vorlage („packaging
+  with external location“: `AllowExternalContent`, `runFullTrust`, `unvirtualizedResources`, `AppListEntry="none"`)
+  plus Capability `userNotificationListener`. `rice.exe` trägt dazu ein eigenes Manifest
+  (`src-tauri/windows-app-manifest.xml`, eingebettet von `build.rs`) mit dem `msix`-Element; Name, Publisher und
+  Application-Id müssen in beiden gleich sein. Ohne registriertes Paket läuft rice wie bisher ohne Identität →
+  `permission: 'unsupported'`, die Registry bleibt unangetastet. **Entwicklung:** `scripts/sparse-package.ps1`
+  registriert den Ordner unsigniert mit `target\debug` als externem Ort (Entwicklermodus nötig, `-Remove` entfernt es
+  wieder). **Release:** mit `MakeAppx pack /nv` packen, signieren, der Installer registriert (Schritt 7).
+- **Listener:** Zugriff (`GetAccessStatus`) wird bei jedem Abgleich neu gelesen. `RequestAccessAsync` startet auf dem
+  UI-Thread, auf die Antwort wird im Hintergrund gewartet. Abgleich über `NotificationChanged` plus alle 10 s als
+  Sicherheitsnetz (bemerkt auch entzogenen Zugriff); findet ein Abgleich Änderungen, die kein Event gemeldet hat, wird
+  auf 2 s umgestellt. Die erste Liste nach dem Start bzw. nach erteiltem Zugriff geht als `notifications://state` raus,
+  nicht als `posted` – sonst würde der Bestand des Infocenters als Banner-Flut in der Island landen.
+- **Abbildung:** `title`/`body` = erster bzw. übrige nicht leere Texte der `ToastGeneric`-Bindung (ohne Text: App-Name
+  als Titel). `appName` aus `AppInfo.DisplayInfo`, sonst `GetFromAppUserModelId`, sonst aus der AUMID abgeleitet.
+  `iconUrl` = App-Logo bzw. Startmenü-Icon (`shell:AppsFolder\<AUMID>`, auch für klassische Apps), 48 px als
+  PNG-Data-URL, je App gecacht. Liste neueste zuerst.
+- **Banner ausblenden:** Regeln in `rice-core::notifications`, Backup-Logik in `rice-services::banners`, Registry in
+  `rice-win::banners`. Geschrieben wird nur `ShowBanner` in vorhandenen App-Schlüsseln. Unberührt bleiben Apps mit
+  `Enabled = 0` sowie **Wecker (`Microsoft.WindowsAlarms_…`) und Anrufe (`Windows.SystemToast.Calling…`)**, die auch bei
+  verdeckter Island durchkommen sollen. Das Backup (`%APPDATA%\rice\banner-backup.json`, Originalwert je Schlüssel,
+  `null` = fehlte) wird vor jedem Schreiben gesichert; lässt es sich nicht schreiben, wird nichts unterdrückt.
+- **Zurücksetzen** (nur Werte, die noch 0 sind; was scheitert, bleibt im Backup für den nächsten Versuch): beim Beenden
+  (`RunEvent::Exit`), bei `WM_ENDSESSION`, bei Strg+C bzw. Schließen der Konsole (Entwicklung), im Panic-Hook (danach
+  blendet rice in dieser Sitzung nichts mehr aus), wenn das Setting ausgeht oder der Zugriff nicht (mehr) erteilt ist,
+  bei jedem Start und per `rice.exe --restore-banners` (für den Deinstaller).
+- **Neue Apps:** Bei der ersten Mitteilung einer App in dieser Sitzung wird ihr Schlüssel nachgezogen.
+
 **Bekannt / offen**
+
+- Ein hart beendeter Prozess (Task-Manager, `pnpm tauri dev` beim Neubau) kann die Banner nicht zurücksetzen; das
+  passiert beim nächsten Start oder mit `rice.exe --restore-banners`.
+- Noch am echten System zu prüfen: ob der Listener Mitteilungen klassischer Desktop-Apps (Discord, Outlook, Signal)
+  sieht und ob `NotificationChanged` für rice feuert (sonst greift das 2-s-Polling automatisch).
 
 - Das Frontend setzt `settings.island.offsetTop` noch nicht um (`--island-top` ist ein festes Token). Das Backend nutzt
   den Wert nur für die Island-Zone.

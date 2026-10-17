@@ -23,6 +23,22 @@ Startet Vite und die App. Die Island erscheint oben mittig auf dem Hauptbildschi
 `%APPDATA%\rice`. Läuft `pnpm dev` schon, bricht `pnpm tauri dev` mit „Port 1420 is already in use“ ab – dann den
 laufenden Server beenden oder nur das Backend starten: `cargo run -p rice`.
 
+#### Mitteilungen (Paket-Identität)
+
+Mitteilungen anderer Apps darf rice nur mit Paket-Identität lesen. Dafür gibt es ein *Sparse Package*, das nichts
+installiert, sondern nur `target\debug\rice.exe` eine Identität gibt. Einmalig (Entwicklermodus muss an sein:
+Einstellungen → System → Für Entwickler):
+
+```powershell
+cargo build -p rice
+powershell -ExecutionPolicy Bypass -File scripts\sparse-package.ps1
+```
+
+Danach rice wie gewohnt starten und im Kontrollzentrum unter „Mitteilungen“ auf „Zugriff erlauben“ klicken. Entfernen:
+`scripts\sparse-package.ps1 -Remove`. Solange rice läuft, sind die Windows-Banner aus (Einstellung
+„Windows-Mitteilungsbanner ausblenden“); sie kommen beim Beenden zurück, nach einem Absturz beim nächsten Start – oder
+sofort mit `target\debug\rice.exe --restore-banners`.
+
 ### Im Browser (Mock-Backend)
 
 ```powershell
