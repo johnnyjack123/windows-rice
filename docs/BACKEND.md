@@ -345,9 +345,8 @@ Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` gr
 
 ## 7. Umsetzungsstand
 
-**Schritte 1–4 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritte 5–6) sind
-registriert und liefern neutrale Zustände (`calendar_accounts` leer, `notifications_get` mit
-`permission: 'unsupported'` …) bzw. `not_supported` für Aktionen – siehe `src-tauri/src/commands/pending.rs`. Jeder
+**Schritte 1–5 umgesetzt** (Branch `feat/rust-backend`). Noch nicht gebaute Commands (Schritt 6) sind
+registriert und liefern neutrale Zustände (`notifications_get` mit `permission: 'unsupported'` …) bzw. `not_supported` für Aktionen – siehe `src-tauri/src/commands/pending.rs`. Jeder
 Schritt ersetzt dort seinen Block. Ein Test (`commands::tests`) prüft, dass genau die Commands aus `contract.ts`
 registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
 
@@ -356,7 +355,8 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
 | Crate | Inhalt |
 |---|---|
 | `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen |
-| `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG-Data-URL |
+| `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG/PNG-Data-URL |
+| `crates/rice-caldav` | iCalendar lesen/schreiben, Wiederholungen, Zeitzonen, WebDAV-XML, HTTP-Client, Discovery, Sync, SQLite-Cache, `accounts.json` |
 | `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse, WLAN, Funk/Hotspot, Bluetooth |
 | `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor/Netzwerk/Bluetooth |
 
@@ -448,6 +448,33 @@ registriert sind und alle gesendeten Event-Namen im Vertrag stehen.
   `ONESHOT_RECONNECT/DISCONNECT`, danach bis 10 s auf den Verbindungsstatus warten. Geteilte Offload-Filter (z. B.
   Qualcomm `aucd` auf Snapdragon) und LE-Audio-Geräte → `canConnect: false` (das Frontend öffnet die Einstellungen).
 - Diagnose (nur lesend): `cargo test -p rice-win prints_wifi -- --ignored --nocapture`, ebenso `prints_connectivity`.
+
+**Schritt 5 (Kalender, Aufgaben)**
+
+- **Bibliotheken:** eigener iCalendar-Leser/-Schreiber (unbekannte Eigenschaften anderer Apps bleiben beim Ändern
+  erhalten), `rrule` + `chrono-tz`, `quick-xml`, `rusqlite` (SQLite gebündelt) und `reqwest` mit **Windows-TLS
+  (Schannel)** statt rustls – rustls/aws-lc braucht auf ARM64-Windows zusätzliche Build-Werkzeuge, und Schannel vertraut
+  denselben Zertifikaten wie Windows (selbst signierte Heimserver).
+- **Discovery:** Adresse ohne Schema → `https://`. Kandidaten: angegebener DAV-Pfad, `/.well-known/caldav`,
+  `<Pfad>/remote.php/dav/`, die Adresse selbst. Weiterleitungen werden nur innerhalb desselben Servers verfolgt – das
+  Passwort geht nie an einen anderen Host.
+- **Passwort:** generischer Eintrag `rice/caldav/<accountId>` in der Windows-Anmeldeinformationsverwaltung (direkt per
+  `CredWriteW`, ohne `keyring`). Konto-Id = Hash aus Benutzer und DAV-Adresse (erneutes Hinzufügen findet den Cache
+  wieder), Kalender-Id = `<Konto>:<letztes Pfadsegment>`.
+- **Sync:** 3 s nach dem Start, alle 5 min und per `calendar_sync`. Unveränderter Sync-Token bzw. CTag in der
+  Kalenderliste → keine weitere Anfrage. Sonst `sync-collection` (abgelaufener Token → vollständiger Neuabgleich),
+  Fallback CTag + ETag-Liste; Objekte per `calendar-multiget` in 50er-Paketen. Auf dem Server gelöschte Kalender
+  verschwinden aus dem Cache.
+- **Termine:** Serien über `rrule` (`UNTIL` wird an `DTSTART` angeglichen, wie RFC 5545 verlangt), `EXDATE`,
+  verschobene Einzeltermine (`RECURRENCE-ID`), abgesagte entfallen. Zeitzonen: IANA, Windows-Namen aus
+  Outlook-Einladungen (Tabelle der häufigsten), Mozilla-Präfixe; Unbekanntes gilt als Ortszeit statt zu verschwinden.
+- **Aufgaben:** `id` = Pfad des Objekts auf dem Server. Sortierung: offen vor erledigt, mit Fälligkeit vor ohne, dann
+  Datum und Titel. Änderungen landen im gespeicherten Text (`SEQUENCE` + 1); bei 412 werden sie auf die aktuelle
+  Server-Version angewendet, Änderungen vom Handy gehen also nicht verloren.
+- **Offline:** Schreibvorgänge kommen in die Warteschlange im Cache (auch „Fälligkeit entfernen“), Status `offline`;
+  der nächste Sync spielt sie vor dem Abgleich aus.
+- **Tests:** `crates/rice-caldav/tests/fake_server.rs` spielt Discovery, Sync und Schreibzugriffe gegen einen Server, der
+  wie Nextcloud antwortet (Weiterleitung, Basic Auth, Sync-Token, ETags).
 
 **Bekannt / offen**
 
