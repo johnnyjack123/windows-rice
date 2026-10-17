@@ -419,7 +419,134 @@ pub struct BluetoothState {
     pub devices: Vec<BluetoothDevice>,
 }
 
+/// A calendar collection (events, tasks or both).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Calendar {
+    pub id: String,
+    pub account_id: String,
+    pub name: String,
+    /// "#rrggbb"
+    pub color: String,
+    pub supports_events: bool,
+    pub supports_tasks: bool,
+    pub enabled: bool,
+}
+
+/// Sync state of an account.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AccountStatus {
+    Ok,
+    Syncing,
+    AuthFailed,
+    Offline,
+}
+
+/// A CalDAV account. Passwords never leave the backend.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarAccount {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    pub user: String,
+    pub status: AccountStatus,
+    pub last_sync: Option<String>,
+    pub calendars: Vec<Calendar>,
+}
+
+/// One occurrence of an event.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarEvent {
+    /// Unique per occurrence: `${uid}@${recurrenceId}`.
+    pub id: String,
+    pub calendar_id: String,
+    pub title: String,
+    pub start: String,
+    pub end: String,
+    pub all_day: bool,
+    pub location: String,
+}
+
+/// A VTODO.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Task {
+    pub id: String,
+    pub calendar_id: String,
+    pub title: String,
+    /// "YYYY-MM-DD" or a date-time; null if none.
+    pub due: Option<String>,
+    pub done: bool,
+    pub completed_at: Option<String>,
+}
+
 // ── Command arguments ────────────────────────────────────────────────────
+
+/// `calendar_add_account`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AddAccountArgs {
+    pub name: String,
+    pub url: String,
+    pub user: String,
+    pub password: String,
+}
+
+/// Every `{ id }` command (accounts, tasks, devices …).
+#[derive(Debug, Clone, Deserialize)]
+pub struct IdArgs {
+    pub id: String,
+}
+
+/// `calendar_set_enabled`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CalendarEnabledArgs {
+    pub calendar_id: String,
+    pub enabled: bool,
+}
+
+/// `calendar_events`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct RangeArgs {
+    pub from: String,
+    pub to: String,
+}
+
+/// `tasks_create`.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskCreateArgs {
+    pub calendar_id: String,
+    pub title: String,
+    pub due: Option<String>,
+}
+
+/// Changes of `tasks_update`; absent fields stay as they are.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub struct TaskPatch {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// `None`: unchanged; `Some(None)`: remove the due date.
+    #[serde(default, deserialize_with = "present", skip_serializing_if = "Option::is_none")]
+    pub due: Option<Option<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub done: Option<bool>,
+}
+
+/// Turns a present field (even `null`) into `Some`, so `null` differs from absent.
+fn present<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Option<String>>, D::Error> {
+    Option::<String>::deserialize(deserializer).map(Some)
+}
+
+/// `tasks_update`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct TaskUpdateArgs {
+    pub id: String,
+    pub patch: TaskPatch,
+}
 
 /// `network_connect`.
 #[derive(Debug, Clone, Deserialize)]
@@ -571,6 +698,9 @@ pub mod events {
     pub const NETWORK_STATE: &str = "network://state";
     pub const NETWORK_SCAN: &str = "network://scan";
     pub const BLUETOOTH_STATE: &str = "bluetooth://state";
+    pub const CALENDAR_ACCOUNTS: &str = "calendar://accounts";
+    pub const CALENDAR_CHANGED: &str = "calendar://changed";
+    pub const TASKS_CHANGED: &str = "tasks://changed";
 }
 
 #[cfg(test)]
@@ -767,6 +897,58 @@ mod tests {
         );
         let args: WifiConnectArgs = serde_json::from_value(json!({ "ssid": "Home", "key": null })).unwrap();
         assert_eq!(args.key, None);
+    }
+
+    #[test]
+    fn serialises_calendar_types() {
+        let account = CalendarAccount {
+            id: "a1".into(),
+            name: "Nextcloud".into(),
+            url: "https://cloud.example.org/remote.php/dav".into(),
+            user: "joni".into(),
+            status: AccountStatus::AuthFailed,
+            last_sync: None,
+            calendars: vec![Calendar {
+                id: "a1:personal".into(),
+                account_id: "a1".into(),
+                name: "Persönlich".into(),
+                color: "#0082c9".into(),
+                supports_events: true,
+                supports_tasks: false,
+                enabled: true,
+            }],
+        };
+        assert_eq!(
+            serde_json::to_value(account).unwrap(),
+            json!({
+                "id": "a1", "name": "Nextcloud", "url": "https://cloud.example.org/remote.php/dav", "user": "joni",
+                "status": "auth_failed", "lastSync": null,
+                "calendars": [{ "id": "a1:personal", "accountId": "a1", "name": "Persönlich", "color": "#0082c9",
+                    "supportsEvents": true, "supportsTasks": false, "enabled": true }],
+            })
+        );
+        let task = Task { id: "/t.ics".into(), calendar_id: "c".into(), title: "T".into(), due: None, done: true, completed_at: None };
+        assert_eq!(
+            serde_json::to_value(task).unwrap(),
+            json!({ "id": "/t.ics", "calendarId": "c", "title": "T", "due": null, "done": true, "completedAt": null })
+        );
+    }
+
+    #[test]
+    fn distinguishes_absent_and_null_in_task_patches() {
+        let absent: TaskUpdateArgs = serde_json::from_value(json!({ "id": "x", "patch": { "done": true } })).unwrap();
+        assert_eq!(absent.patch, TaskPatch { title: None, due: None, done: Some(true) });
+        let cleared: TaskUpdateArgs = serde_json::from_value(json!({ "id": "x", "patch": { "due": null } })).unwrap();
+        assert_eq!(cleared.patch.due, Some(None));
+        let set: TaskUpdateArgs = serde_json::from_value(json!({ "id": "x", "patch": { "due": "2026-10-20" } })).unwrap();
+        assert_eq!(set.patch.due, Some(Some("2026-10-20".into())));
+        let create: TaskCreateArgs = serde_json::from_value(json!({ "calendarId": "c", "title": "T", "due": null })).unwrap();
+        assert_eq!(create.due, None);
+        // The offline queue stores patches as JSON; "remove the due date" must survive that.
+        let round: TaskPatch = serde_json::from_value(serde_json::to_value(&cleared.patch).unwrap()).unwrap();
+        assert_eq!(round, cleared.patch);
+        let untouched: TaskPatch = serde_json::from_value(serde_json::to_value(&absent.patch).unwrap()).unwrap();
+        assert_eq!(untouched, absent.patch);
     }
 
     #[test]

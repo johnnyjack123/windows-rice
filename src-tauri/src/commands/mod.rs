@@ -2,6 +2,7 @@
 //! one parameter named `args`; all are async so they never block the UI thread.
 
 mod app;
+mod calendar;
 mod connectivity;
 mod devices;
 mod island;
@@ -72,16 +73,16 @@ commands![
     pending::notifications_request_access,
     pending::notifications_dismiss,
     pending::notifications_clear,
-    pending::calendar_accounts,
-    pending::calendar_add_account,
-    pending::calendar_remove_account,
-    pending::calendar_set_enabled,
-    pending::calendar_sync,
-    pending::calendar_events,
-    pending::tasks_list,
-    pending::tasks_create,
-    pending::tasks_update,
-    pending::tasks_delete,
+    calendar::calendar_accounts,
+    calendar::calendar_add_account,
+    calendar::calendar_remove_account,
+    calendar::calendar_set_enabled,
+    calendar::calendar_sync,
+    calendar::calendar_events,
+    calendar::tasks_list,
+    calendar::tasks_create,
+    calendar::tasks_update,
+    calendar::tasks_delete,
     system::system_subscribe,
     system::system_unsubscribe,
     system::system_processes,
@@ -150,6 +151,9 @@ mod tests {
             events::NETWORK_STATE,
             events::NETWORK_SCAN,
             events::BLUETOOTH_STATE,
+            events::CALENDAR_ACCOUNTS,
+            events::CALENDAR_CHANGED,
+            events::TASKS_CHANGED,
         ];
         for name in used {
             assert!(declared.contains(name), "{name} is not in contract.ts");

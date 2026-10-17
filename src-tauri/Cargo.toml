@@ -11,13 +11,17 @@ default-run = "rice"
 tauri-build = { version = "2.7.3", features = [] }
 
 [dependencies]
+rice-caldav.workspace = true
 rice-core.workspace = true
 rice-services.workspace = true
 rice-win.workspace = true
+chrono.workspace = true
 log.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true
+url.workspace = true
+rusqlite = "0.40.2"
 windows-core.workspace = true
 tauri = { version = "2.12.4", features = [] }
 tauri-plugin-global-shortcut = "2.4.1"

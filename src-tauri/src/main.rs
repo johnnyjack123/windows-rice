@@ -9,6 +9,7 @@ mod audio;
 mod blocking;
 mod bluetooth;
 mod breaks;
+mod calendar;
 mod commands;
 mod config;
 mod display;
@@ -58,6 +59,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let settings = BackendSettings::from_stored(&config.get());
     let themes = ThemeStore::new(paths.themes_dir.clone());
     let themes_sent = Mutex::new(themes.list());
+    let calendars = calendar::Calendars::open(&paths.config_dir)?;
     // Setup runs on the UI thread, which must own the owner window.
     let owner = rice_win::window::create_owner()?;
     let hotkey = settings.hotkey.clone();
@@ -77,6 +79,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         sysmon: sysmon::Monitor::default(),
         network: network::Network::default(),
         bluetooth: bluetooth::Bluetooth::default(),
+        calendar: calendars,
         owner,
         watchers: Mutex::new(Vec::new()),
     });
@@ -89,6 +92,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     display::start(app);
     network::start(app);
     bluetooth::start(app);
+    calendar::start(app);
     log::info!("rice {} started; config in {}", app.package_info().version, app.state::<AppState>().paths.config_dir.display());
     Ok(())
 }

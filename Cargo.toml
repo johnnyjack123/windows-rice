@@ -9,6 +9,7 @@ rust-version = "1.90"
 publish = false
 
 [workspace.dependencies]
+rice-caldav = { path = "crates/rice-caldav" }
 rice-core = { path = "crates/rice-core" }
 rice-services = { path = "crates/rice-services" }
 rice-win = { path = "crates/rice-win" }

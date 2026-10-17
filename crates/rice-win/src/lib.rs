@@ -10,6 +10,7 @@ pub mod audio;
 pub mod bluetooth;
 pub mod brightness;
 pub mod com;
+pub mod credentials;
 pub mod events;
 pub mod fonts;
 pub mod locale;

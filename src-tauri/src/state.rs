@@ -4,6 +4,7 @@
 use crate::audio::Audio;
 use crate::bluetooth::Bluetooth;
 use crate::breaks::Breaks;
+use crate::calendar::Calendars;
 use crate::display::Display;
 use crate::island::Island;
 use crate::media::Media;
@@ -62,6 +63,7 @@ pub struct AppState {
     pub sysmon: Monitor,
     pub network: Network,
     pub bluetooth: Bluetooth,
+    pub calendar: Calendars,
     /// Invisible owner of the island and break windows (keeps them out of Alt+Tab).
     pub owner: isize,
     pub watchers: Mutex<Vec<WatchGuard>>,
