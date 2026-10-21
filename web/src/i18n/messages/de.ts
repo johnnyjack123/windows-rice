@@ -495,6 +495,13 @@ export const de = {
       native: 'Windows (Tauri)',
       themesFolder: 'Theme-Ordner öffnen',
       configFolder: 'Konfiguration öffnen',
+      app: 'Starten und Beenden',
+      autostart: 'Mit Windows starten',
+      autostartHint: 'rice startet automatisch, sobald du dich anmeldest.',
+      autostartUnsupported: 'Nur in der installierten Version verfügbar.',
+      quit: 'rice beenden',
+      quitHint: 'Schließt Island und Kontrollzentrum. Mitteilungen zeigt dann wieder Windows selbst an.',
+      quitAction: 'Beenden',
     },
   },
 

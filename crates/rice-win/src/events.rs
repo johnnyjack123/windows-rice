@@ -3,30 +3,37 @@
 //! session), WinEvent hooks
 //! report window movement, and `UISettings` reports accent changes.
 //!
+//! The same window answers `rice.exe --quit` ([`request_quit`]), so the
+//! installer can end a running rice in an orderly way.
+//!
 //! Bursts are coalesced with window timers so the handler sees one event per
 //! change, not dozens.
 
 use crate::com::ComGuard;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::thread;
+use std::time::Duration;
 use windows::Foundation::TypedEventHandler;
 use windows::UI::ViewManagement::UISettings;
-use windows::Win32::Foundation::{HANDLE, HWND, LPARAM, LRESULT, WPARAM};
+use windows::Win32::Foundation::{CloseHandle, HANDLE, HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::System::Threading::{OpenProcess, PROCESS_SYNCHRONIZE, WaitForSingleObject};
 use windows::Win32::System::Power::RegisterPowerSettingNotification;
 use windows::Win32::System::SystemServices::{GUID_ACDC_POWER_SOURCE, GUID_BATTERY_PERCENTAGE_REMAINING, GUID_POWER_SAVING_STATUS};
 use windows::Win32::UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook};
 use windows::Win32::UI::WindowsAndMessaging::{
     CHILDID_SELF, CreateWindowExW, DEVICE_NOTIFY_WINDOW_HANDLE, DefWindowProcW, DispatchMessageW, EVENT_OBJECT_CLOAKED,
     EVENT_OBJECT_HIDE, EVENT_OBJECT_LOCATIONCHANGE, EVENT_OBJECT_SHOW, EVENT_OBJECT_UNCLOAKED, EVENT_SYSTEM_FOREGROUND,
-    EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, GA_ROOT, GetAncestor, GetMessageW, KillTimer, MSG, OBJID_WINDOW,
-    PBT_APMPOWERSTATUSCHANGE, PBT_APMRESUMEAUTOMATIC, PBT_POWERSETTINGCHANGE, PostMessageW, RegisterClassW,
+    EVENT_SYSTEM_MINIMIZEEND, EVENT_SYSTEM_MINIMIZESTART, FindWindowW, GA_ROOT, GetAncestor, GetMessageW,
+    GetWindowThreadProcessId, KillTimer, MSG, OBJID_WINDOW, PBT_APMPOWERSTATUSCHANGE, PBT_APMRESUMEAUTOMATIC,
+    PBT_POWERSETTINGCHANGE, PostMessageW, RegisterClassW, RegisterWindowMessageW,
     SPI_SETDESKWALLPAPER, SPI_SETWORKAREA, SetTimer, TranslateMessage, WINEVENT_OUTOFCONTEXT, WINEVENT_SKIPOWNPROCESS, WM_APP,
     WM_DISPLAYCHANGE, WM_ENDSESSION, WM_POWERBROADCAST, WM_SETTINGCHANGE, WM_TIMER, WNDCLASSW, WS_EX_NOACTIVATE,
     WS_EX_TOOLWINDOW, WS_POPUP,
 };
-use windows::core::w;
+use windows::core::{PCWSTR, w};
 
 /// What changed, coalesced over a short period.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -53,6 +60,51 @@ pub enum SystemEvent {
     /// as soon as the handler returns, so it runs synchronously and should
     /// only do the most important cleanup.
     SessionEnding,
+    /// Another process asked rice to quit (`rice.exe --quit`).
+    QuitRequested,
+}
+
+/// Window class of the events window; development builds use their own, so
+/// the installed rice and `pnpm tauri dev` never quit each other.
+const CLASS: PCWSTR = if cfg!(debug_assertions) { w!("rice-system-events-dev") } else { w!("rice-system-events") };
+
+/// Id of the registered "rice-quit" message (0 until registered).
+static QUIT_MESSAGE: AtomicU32 = AtomicU32::new(0);
+
+fn quit_message() -> u32 {
+    let known = QUIT_MESSAGE.load(Ordering::SeqCst);
+    if known != 0 {
+        return known;
+    }
+    // SAFETY: NUL-terminated name; the same name yields the same id in every process.
+    let id = unsafe { RegisterWindowMessageW(w!("rice-quit")) };
+    QUIT_MESSAGE.store(id, Ordering::SeqCst);
+    id
+}
+
+/// Asks a running rice (of the same build kind) to quit and waits up to
+/// `timeout` for it to end. `false` if none runs.
+pub fn request_quit(timeout: Duration) -> bool {
+    // SAFETY: plain window lookup by class name.
+    let Ok(hwnd) = (unsafe { FindWindowW(CLASS, PCWSTR::null()) }) else {
+        return false;
+    };
+    let mut pid = 0u32;
+    // SAFETY: valid window handle from FindWindowW; out-param for the process id.
+    unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid)) };
+    // SAFETY: synchronize-only handle, closed below.
+    let process = unsafe { OpenProcess(PROCESS_SYNCHRONIZE, false, pid) }.ok();
+    // SAFETY: posting to a window of another process; fails harmlessly if it is gone.
+    let _ = unsafe { PostMessageW(Some(hwnd), quit_message(), WPARAM(0), LPARAM(0)) };
+    if let Some(process) = process {
+        let millis = u32::try_from(timeout.as_millis()).unwrap_or(u32::MAX);
+        // SAFETY: valid process handle; closed right after.
+        unsafe {
+            let _ = WaitForSingleObject(process, millis);
+            let _ = CloseHandle(process);
+        }
+    }
+    true
 }
 
 const TIMER_SETTINGS: usize = 1;
@@ -91,7 +143,7 @@ fn run(handler: Rc<dyn Fn(SystemEvent)>) -> windows::core::Result<()> {
     // the window lives as long as the thread's message loop.
     let hwnd = unsafe {
         let instance = GetModuleHandleW(None)?;
-        let class = w!("rice-system-events");
+        let class = CLASS;
         let wc = WNDCLASSW { lpfnWndProc: Some(window_proc), hInstance: instance.into(), lpszClassName: class, ..Default::default() };
         if RegisterClassW(&wc) == 0 {
             return Err(windows::core::Error::from_thread());
@@ -194,6 +246,10 @@ unsafe extern "system" fn window_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lpar
         // wParam TRUE: the session really ends (not just a cancelled query).
         WM_ENDSESSION if wparam.0 != 0 => {
             dispatch(SystemEvent::SessionEnding);
+            LRESULT(0)
+        }
+        _ if msg == quit_message() => {
+            dispatch(SystemEvent::QuitRequested);
             LRESULT(0)
         }
         WM_TIMER => {

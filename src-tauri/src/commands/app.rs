@@ -1,11 +1,14 @@
-//! App info, settings, user themes, settings window, break windows, shell.
+//! App info, autostart, quitting, settings, user themes, settings window,
+//! break windows, shell.
 
+use crate::autostart;
 use crate::breaks;
 use crate::config::{emit_themes, on_config_changed};
 use crate::settings_window;
 use crate::state::AppState;
 use rice_core::contract::{
-    AppInfo, BreakOverlay, ConfigSetArgs, OpenSettingsArgs, ShellOpenArgs, ThemeIdArgs, ThemeSaveArgs, UserTheme,
+    AppInfo, AutostartState, BreakOverlay, ConfigSetArgs, EnabledArgs, OpenSettingsArgs, ShellOpenArgs, ThemeIdArgs,
+    ThemeSaveArgs, UserTheme,
 };
 use rice_core::shell::{ShellTarget, classify, display_path, path_allowed};
 use rice_core::{BackendError, BackendResult};
@@ -19,6 +22,23 @@ pub async fn app_info(app: AppHandle, state: State<'_, AppState>) -> BackendResu
         themes_dir: display_path(&state.paths.themes_dir),
         config_dir: display_path(&state.paths.config_dir),
     })
+}
+
+#[tauri::command]
+pub async fn app_autostart_get() -> BackendResult<AutostartState> {
+    autostart::get().await
+}
+
+#[tauri::command]
+pub async fn app_autostart_set(args: EnabledArgs) -> BackendResult<AutostartState> {
+    autostart::set(args.enabled).await
+}
+
+/// Ends rice; `RunEvent::Exit` brings Windows' banners back.
+#[tauri::command]
+pub async fn app_quit(app: AppHandle) -> BackendResult<()> {
+    app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]

@@ -4,7 +4,7 @@
  * reviewed without Windows APIs. The lab drives it through `debug`.
  */
 import type {
-  AppNotification, Appearance, ArgsOf, AudioState, BackendError, BluetoothState, BreakOverlay, CalendarAccount,
+  AppNotification, Appearance, ArgsOf, AudioState, AutostartState, BackendError, BluetoothState, BreakOverlay, CalendarAccount,
   CalendarEvent, CommandName, DisplayState, EventName, Events, MediaState, NetworkState,
   NotificationsState, Occlusion, PowerState, ProcessInfo, Rect, ResultOf, StoredSettings,
   SystemSample, Task, UserTheme, WallpaperInfo, WifiNetwork,
@@ -87,6 +87,7 @@ export class MockBackend implements Transport {
       { id: 'hdmi', name: 'LG UltraGear (HDMI)', kind: 'hdmi' },
     ],
   };
+  private autostart: AutostartState = { enabled: true, supported: true };
   private display: DisplayState = { brightness: 0.7, nightLight: false };
   private power: PowerState = { battery: 0.82, charging: false, energySaver: false, energySaverSupported: true };
   private network: NetworkState = {
@@ -179,6 +180,16 @@ export class MockBackend implements Transport {
 
   private readonly handlers: Handlers = {
     app_info: () => ({ version: '0.1.0', themesDir: '%APPDATA%\\rice\\themes', configDir: '%APPDATA%\\rice' }),
+    app_autostart_get: () => this.autostart,
+    app_autostart_set: async ({ enabled }) => {
+      await sleep(150);
+      this.autostart = { ...this.autostart, enabled };
+      return this.autostart;
+    },
+    app_quit: () => {
+      // A browser tab cannot quit the app; only log the request.
+      console.info('[mock] app_quit');
+    },
 
     config_get: () => this.settings,
     config_set: ({ patch }) => {

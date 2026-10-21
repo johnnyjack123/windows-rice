@@ -24,6 +24,14 @@ pub struct AppInfo {
     pub config_dir: String,
 }
 
+/// Starting with Windows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct AutostartState {
+    pub enabled: bool,
+    /// Only the installed app can start with Windows.
+    pub supported: bool,
+}
+
 /// Concrete colour scheme.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

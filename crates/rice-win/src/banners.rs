@@ -5,21 +5,15 @@
 //! Only `ShowBanner` is ever written, and only in keys that already exist;
 //! policy and backups live in `rice-services`.
 
+use crate::registry::{Key, message};
 use rice_core::notifications::{AppBanner, BannerStore};
-use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, ERROR_MORE_DATA, ERROR_SUCCESS, WIN32_ERROR};
-use windows::Win32::System::Registry::{
-    HKEY, HKEY_CURRENT_USER, KEY_QUERY_VALUE, KEY_READ, KEY_SET_VALUE, REG_DWORD, REG_SAM_FLAGS, RRF_RT_REG_DWORD,
-    RegCloseKey, RegDeleteValueW, RegEnumKeyExW, RegEnumValueW, RegGetValueW, RegOpenKeyExW, RegSetValueExW,
-};
-use windows::core::{HSTRING, PCWSTR, PWSTR, w};
+use windows::Win32::System::Registry::{KEY_QUERY_VALUE, KEY_READ, KEY_SET_VALUE};
 
 /// Where Windows keeps the per-app notification settings (below HKCU).
 pub const SETTINGS: &str = r"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings";
 
 /// Path AUMIDs nest a few levels deep; anything deeper is not an app.
 const MAX_DEPTH: usize = 12;
-/// Longest registry key name plus NUL.
-const NAME_CAPACITY: usize = 256;
 
 /// The settings tree, normally [`SETTINGS`]; tests use a scratch key.
 #[derive(Debug, Clone)]
@@ -86,124 +80,24 @@ impl BannerStore for Settings {
     /// Never creates keys: a missing app is an error.
     fn set_show_banner(&self, path: &str, value: Option<u32>) -> Result<(), String> {
         let key = Key::open(&self.full(path), KEY_SET_VALUE | KEY_QUERY_VALUE).ok_or_else(|| format!("no settings for {path}"))?;
-        // SAFETY: open key; NUL-terminated value name; data is a 4-byte DWORD.
-        let status = unsafe {
-            match value {
-                Some(value) => RegSetValueExW(key.0, w!("ShowBanner"), None, REG_DWORD, Some(&value.to_le_bytes())),
-                None => RegDeleteValueW(key.0, w!("ShowBanner")),
-            }
-        };
-        match status {
-            ERROR_SUCCESS => Ok(()),
-            ERROR_FILE_NOT_FOUND if value.is_none() => Ok(()),
-            error => Err(format!("ShowBanner of {path}: {}", windows::core::Error::from(error.to_hresult()).message())),
+        match value {
+            Some(value) => key.set_dword("ShowBanner", value),
+            None => key.delete("ShowBanner"),
         }
+        .map_err(|error| format!("ShowBanner of {path}: {}", message(error)))
     }
 }
 
 fn read_app(key: &Key, path: &str) -> Option<AppBanner> {
-    let show_banner = key.dword(w!("ShowBanner")).ok()?;
-    let enabled = key.dword(w!("Enabled")).ok().flatten();
+    let show_banner = key.dword("ShowBanner").ok()?;
+    let enabled = key.dword("Enabled").ok().flatten();
     Some(AppBanner { path: path.to_owned(), enabled, show_banner })
-}
-
-/// An open registry key, closed on drop.
-struct Key(HKEY);
-
-impl Key {
-    fn open(path: &str, access: REG_SAM_FLAGS) -> Option<Self> {
-        let mut key = HKEY::default();
-        // SAFETY: NUL-terminated path; the handle is closed in Drop.
-        let status = unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, &HSTRING::from(path), None, access, &mut key) };
-        (status == ERROR_SUCCESS).then_some(Self(key))
-    }
-
-    fn subkeys(&self) -> Vec<String> {
-        let mut names = Vec::new();
-        let mut buffer = [0u16; NAME_CAPACITY];
-        for index in 0.. {
-            let mut len = buffer.len() as u32;
-            // SAFETY: buffer of `len` characters; optional out-params unused.
-            let status = unsafe { RegEnumKeyExW(self.0, index, Some(PWSTR(buffer.as_mut_ptr())), &mut len, None, None, None, None) };
-            if status != ERROR_SUCCESS {
-                break;
-            }
-            names.push(String::from_utf16_lossy(&buffer[..len as usize]));
-        }
-        names
-    }
-
-    fn has_values(&self) -> bool {
-        // Value names may be up to 16383 characters.
-        let mut buffer = vec![0u16; 16_384];
-        let mut len = buffer.len() as u32;
-        // SAFETY: buffer of `len` characters; type and data are not requested.
-        let status = unsafe { RegEnumValueW(self.0, 0, Some(PWSTR(buffer.as_mut_ptr())), &mut len, None, None, None, None) };
-        status == ERROR_SUCCESS || status == ERROR_MORE_DATA
-    }
-
-    /// `Ok(None)` when the value is missing, `Err` when it is not a DWORD.
-    fn dword(&self, name: PCWSTR) -> Result<Option<u32>, WIN32_ERROR> {
-        let mut data = 0u32;
-        let mut size = std::mem::size_of::<u32>() as u32;
-        // SAFETY: open key; out-buffer of exactly `size` bytes.
-        let status = unsafe {
-            RegGetValueW(self.0, PCWSTR::null(), name, RRF_RT_REG_DWORD, None, Some((&mut data as *mut u32).cast()), Some(&mut size))
-        };
-        match status {
-            ERROR_SUCCESS => Ok(Some(data)),
-            ERROR_FILE_NOT_FOUND => Ok(None),
-            error => Err(error),
-        }
-    }
-}
-
-impl Drop for Key {
-    fn drop(&mut self) {
-        // SAFETY: the handle came from RegOpenKeyExW and is closed once.
-        let _ = unsafe { RegCloseKey(self.0) };
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use windows::Win32::System::Registry::{KEY_WRITE, REG_OPTION_NON_VOLATILE, REG_SZ, RegCreateKeyExW, RegDeleteTreeW};
-
-    /// A scratch tree below `HKCU\Software`, removed on drop.
-    struct Scratch(String);
-
-    impl Scratch {
-        fn new() -> Self {
-            Self(format!(r"Software\rice-test-{}", crate::credentials::new_uuid()))
-        }
-
-        fn create(&self, path: &str, values: &[(&str, Option<u32>)]) {
-            let mut key = HKEY::default();
-            unsafe {
-                let full = HSTRING::from(format!(r"{}\{path}", self.0));
-                let status = RegCreateKeyExW(HKEY_CURRENT_USER, &full, None, None, REG_OPTION_NON_VOLATILE, KEY_WRITE, None, &mut key, None);
-                assert_eq!(status, ERROR_SUCCESS);
-                for (name, value) in values {
-                    let name = HSTRING::from(*name);
-                    let status = match value {
-                        Some(v) => RegSetValueExW(key, &name, None, REG_DWORD, Some(&v.to_le_bytes())),
-                        // A string where a DWORD belongs.
-                        None => RegSetValueExW(key, &name, None, REG_SZ, Some(&[b'x', 0, 0, 0])),
-                    };
-                    assert_eq!(status, ERROR_SUCCESS);
-                }
-                let _ = RegCloseKey(key);
-            }
-        }
-    }
-
-    impl Drop for Scratch {
-        fn drop(&mut self) {
-            // Deletes the scratch key with everything below it.
-            let _ = unsafe { RegDeleteTreeW(HKEY_CURRENT_USER, &HSTRING::from(&self.0)) };
-        }
-    }
+    use crate::registry::scratch::Scratch;
 
     #[test]
     fn lists_and_switches_app_keys() {

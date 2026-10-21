@@ -7,6 +7,7 @@
 
 pub mod appearance;
 pub mod audio;
+pub mod autostart;
 pub mod banners;
 pub mod bluetooth;
 pub mod brightness;
@@ -23,6 +24,7 @@ pub mod occlusion;
 pub mod power;
 pub mod processes;
 pub mod radios;
+mod registry;
 pub mod shell;
 pub mod sysmon;
 pub mod wallpaper;

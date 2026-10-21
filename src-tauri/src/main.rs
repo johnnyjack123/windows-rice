@@ -6,6 +6,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod audio;
+mod autostart;
 mod banners;
 mod blocking;
 mod bluetooth;
@@ -31,21 +32,37 @@ use rice_services::config::ConfigStore;
 use rice_services::themes::ThemeStore;
 use state::{AppState, Paths};
 use std::sync::Mutex;
+use std::time::Duration;
 use tauri::webview::PageLoadEvent;
 use tauri::{AppHandle, Manager, RunEvent, Window, WindowEvent};
 
 fn main() {
+    let flag = |name: &str| std::env::args().skip(1).any(|arg| arg == name);
+    // For the installer: end a running rice in an orderly way (its banners come back).
+    if flag("--quit") {
+        rice_win::events::request_quit(Duration::from_secs(5));
+        return;
+    }
     // For the uninstaller (and by hand): bring Windows' banners back, then quit.
-    if std::env::args().skip(1).any(|arg| arg == "--restore-banners") {
+    if flag("--restore-banners") {
         banners::shutdown();
         return;
     }
     // Development aid: what the notification listener sees, without a window.
-    if std::env::args().skip(1).any(|arg| arg == "--check-notifications") {
+    if flag("--check-notifications") {
         notifications::print_diagnosis();
         return;
     }
-    let app = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // The installed rice runs once; starting it again opens the settings. Development
+    // builds skip this, so `pnpm tauri dev` works while the installed rice runs.
+    #[cfg(not(debug_assertions))]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+        if let Err(error) = settings_window::open(app, None) {
+            log::warn!("single instance: cannot open the settings ({error:?})");
+        }
+    }));
+    let app = builder
         .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         .plugin(hotkey::plugin())
         .invoke_handler(commands::handler())
@@ -115,6 +132,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     bluetooth::start(app);
     calendar::start(app);
     notifications::start(app);
+    autostart::repair();
     log::info!("rice {} started; config in {}", app.package_info().version, app.state::<AppState>().paths.config_dir.display());
     Ok(())
 }

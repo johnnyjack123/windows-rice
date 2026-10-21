@@ -48,6 +48,8 @@ pub fn start(app: &AppHandle) -> std::io::Result<()> {
         SystemEvent::Changed(change) => on_change(&handle, change),
         // Logoff or shutdown: Windows may end rice right after this returns.
         SystemEvent::SessionEnding => banners::shutdown(),
+        // `rice.exe --quit` from the installer.
+        SystemEvent::QuitRequested => handle.exit(0),
     })
 }
 

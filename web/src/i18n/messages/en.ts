@@ -493,6 +493,13 @@ export const en: Messages = {
       native: 'Windows (Tauri)',
       themesFolder: 'Open themes folder',
       configFolder: 'Open configuration',
+      app: 'Start and quit',
+      autostart: 'Start with Windows',
+      autostartHint: 'rice starts automatically as soon as you sign in.',
+      autostartUnsupported: 'Only available in the installed app.',
+      quit: 'Quit rice',
+      quitHint: 'Closes the island and the control centre. Windows then shows notifications itself again.',
+      quitAction: 'Quit',
     },
   },
 

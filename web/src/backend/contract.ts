@@ -52,6 +52,13 @@ export interface AppInfo {
   configDir: string;
 }
 
+/** Starting with Windows. */
+export interface AutostartState {
+  enabled: boolean;
+  /** Only the installed app can start with Windows; development builds report `false`. */
+  supported: boolean;
+}
+
 /** Colour scheme preference. */
 export type SchemePreference = 'auto' | 'dark' | 'light';
 
@@ -451,6 +458,10 @@ export interface ProcessInfo {
 /** Every command: `args` (void = no input) and `result`. */
 export interface Commands {
   app_info: { args: void; result: AppInfo };
+  app_autostart_get: { args: void; result: AutostartState };
+  app_autostart_set: { args: { enabled: boolean }; result: AutostartState };
+  /** Quits rice: windows close, Windows' notification banners come back. */
+  app_quit: { args: void; result: void };
 
   config_get: { args: void; result: StoredSettings };
   config_set: { args: { patch: SettingsPatch }; result: StoredSettings };

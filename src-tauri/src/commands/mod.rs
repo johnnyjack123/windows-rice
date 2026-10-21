@@ -25,6 +25,9 @@ macro_rules! commands {
 
 commands![
     app::app_info,
+    app::app_autostart_get,
+    app::app_autostart_set,
+    app::app_quit,
     app::config_get,
     app::config_set,
     app::theme_list_user,
