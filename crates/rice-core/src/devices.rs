@@ -61,6 +61,8 @@ pub fn power_state(ac_line_status: u8, battery_flag: u8, battery_percent: u8, sy
         charging: battery.is_some() && ac_line_status == 1,
         energy_saver: system_status == 1,
         energy_saver_supported: false,
+        // Filled in from Windows Update by the power service.
+        update_pending: false,
     }
 }
 
@@ -103,7 +105,10 @@ mod tests {
     #[test]
     fn maps_power_status() {
         let laptop = power_state(1, 8, 82, 0);
-        assert_eq!(laptop, PowerState { battery: Some(0.82), charging: true, energy_saver: false, energy_saver_supported: false });
+        assert_eq!(
+            laptop,
+            PowerState { battery: Some(0.82), charging: true, energy_saver: false, energy_saver_supported: false, update_pending: false }
+        );
         let saver = power_state(0, 2, 15, 1);
         assert!(!saver.charging && saver.energy_saver);
         let desktop = power_state(1, 128, 255, 0);

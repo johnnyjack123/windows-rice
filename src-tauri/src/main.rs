@@ -132,6 +132,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     bluetooth::start(app);
     calendar::start(app);
     notifications::start(app);
+    power::check_updates(app);
     autostart::repair();
     log::info!("rice {} started; config in {}", app.package_info().version, app.state::<AppState>().paths.config_dir.display());
     Ok(())

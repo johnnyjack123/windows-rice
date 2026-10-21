@@ -248,17 +248,23 @@ pub struct PowerState {
     pub charging: bool,
     pub energy_saver: bool,
     pub energy_saver_supported: bool,
+    /// Windows Update waits for a restart to finish installing.
+    pub update_pending: bool,
 }
 
 /// Session action of `power_action`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum PowerAction {
     Lock,
     Sleep,
     Signout,
     Restart,
     Shutdown,
+    /// Install pending updates, then restart.
+    UpdateRestart,
+    /// Install pending updates, then shut down.
+    UpdateShutdown,
 }
 
 /// CPU part of a [`SystemSample`].
@@ -851,10 +857,10 @@ mod tests {
             })
         );
         assert_eq!(serde_json::to_value(DisplayState::default()).unwrap(), json!({ "brightness": null, "nightLight": null }));
-        let power = PowerState { battery: None, charging: false, energy_saver: true, energy_saver_supported: false };
+        let power = PowerState { battery: None, charging: false, energy_saver: true, energy_saver_supported: false, update_pending: true };
         assert_eq!(
             serde_json::to_value(power).unwrap(),
-            json!({ "battery": null, "charging": false, "energySaver": true, "energySaverSupported": false })
+            json!({ "battery": null, "charging": false, "energySaver": true, "energySaverSupported": false, "updatePending": true })
         );
     }
 
@@ -1028,6 +1034,8 @@ mod tests {
         assert_eq!(seek.session_id.as_deref(), Some("x"));
         let action: PowerActionArgs = serde_json::from_value(json!({ "action": "signout" })).unwrap();
         assert_eq!(action.action, PowerAction::Signout);
+        let update: PowerActionArgs = serde_json::from_value(json!({ "action": "update_shutdown" })).unwrap();
+        assert_eq!(update.action, PowerAction::UpdateShutdown);
         assert!(serde_json::from_value::<PowerActionArgs>(json!({ "action": "format-c" })).is_err());
     }
 

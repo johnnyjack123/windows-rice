@@ -179,6 +179,7 @@
             <button class="icon-btn has-state" aria-label={m.header.settings}><Icon name="settings" /></button>
             <button class="icon-btn has-state is-hover" aria-label={m.header.editTiles}><Icon name="edit" /></button>
             <button class="icon-btn has-state is-focus" aria-label={m.header.power}><Icon name="power_settings_new" /></button>
+            <button class="icon-btn has-state p-power has-update" aria-label={m.header.powerUpdate}><Icon name="power_settings_new" /></button>
             <span class="chip">{m.tasks.all}</span>
             <span class="chip is-selected">Rice</span>
             <span class="chip chip--accent">{m.format.until(25)}</span>

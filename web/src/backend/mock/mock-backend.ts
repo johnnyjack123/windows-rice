@@ -89,7 +89,8 @@ export class MockBackend implements Transport {
   };
   private autostart: AutostartState = { enabled: true, supported: true };
   private display: DisplayState = { brightness: 0.7, nightLight: false };
-  private power: PowerState = { battery: 0.82, charging: false, energySaver: false, energySaverSupported: true };
+  // An update is waiting, so the power menu shows its "Update and …" entries in the browser too.
+  private power: PowerState = { battery: 0.82, charging: false, energySaver: false, energySaverSupported: true, updatePending: true };
   private network: NetworkState = {
     wifi: { available: true, enabled: true, connected: NETWORKS[0]!, permission: 'granted' },
     airplane: false,

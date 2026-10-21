@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { PowerAction } from '$backend/contract';
   import { clock } from '$backend/clock.svelte';
   import { fmt, i18n } from '$i18n/i18n.svelte';
   import Battery from '$ui/Battery.svelte';
@@ -11,13 +12,20 @@
   const h = $derived(i18n.m.header);
   let menuOpen = $state(false);
 
-  const actions = ['lock', 'sleep', 'signout', 'restart', 'shutdown'] as const;
-  const icons: Record<(typeof actions)[number], string> = {
+  /** Like the Start menu: with an update waiting, "Update and …" joins restart and shut down. */
+  const actions = $derived<PowerAction[]>(
+    power.updatePending
+      ? ['lock', 'sleep', 'signout', 'update_restart', 'restart', 'update_shutdown', 'shutdown']
+      : ['lock', 'sleep', 'signout', 'restart', 'shutdown'],
+  );
+  const icons: Record<PowerAction, string> = {
     lock: 'lock',
     sleep: 'nightlight',
     signout: 'arrow_back',
     restart: 'restart_alt',
     shutdown: 'power_settings_new',
+    update_restart: 'update',
+    update_shutdown: 'system_update_alt',
   };
 
   $effect(() => {
@@ -49,9 +57,10 @@
     <Icon name="settings" />
   </button>
   <button
-    class="icon-btn has-state"
-    aria-label={h.power}
-    title={h.power}
+    class="icon-btn has-state p-power"
+    class:has-update={power.updatePending}
+    aria-label={power.updatePending ? h.powerUpdate : h.power}
+    title={power.updatePending ? h.powerUpdate : h.power}
     aria-haspopup="menu"
     aria-expanded={menuOpen}
     onclick={() => (menuOpen = !menuOpen)}

@@ -103,6 +103,18 @@
   min-height: var(--control-height);
   grid-template-columns: auto minmax(0, 1fr);
 }
+/* An update is waiting: the dot of the island's unread marker. */
+.p-power.has-update::after {
+  content: "";
+  position: absolute;
+  top: var(--space-1-5);
+  right: var(--space-1-5);
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  pointer-events: none;
+}
 
 /* ── Body ───────────────────────────────────────────────────────────────── */
 .p-body {

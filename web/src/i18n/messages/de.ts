@@ -71,6 +71,7 @@ export const de = {
     editTiles: 'Kacheln bearbeiten',
     settings: 'Einstellungen',
     power: 'Energieoptionen',
+    powerUpdate: 'Energieoptionen – Update bereit',
     battery: (percent: number, charging: boolean) => `Akku ${percent} %${charging ? ', wird geladen' : ''}`,
     powerMenu: {
       lock: 'Sperren',
@@ -78,6 +79,8 @@ export const de = {
       signout: 'Abmelden',
       restart: 'Neu starten',
       shutdown: 'Herunterfahren',
+      update_restart: 'Aktualisieren und neu starten',
+      update_shutdown: 'Aktualisieren und herunterfahren',
     },
   },
 

@@ -69,6 +69,7 @@ export const en: Messages = {
     editTiles: 'Edit tiles',
     settings: 'Settings',
     power: 'Power options',
+    powerUpdate: 'Power options – update ready',
     battery: (percent: number, charging: boolean) => `Battery ${percent}%${charging ? ', charging' : ''}`,
     powerMenu: {
       lock: 'Lock',
@@ -76,6 +77,8 @@ export const en: Messages = {
       signout: 'Sign out',
       restart: 'Restart',
       shutdown: 'Shut down',
+      update_restart: 'Update and restart',
+      update_shutdown: 'Update and shut down',
     },
   },
 

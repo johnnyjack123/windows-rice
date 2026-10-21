@@ -1,5 +1,5 @@
 import type {
-  AudioState, BluetoothState, ConnectResult, DisplayState, MediaSession, MediaState, NetworkState, PowerState,
+  AudioState, BluetoothState, ConnectResult, DisplayState, MediaSession, MediaState, NetworkState, PowerAction, PowerState,
   WifiNetwork,
 } from '../contract';
 import { Emitter, errorCode, type Transport } from '../transport';
@@ -153,7 +153,7 @@ export class DisplayStore {
 
 /** Battery and energy saver. */
 export class PowerStore {
-  state = $state<PowerState>({ battery: null, charging: false, energySaver: false, energySaverSupported: false });
+  state = $state<PowerState>({ battery: null, charging: false, energySaver: false, energySaverSupported: false, updatePending: false });
   /** Fires when a charger is plugged in. */
   readonly plugged = new Emitter<PowerState>();
 
@@ -179,7 +179,7 @@ export class PowerStore {
   }
 
   /** @param action - Session action (lock, sleep, sign out, restart, shut down). */
-  action(action: 'lock' | 'sleep' | 'signout' | 'restart' | 'shutdown'): Promise<void> {
+  action(action: PowerAction): Promise<void> {
     return this.t.invoke('power_action', { action });
   }
 }

@@ -215,6 +215,8 @@ pub fn set_expanded(app: &AppHandle, expanded: bool) -> BackendResult<()> {
     if expanded {
         window.set_focusable(true).map_err(BackendError::internal)?;
         window.set_focus().map_err(BackendError::internal)?;
+        // The power menu in the panel shows whether updates are waiting.
+        crate::power::check_updates(app);
     } else {
         // Hand the keyboard back to the app the user came from.
         if rice_win::window::foreground() == hwnd && previous != 0 && previous != hwnd {

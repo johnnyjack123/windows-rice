@@ -301,7 +301,12 @@ export interface PowerState {
   charging: boolean;
   energySaver: boolean;
   energySaverSupported: boolean;
+  /** Windows Update waits for a restart to finish installing (the power menu offers "Update and …"). */
+  updatePending: boolean;
 }
+
+/** Session actions of the power menu; `update_*` install pending updates first. */
+export type PowerAction = 'lock' | 'sleep' | 'signout' | 'restart' | 'shutdown' | 'update_restart' | 'update_shutdown';
 
 // ── Network ──────────────────────────────────────────────────────────────
 
@@ -508,7 +513,7 @@ export interface Commands {
 
   power_get: { args: void; result: PowerState };
   power_set_energy_saver: { args: { enabled: boolean }; result: void };
-  power_action: { args: { action: 'lock' | 'sleep' | 'signout' | 'restart' | 'shutdown' }; result: void };
+  power_action: { args: { action: PowerAction }; result: void };
 
   network_get: { args: void; result: NetworkState };
   network_scan: { args: void; result: WifiNetwork[] };
