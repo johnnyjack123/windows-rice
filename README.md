@@ -26,8 +26,8 @@ laufenden Server beenden oder nur das Backend starten: `cargo run -p rice`.
 #### Mitteilungen (Paket-Identität)
 
 Mitteilungen anderer Apps darf rice nur mit Paket-Identität lesen. Dafür gibt es ein *Sparse Package*, das nichts
-installiert, sondern nur `target\debug\rice.exe` eine Identität gibt. Einmalig (Entwicklermodus muss an sein:
-Einstellungen → System → Für Entwickler):
+installiert, sondern nur `target\debug\rice.exe` eine Identität gibt („rice (dev)“, getrennt von der installierten
+Version). Einmalig (Entwicklermodus muss an sein: Einstellungen → System → Für Entwickler):
 
 ```powershell
 cargo build -p rice
@@ -39,6 +39,23 @@ passt, zeigt `target\debug\rice.exe --check-notifications` (Paket-Identität, Zu
 `scripts\sparse-package.ps1 -Remove`. Solange rice läuft, sind die Windows-Banner aus (Einstellung
 „Windows-Mitteilungsbanner ausblenden“); sie kommen beim Beenden zurück, nach einem Absturz beim nächsten Start – oder
 sofort mit `target\debug\rice.exe --restore-banners`.
+
+### Installer bauen und installieren
+
+```powershell
+pnpm release
+```
+
+Baut Frontend, signiertes Identitätspaket und `rice.exe` (Release) und erzeugt
+`target\release\bundle\nsis\rice_<Version>_<Arch>-setup.exe`. Voraussetzung zusätzlich: Windows SDK (MakeAppx,
+SignTool). Beim ersten Mal legt das Skript das Signierzertifikat „rice package signing“ in deinem persönlichen
+Zertifikatspeicher an (privater Schlüssel nicht exportierbar).
+
+Der Installer braucht keine Adminrechte und keinen Entwicklermodus. Er installiert nach `%LOCALAPPDATA%\rice`, vertraut
+dem Zertifikat nur für dein Benutzerkonto, registriert die Paket-Identität und schaltet „Mit Windows starten“ ein.
+SmartScreen warnt beim ersten Start („Weitere Informationen“ → „Trotzdem ausführen“), weil der Installer nicht mit einem
+gekauften Zertifikat signiert ist. Beenden: Einstellungen → Über rice → „rice beenden“. Deinstallieren über
+Windows-Einstellungen → Apps; das holt auch die Windows-Banner zurück und entfernt Paket, Zertifikat und Autostart.
 
 ### Im Browser (Mock-Backend)
 
@@ -108,6 +125,7 @@ eigenes Theme speichern. Eigene Themes von Hand: [`docs/THEMING.md`](docs/THEMIN
 | `pnpm verify` | alles drei nacheinander – vor jedem Commit |
 | `pnpm icons` | Icon-Subset neu erzeugen (nach Änderungen an `web/src/design/icons.json`, braucht Python mit `fonttools` + `brotli`) |
 | `pnpm tauri dev` | Desktop-App mit Vite-Server starten |
+| `pnpm release` | Installer bauen (`target\release\bundle\nsis\`) |
 | `cargo clippy -- -D warnings` | Rust-Lints (Warnungen sind Fehler) |
 | `cargo test` | Rust-Tests (Vertragsabgleich, Geometrie, Einstellungen, Dateien) |
 

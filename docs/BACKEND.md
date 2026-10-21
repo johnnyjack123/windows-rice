@@ -165,6 +165,8 @@ Typen siehe `contract.ts`. „→“ = Event, das nach dem Command (oder bei ext
 | Command | Verhalten |
 |---|---|
 | `app_info` | `{ version, themesDir, configDir }` — `configDir = %APPDATA%\rice`, `themesDir = %APPDATA%\rice\themes` (absolute Pfade). |
+| `app_autostart_get` / `app_autostart_set { enabled }` | `AutostartState { enabled, supported }`. Wert `rice` unter `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (Pfad zur laufenden Exe in Anführungszeichen). `enabled` heißt außerdem „im Task-Manager nicht deaktiviert“ (`…\Explorer\StartupApproved\Run`, erstes Byte ungerade = aus); Einschalten in rice hebt diese Sperre auf. Entwicklungs-Builds: `supported: false`, `set` → `not_supported` (sie bräuchten den Vite-Server). |
+| `app_quit` | Beendet rice (`app.exit(0)`); dabei kommen die Windows-Banner zurück (`RunEvent::Exit`). |
 | `config_get` | Liefert das **gespeicherte** JSON-Objekt aus `%APPDATA%\rice\config.json` (oder `{}`). Keine Defaults einfügen — die stehen im Frontend (`web/src/backend/settings.ts`). |
 | `config_set { patch }` | Tiefes Mergen: Objekte schlüsselweise, Arrays und Primitive ersetzen, `null` löscht den Schlüssel (identisch zu `applyPatch()` in `settings.ts`). Atomar schreiben (temp + rename). Rückgabe: neues gespeichertes Objekt. → `config://changed` (gesamtes Objekt). Externe Dateiänderungen (Watcher) ebenfalls → `config://changed`. |
 | `theme_list_user` | Alle Ordner unter `themes/` mit gültigem `theme.toml` + `theme.css` → `UserTheme[]`. |
@@ -345,7 +347,7 @@ Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` gr
 
 ## 7. Umsetzungsstand
 
-**Schritte 1–6 umgesetzt** (Branch `feat/rust-backend`), damit alle Commands des Vertrags. Ein Test
+**Schritte 1–7 umgesetzt** (Branch `feat/rust-backend`), damit alle Commands des Vertrags. Ein Test
 (`commands::tests`) prüft, dass genau die Commands aus `contract.ts` registriert sind und alle gesendeten Event-Namen im
 Vertrag stehen.
 
@@ -482,9 +484,11 @@ Vertrag stehen.
   plus Capability `userNotificationListener`. `rice.exe` trägt dazu ein eigenes Manifest
   (`src-tauri/windows-app-manifest.xml`, eingebettet von `build.rs`) mit dem `msix`-Element; Name, Publisher und
   Application-Id müssen in beiden gleich sein. Ohne registriertes Paket läuft rice wie bisher ohne Identität →
-  `permission: 'unsupported'`, die Registry bleibt unangetastet. **Entwicklung:** `scripts/sparse-package.ps1`
-  registriert den Ordner unsigniert mit `target\debug` als externem Ort (Entwicklermodus nötig, `-Remove` entfernt es
-  wieder). **Release:** mit `MakeAppx pack /nv` packen, signieren, der Installer registriert (Schritt 7).
+  `permission: 'unsupported'`, die Registry bleibt unangetastet. **Entwicklung:** eigene Identität
+  `io.github.johnnyjack123.rice.dev` („rice (dev)“; `build.rs` bettet sie in Debug-Builds ein), damit installierte
+  Version und `pnpm tauri dev` sich nicht gegenseitig die Identität nehmen. `scripts/sparse-package.ps1` schreibt die
+  Dev-Variante des Manifests nach `%LOCALAPPDATA%\rice-dev\package` und registriert sie unsigniert mit `target\debug`
+  als externem Ort (Entwicklermodus nötig, `-Remove` entfernt sie wieder). **Release:** siehe Schritt 7.
 - **Listener und Threads:** `UserNotificationListener` ist nicht agil, sondern gehört dem COM-Apartment, in dem er
   entsteht. Er wird deshalb auf einem eigenen MTA-Thread erzeugt (`CoIncrementMTAUsage` hält das MTA am Leben) und nur
   von Worker-Threads benutzt; vom UI-Thread (STA) aus erzeugt, scheitern alle Aufrufe aus dem Hintergrund mit
@@ -511,6 +515,44 @@ Vertrag stehen.
   bei jedem Start und per `rice.exe --restore-banners` (für den Deinstaller).
 - **Neue Apps:** Bei der ersten Mitteilung einer App in dieser Sitzung wird ihr Schlüssel nachgezogen.
 
+**Schritt 7 (Installer, Autostart, Einzelinstanz)**
+
+- **Bauen:** `pnpm release` = `tauri build` mit `src-tauri/tauri.release.conf.json` (Bundling, Ressourcen, NSIS). Die
+  Basiskonfiguration bündelt nicht (`bundle.active: false`), weil `tauri-build` Bundle-Ressourcen bei *jedem* Build
+  kopiert und ohne gebautes Paket auch `cargo build` scheitern würde. Ergebnis:
+  `target\release\bundle\nsis\rice_<Version>_<Arch>-setup.exe`.
+- **Signiertes Sparse Package:** `scripts/identity-package.ps1` (läuft vor dem Kompilieren) packt `src-tauri/package`
+  mit der App-Version (`x.y.z.0`), signiert es mit SignTool und exportiert den öffentlichen Teil des Zertifikats nach
+  `target\identity\`. Zertifikat: selbst signiert, `CN=rice` (= Publisher im Manifest), Code-Signing-EKU, 10 Jahre,
+  einmalig angelegt in `Cert:\CurrentUser\My` mit **nicht exportierbarem** privatem Schlüssel – nie als Datei, nie im
+  Repo. Kostenpflichtige Alternativen (Microsoft Artifact Signing: für Einzelpersonen nur USA/Kanada) sind für ein
+  privates Projekt unverhältnismäßig.
+- **Installer (NSIS, pro Benutzer, ohne Adminrechte),** Hooks in `src-tauri/windows/hooks.nsh`:
+  - *Vor der Installation:* läuft rice schon (Update), beendet `rice.exe --quit` es geordnet.
+  - *Danach:* `identity.ps1 -Install` vertraut dem Zertifikat für den Benutzer (`Cert:\CurrentUser\TrustedPeople`) und
+    registriert das Paket (`Add-AppxPackage -ExternalLocation <Installationsordner>`); ein vorhandenes Paket gleichen
+    Namens wird vorher entfernt. PowerShell wird über `Sysnative` als 64-Bit-Prozess gestartet (der Installer ist
+    32-Bit, dort fehlen die Appx-Cmdlets). Scheitert das, läuft rice ohne Mitteilungen weiter.
+  - *Autostart:* einmalig gesetzt (Merker `HKCU\Software\io.github.johnnyjack123.rice\AutostartOffered`); wer ihn in rice
+    ausschaltet, behält das über Updates.
+  - *Deinstallation:* `--quit`, `--restore-banners`, `identity.ps1 -Uninstall` (Paket und Zertifikat weg), Autostart-
+    Werte und Merker löschen. Läuft vor Tauris eigener „App läuft noch“-Prüfung.
+- **`rice.exe --quit`:** sucht das Systemereignis-Fenster und schickt die registrierte Nachricht `rice-quit`; rice
+  beendet sich über `app.exit(0)` (Banner zurück), der Aufrufer wartet bis 5 s. Debug- und Release-Builds haben
+  getrennte Fensterklassen und treffen sich nie.
+- **Einzelinstanz** (`tauri-plugin-single-instance`, nur Release): ein zweiter Start öffnet die Einstellungen. In
+  Entwicklungs-Builds aus, damit `pnpm tauri dev` neben der installierten Version läuft (beide haben eigene Identitäten;
+  das Banner-Backup teilen sie sich – beim Entwickeln die installierte Version am besten beenden).
+- **Autostart** über den `Run`-Schlüssel selbst statt `tauri-plugin-autostart`: wenige Zeilen mit dem vorhandenen
+  Registry-Helfer, keine weiteren Crates, und das Verhalten bei der Task-Manager-Sperre bleibt in eigener Hand. Beim
+  Start wird ein vorhandener Eintrag auf die aktuelle Exe korrigiert, ohne die Task-Manager-Einstellung anzufassen.
+- **CSP:** `default-src 'self'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'` (Svelte-Stilattribute,
+  Nutzer-Themes als `<style>`), `img-src 'self' data: blob:` (Wallpaper, Cover, Icons, Glasebenen), `font-src 'self'
+  data:`, `connect-src ipc: http://ipc.localhost`, `object-src 'none'`. `dangerousDisableAssetCspModification:
+  ["style-src"]`, weil Tauri sonst Hashes einträgt und Browser dann `'unsafe-inline'` ignorieren. `devCsp` erlaubt
+  zusätzlich Vites HMR (`ws://127.0.0.1:1420`). Nutzer-Themes können damit keine Schriften oder Bilder aus dem Netz
+  laden.
+
 **Bekannt / offen**
 
 - Ein hart beendeter Prozess (Task-Manager, `pnpm tauri dev` beim Neubau) kann die Banner nicht zurücksetzen; das
@@ -524,4 +566,6 @@ Vertrag stehen.
   Warnung, die Island funktioniert weiter.
 - Wenig freier Arbeitsspeicher: Der erste Build kompiliert die große `windows`-Crate; bei „Die Auslagerungsdatei ist zu
   klein“ (os error 1455) mit weniger Jobs bauen (`$env:CARGO_BUILD_JOBS=4`).
-- CSP ist noch aus (`csp: null`); sie kommt mit dem Installer (Schritt 7).
+- Der Installer ist nicht signiert: Windows SmartScreen warnt beim ersten Start („Unbekannter Herausgeber“ → „Weitere
+  Informationen“ → „Trotzdem ausführen“). Das verhindert nur ein gekauftes Code-Signing-Zertifikat.
+- Der Installer passt zur Architektur des Build-Rechners (hier ARM64).
