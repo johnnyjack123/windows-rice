@@ -12,6 +12,7 @@
     "test": "vitest run",
     "icons": "node scripts/fetch-icons.mjs",
     "tauri": "tauri",
+    "release": "tauri build --config src-tauri/tauri.release.conf.json",
     "verify": "pnpm check && pnpm test && pnpm build"
   },
   "dependencies": {
