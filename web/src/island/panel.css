@@ -39,6 +39,9 @@
 /* ── Header ─────────────────────────────────────────────────────────────── */
 .p-header {
   position: relative;
+  /* Above the body: its columns are stacking contexts of their own (stagger
+     translate), so the power menu would otherwise slide under them. */
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
