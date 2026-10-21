@@ -485,8 +485,14 @@ Vertrag stehen.
   `permission: 'unsupported'`, die Registry bleibt unangetastet. **Entwicklung:** `scripts/sparse-package.ps1`
   registriert den Ordner unsigniert mit `target\debug` als externem Ort (Entwicklermodus nötig, `-Remove` entfernt es
   wieder). **Release:** mit `MakeAppx pack /nv` packen, signieren, der Installer registriert (Schritt 7).
-- **Listener:** Zugriff (`GetAccessStatus`) wird bei jedem Abgleich neu gelesen. `RequestAccessAsync` startet auf dem
-  UI-Thread, auf die Antwort wird im Hintergrund gewartet. Abgleich über `NotificationChanged` plus alle 10 s als
+- **Listener und Threads:** `UserNotificationListener` ist nicht agil, sondern gehört dem COM-Apartment, in dem er
+  entsteht. Er wird deshalb auf einem eigenen MTA-Thread erzeugt (`CoIncrementMTAUsage` hält das MTA am Leben) und nur
+  von Worker-Threads benutzt; vom UI-Thread (STA) aus erzeugt, scheitern alle Aufrufe aus dem Hintergrund mit
+  `RPC_E_WRONG_THREAD` (0x8001010E). Nur der Zugriffsdialog (`RequestAccessAsync`) läuft auf dem UI-Thread mit eigener
+  Instanz; die Antwort kommt über einen Completed-Handler. Diagnose ohne Fenster: `rice.exe --check-notifications`
+  (Identität, Zugriff, Events, Anzahl – fragt nichts an, ändert nichts).
+- **Abgleich:** Zugriff (`GetAccessStatus`) wird bei jedem Abgleich neu gelesen; ist er nicht lesbar, gilt er als nicht
+  erteilt. Fehler beim Lesen landen einmal je Fehlerserie im Log. Abgleich über `NotificationChanged` plus alle 10 s als
   Sicherheitsnetz (bemerkt auch entzogenen Zugriff); findet ein Abgleich Änderungen, die kein Event gemeldet hat, wird
   auf 2 s umgestellt. Die erste Liste nach dem Start bzw. nach erteiltem Zugriff geht als `notifications://state` raus,
   nicht als `posted` – sonst würde der Bestand des Infocenters als Banner-Flut in der Island landen.

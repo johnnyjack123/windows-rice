@@ -5,10 +5,16 @@
 //! package in `src-tauri/package`. Without it [`Listener::open`] returns
 //! `None` and nothing else is touched.
 //!
-//! Async WinRT calls are awaited with `join()`, which blocks: call the
-//! listing functions from worker threads.
+//! The listener belongs to the COM apartment that creates it. [`Listener::open`]
+//! creates it in the multithreaded apartment, which rice's worker threads
+//! share, so it may be used from any of them, never from the UI thread (an
+//! STA). Only the consent prompt runs on the UI thread, with its own
+//! instance ([`request_access`]). Async WinRT calls are awaited with
+//! `join()`, which blocks.
 
+use crate::com::ComGuard;
 use rice_core::time::windows_ticks_to_unix_ms;
+use std::sync::Once;
 use windows::ApplicationModel::AppInfo;
 use windows::Foundation::{Size, TypedEventHandler};
 use windows::Storage::Streams::IRandomAccessStreamReference;
@@ -16,8 +22,8 @@ use windows::UI::Notifications::Management::{UserNotificationListener, UserNotif
 use windows::UI::Notifications::{KnownNotificationBindings, NotificationKinds, UserNotification};
 use windows::Win32::Foundation::{ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS};
 use windows::Win32::Storage::Packaging::Appx::GetCurrentPackageFullName;
+use windows::Win32::System::Com::CoIncrementMTAUsage;
 use windows_core::Interface;
-use windows_future::IAsyncOperation;
 
 /// Whether rice may read other apps' notifications.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,34 +64,36 @@ impl Toast {
     }
 }
 
-/// The notification listener of this process (agile, usable from any thread).
+/// The notification listener of this process. It lives in the MTA: use it
+/// from worker threads, never from the UI thread.
 pub struct Listener(UserNotificationListener);
 
-/// A consent prompt that is still open.
-pub struct AccessRequest(IAsyncOperation<Status>);
-
 impl Listener {
-    /// The listener, or `None` without package identity.
+    /// The listener, or `None` without package identity. Created on a
+    /// short-lived MTA thread, whatever the caller's apartment is.
     pub fn open() -> Option<Self> {
         if !has_identity() {
             return None;
         }
-        UserNotificationListener::Current().ok().map(Self)
-    }
-
-    /// The current access state (fast, no prompt).
-    pub fn access(&self) -> Access {
-        match self.0.GetAccessStatus() {
-            Ok(Status::Allowed) => Access::Granted,
-            Ok(Status::Denied) => Access::Denied,
-            _ => Access::Unknown,
+        let created = std::thread::spawn(|| {
+            let _com = ComGuard::mta();
+            keep_mta_alive();
+            UserNotificationListener::Current().map(Self)
+        })
+        .join();
+        match created {
+            Ok(Ok(listener)) => Some(listener),
+            Ok(Err(error)) => {
+                log::warn!("notifications: listener unavailable ({error})");
+                None
+            }
+            Err(_) => None,
         }
     }
 
-    /// Opens Windows' consent prompt. Call on the UI thread, then wait for the
-    /// answer with [`AccessRequest::wait`] on another one.
-    pub fn request_access(&self) -> windows::core::Result<AccessRequest> {
-        self.0.RequestAccessAsync().map(AccessRequest)
+    /// The current access state (fast, no prompt).
+    pub fn access(&self) -> windows::core::Result<Access> {
+        self.0.GetAccessStatus().map(access_of)
     }
 
     /// All toasts in the notification centre, oldest first.
@@ -117,15 +125,30 @@ impl Listener {
     }
 }
 
-impl AccessRequest {
-    /// Waits for the user's answer (blocks).
-    pub fn wait(self) -> windows::core::Result<Access> {
-        Ok(match self.0.join()? {
-            Status::Allowed => Access::Granted,
-            Status::Denied => Access::Denied,
-            _ => Access::Unknown,
-        })
+/// Opens Windows' consent prompt and reports the answer through `done`.
+/// Call on the UI thread; `done` runs later, on another thread.
+pub fn request_access(done: impl FnOnce(windows::core::Result<Access>) + Send + 'static) -> windows::core::Result<()> {
+    UserNotificationListener::Current()?.RequestAccessAsync()?.when(move |answer| done(answer.map(access_of)))
+}
+
+fn access_of(status: Status) -> Access {
+    match status {
+        Status::Allowed => Access::Granted,
+        Status::Denied => Access::Denied,
+        _ => Access::Unknown,
     }
+}
+
+/// Keeps the MTA alive for the whole process, so objects living in it stay
+/// usable after the thread that created them has ended.
+fn keep_mta_alive() {
+    static ONCE: Once = Once::new();
+    ONCE.call_once(|| {
+        // SAFETY: plain call; the cookie is deliberately never released.
+        if let Err(error) = unsafe { CoIncrementMTAUsage() } {
+            log::warn!("notifications: cannot keep the MTA alive ({error})");
+        }
+    });
 }
 
 fn toast(notification: &UserNotification) -> Option<Toast> {

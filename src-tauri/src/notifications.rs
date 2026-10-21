@@ -14,7 +14,7 @@ use rice_win::notifications::{Access, Listener, Toast};
 use serde_json::json;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -29,8 +29,8 @@ const ICON_SIZE: u32 = 48;
 /// Notification service state.
 #[derive(Default)]
 pub struct Notifications {
-    /// `None` without package identity.
-    listener: Mutex<Option<Arc<Listener>>>,
+    /// Opened on first use from a worker thread; `None` without package identity.
+    listener: OnceLock<Option<Arc<Listener>>>,
     permission: Mutex<Option<NotificationPermission>>,
     /// Last listing, newest first; `None` until the first one (the baseline,
     /// which is never announced as new notifications).
@@ -42,6 +42,8 @@ pub struct Notifications {
     scheduled: AtomicBool,
     /// A `NotificationChanged` event arrived since the last poll.
     event_seen: AtomicBool,
+    /// Reading from Windows failed last time (logged once per streak).
+    failing: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -53,18 +55,12 @@ struct AppMeta {
 /// Opens the listener, brings back banners a crash left hidden and starts
 /// watching. Never fails: without identity everything reports `unsupported`.
 pub fn start(app: &AppHandle) {
-    let listener = Listener::open().map(Arc::new);
-    {
-        let state = app.state::<AppState>();
-        let permission = listener.as_ref().map_or(NotificationPermission::Unsupported, |l| permission_of(l.access()));
-        *state.notifications.permission.locked() = Some(permission);
-        *state.notifications.listener.locked() = listener.clone();
-    }
     let handle = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         // Leftovers of a crash first (docs/BACKEND.md: "bei jedem Start").
         banners::restore();
-        let Some(listener) = listener else {
+        let Some(listener) = listener(&handle) else {
+            *handle.state::<AppState>().notifications.permission.locked() = Some(NotificationPermission::Unsupported);
             log::info!("notifications: no package identity; register the sparse package (README) to mirror notifications");
             return;
         };
@@ -92,8 +88,22 @@ fn permission_of(access: Access) -> NotificationPermission {
     }
 }
 
+/// The listener (opened on first use). Blocking; call from worker threads only:
+/// the listener lives in the MTA, the UI thread is an STA.
 fn listener(app: &AppHandle) -> Option<Arc<Listener>> {
-    app.state::<AppState>().notifications.listener.locked().clone()
+    app.state::<AppState>().notifications.listener.get_or_init(|| Listener::open().map(Arc::new)).clone()
+}
+
+/// Logs a failed Windows call once until a call succeeds again.
+fn report(service: &Notifications, result: Result<(), String>) {
+    match result {
+        Ok(()) => service.failing.store(false, Ordering::SeqCst),
+        Err(error) => {
+            if !service.failing.swap(true, Ordering::SeqCst) {
+                log::warn!("notifications: {error}");
+            }
+        }
+    }
 }
 
 /// Refreshes once per burst of change events.
@@ -137,8 +147,18 @@ fn refresh(app: &AppHandle) -> bool {
         return false;
     };
     let _guard = service.refreshing.locked();
-    let permission = permission_of(listener.access());
+    // An unreadable state counts as "not granted": banners then stay with Windows.
+    let permission = match listener.access() {
+        Ok(access) => permission_of(access),
+        Err(error) => {
+            report(service, Err(format!("access state unreadable ({error})")));
+            NotificationPermission::Unknown
+        }
+    };
     let previous_permission = service.permission.locked().replace(permission);
+    if previous_permission != Some(permission) {
+        log::info!("notifications: access {permission:?}");
+    }
     apply_banner_policy(app, permission);
 
     if permission != NotificationPermission::Granted {
@@ -149,9 +169,12 @@ fn refresh(app: &AppHandle) -> bool {
         return false;
     }
     let toasts = match listener.toasts() {
-        Ok(toasts) => toasts,
+        Ok(toasts) => {
+            report(service, Ok(()));
+            toasts
+        }
         Err(error) => {
-            log::debug!("notifications: listing failed ({error})");
+            report(service, Err(format!("listing failed ({error})")));
             return false;
         }
     };
@@ -243,14 +266,16 @@ pub fn on_setting_changed(app: &AppHandle) {
 pub async fn get(app: &AppHandle) -> BackendResult<NotificationsState> {
     let handle = app.clone();
     blocking(move || {
+        if listener(&handle).is_none() {
+            return Ok(NotificationsState { permission: NotificationPermission::Unsupported, items: Vec::new() });
+        }
         let service = &handle.state::<AppState>().notifications;
-        let permission = service.permission.locked().unwrap_or(NotificationPermission::Unsupported);
-        // Asked before the first listing: make it now.
-        if permission == NotificationPermission::Granted && service.items.locked().is_none() {
+        // Asked before the first listing (or without access): read it now.
+        if service.items.locked().is_none() {
             refresh(&handle);
         }
         Ok(NotificationsState {
-            permission: service.permission.locked().unwrap_or(NotificationPermission::Unsupported),
+            permission: service.permission.locked().unwrap_or(NotificationPermission::Unknown),
             items: service.items.locked().clone().unwrap_or_default(),
         })
     })
@@ -259,18 +284,23 @@ pub async fn get(app: &AppHandle) -> BackendResult<NotificationsState> {
 
 /// `notifications_request_access`: Windows' consent prompt (UI thread).
 pub async fn request_access(app: &AppHandle) -> BackendResult<NotificationPermission> {
-    let Some(listener) = listener(app) else {
+    if !rice_win::notifications::has_identity() {
         return Ok(NotificationPermission::Unsupported);
-    };
+    }
     let (sender, receiver) = std::sync::mpsc::channel();
     app.run_on_main_thread(move || {
-        let _ = sender.send(listener.request_access());
+        let answer = sender.clone();
+        if let Err(error) = rice_win::notifications::request_access(move |access| {
+            let _ = answer.send(access);
+        }) {
+            let _ = sender.send(Err(error));
+        }
     })
     .map_err(BackendError::internal)?;
     let handle = app.clone();
     blocking(move || {
-        let request = receiver.recv().map_err(BackendError::internal)?.map_err(BackendError::internal)?;
-        let access = request.wait().map_err(BackendError::internal)?;
+        // Waits for the user's answer in the prompt.
+        let access = receiver.recv().map_err(BackendError::internal)?.map_err(BackendError::internal)?;
         // Announces the new state and starts or stops hiding banners.
         refresh(&handle);
         Ok(permission_of(access))
@@ -281,9 +311,9 @@ pub async fn request_access(app: &AppHandle) -> BackendResult<NotificationPermis
 /// `notifications_dismiss`: removes the notification here and in Windows.
 pub async fn dismiss(app: &AppHandle, id: String) -> BackendResult<()> {
     let number: u32 = id.parse().map_err(|_| BackendError::not_found(format!("no notification {id}")))?;
-    let listener = listener(app).ok_or_else(|| BackendError::not_supported("notification access needs the rice package"))?;
     let handle = app.clone();
     blocking(move || {
+        let listener = listener(&handle).ok_or_else(|| BackendError::not_supported("notification access needs the rice package"))?;
         listener.remove(number).map_err(BackendError::internal)?;
         if let Some(items) = handle.state::<AppState>().notifications.items.locked().as_mut() {
             items.retain(|n| n.id != id);
@@ -296,11 +326,11 @@ pub async fn dismiss(app: &AppHandle, id: String) -> BackendResult<()> {
 
 /// `notifications_clear`: empties Windows' notification centre.
 pub async fn clear(app: &AppHandle) -> BackendResult<()> {
-    let Some(listener) = listener(app) else {
-        return Ok(());
-    };
     let handle = app.clone();
     blocking(move || {
+        let Some(listener) = listener(&handle) else {
+            return Ok(());
+        };
         listener.clear().map_err(BackendError::internal)?;
         let removed = handle.state::<AppState>().notifications.items.locked().as_mut().map(std::mem::take).unwrap_or_default();
         for item in removed {
@@ -309,4 +339,26 @@ pub async fn clear(app: &AppHandle) -> BackendResult<()> {
         Ok(())
     })
     .await
+}
+
+/// `rice.exe --check-notifications`: what the listener sees, without any
+/// window and without asking for access (development aid).
+pub fn print_diagnosis() {
+    println!("package identity: {}", rice_win::notifications::has_identity());
+    let Some(listener) = Listener::open() else {
+        println!("listener: unavailable");
+        return;
+    };
+    match listener.access() {
+        Ok(access) => println!("access: {access:?}"),
+        Err(error) => println!("access: unreadable ({error})"),
+    }
+    match listener.watch(|| {}) {
+        Ok(_) => println!("change events: available"),
+        Err(error) => println!("change events: unavailable ({error})"),
+    }
+    match listener.toasts() {
+        Ok(toasts) => println!("notifications in the notification centre: {}", toasts.len()),
+        Err(error) => println!("listing: failed ({error})"),
+    }
 }

@@ -34,7 +34,8 @@ cargo build -p rice
 powershell -ExecutionPolicy Bypass -File scripts\sparse-package.ps1
 ```
 
-Danach rice wie gewohnt starten und im Kontrollzentrum unter „Mitteilungen“ auf „Zugriff erlauben“ klicken. Entfernen:
+Danach rice wie gewohnt starten und im Kontrollzentrum unter „Mitteilungen“ auf „Zugriff erlauben“ klicken. Ob alles
+passt, zeigt `target\debug\rice.exe --check-notifications` (Paket-Identität, Zugriff, Events; ohne Fenster). Entfernen:
 `scripts\sparse-package.ps1 -Remove`. Solange rice läuft, sind die Windows-Banner aus (Einstellung
 „Windows-Mitteilungsbanner ausblenden“); sie kommen beim Beenden zurück, nach einem Absturz beim nächsten Start – oder
 sofort mit `target\debug\rice.exe --restore-banners`.

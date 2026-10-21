@@ -40,6 +40,11 @@ fn main() {
         banners::shutdown();
         return;
     }
+    // Development aid: what the notification listener sees, without a window.
+    if std::env::args().skip(1).any(|arg| arg == "--check-notifications") {
+        notifications::print_diagnosis();
+        return;
+    }
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::new().level(log::LevelFilter::Info).build())
         .plugin(hotkey::plugin())
