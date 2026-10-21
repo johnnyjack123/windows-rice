@@ -223,9 +223,9 @@ Was das Backend aus den Einstellungen selbst braucht (mit diesen Defaults, falls
 | `display_get` | Helligkeit des Island-Monitors: intern per WMI (`WmiMonitorBrightness`), extern per DDC/CI (`GetMonitorBrightness`, dxva2). Geht beides nicht → `brightness: null`. `nightLight`: Registry-Blob unter `…\CloudStore\Store\DefaultAccount\Current\default$windows.data.bluelightreduction.bluelightreductionstate\…` lesen; bei Unsicherheit `null` (Kachel zeigt „Wird nicht unterstützt“). |
 | `display_set_brightness`, `display_set_night_light` | Entsprechend; Nachtlicht experimentell. |
 | → `display://state` | `WmiMonitorBrightnessEvent` bzw. nach eigenen Änderungen. |
-| `power_get` | `GetSystemPowerStatus` (`battery: null`, wenn kein Akku: `BatteryFlag == 128`), Energiesparmodus über `GUID_POWER_SAVING_STATUS` lesen. `energySaverSupported` nur `true`, wenn du ihn zuverlässig schalten kannst. |
+| `power_get` | `GetSystemPowerStatus` (`battery: null`, wenn kein Akku: `BatteryFlag == 128`), Energiesparmodus über `GUID_POWER_SAVING_STATUS` lesen. `energySaverSupported` nur `true`, wenn du ihn zuverlässig schalten kannst. `updatePending` = Windows Update wartet auf einen Neustart (Windows Update Agent, `ISystemInformation::RebootRequired`). |
 | `power_set_energy_saver` | Experimentell; sonst `not_supported`. |
-| `power_action { action }` | `lock` → `LockWorkStation`; `sleep` → `SetSuspendState(false, false, false)`; `signout` → `ExitWindowsEx(EWX_LOGOFF)`; `restart`/`shutdown` → `ExitWindowsEx` mit `SE_SHUTDOWN_NAME`-Privileg. |
+| `power_action { action }` | `lock` → `LockWorkStation`; `sleep` → `SetSuspendState(false, false, false)`; `signout` → `ExitWindowsEx(EWX_LOGOFF)`; `restart`/`shutdown` → `ExitWindowsEx` mit `SE_SHUTDOWN_NAME`-Privileg; `update_restart`/`update_shutdown` → `InitiateShutdownW` mit `SHUTDOWN_INSTALL_UPDATES` (Windows installiert die wartenden Updates, dann Neustart bzw. Ausschalten – wie „Aktualisieren und …“ im Startmenü). |
 | → `power://state` | `RegisterPowerSettingNotification` (`GUID_BATTERY_PERCENTAGE_REMAINING`, `GUID_ACDC_POWER_SOURCE`, `GUID_POWER_SAVING_STATUS`). Das Frontend zeigt beim Einstecken („charging“ false → true) die Lade-Aktivität. |
 
 ### Netzwerk
@@ -404,6 +404,10 @@ Vertrag stehen.
 - **Energie:** `charging` heißt „Akku vorhanden und Netzteil angeschlossen“ (auch bei 100 %), damit Einstecken immer die
   Lade-Aktivität zeigt. Energiesparen wird gelesen (`SystemStatusFlag`), lässt sich aber nicht dokumentiert schalten →
   `energySaverSupported: false`. Herunterfahren mit `EWX_POWEROFF` (ohne Schnellstart-Hybrid).
+- **Wartende Updates:** Windows meldet keine Änderung von `RebootRequired`; rice fragt beim Start und bei jedem Öffnen
+  des Kontrollzentrums (`island_set_expanded(true)`), höchstens einmal pro Minute, und sendet `power://state` nur bei
+  Änderung. Updates, die heruntergeladen, aber noch nicht installiert sind, zählen nicht (das ginge nur über eine
+  langsame Update-Suche).
 
 **Schritt 3 (Systemmonitor)** – ohne `sysinfo`, direkt über dokumentierte APIs:
 
@@ -527,16 +531,21 @@ Vertrag stehen.
   einmalig angelegt in `Cert:\CurrentUser\My` mit **nicht exportierbarem** privatem Schlüssel – nie als Datei, nie im
   Repo. Kostenpflichtige Alternativen (Microsoft Artifact Signing: für Einzelpersonen nur USA/Kanada) sind für ein
   privates Projekt unverhältnismäßig.
-- **Installer (NSIS, pro Benutzer, ohne Adminrechte),** Hooks in `src-tauri/windows/hooks.nsh`:
+- **Installer (NSIS, pro Benutzer),** Hooks in `src-tauri/windows/hooks.nsh`:
   - *Vor der Installation:* läuft rice schon (Update), beendet `rice.exe --quit` es geordnet.
-  - *Danach:* `identity.ps1 -Install` vertraut dem Zertifikat für den Benutzer (`Cert:\CurrentUser\TrustedPeople`) und
-    registriert das Paket (`Add-AppxPackage -ExternalLocation <Installationsordner>`); ein vorhandenes Paket gleichen
-    Namens wird vorher entfernt. PowerShell wird über `Sysnative` als 64-Bit-Prozess gestartet (der Installer ist
-    32-Bit, dort fehlen die Appx-Cmdlets). Scheitert das, läuft rice ohne Mitteilungen weiter.
+  - *Danach:* `identity.ps1 -Install` vertraut dem Zertifikat in `Cert:\LocalMachine\TrustedPeople` und registriert das
+    Paket (`Add-AppxPackage -ExternalLocation <Installationsordner>`); ein vorhandenes Paket gleichen Namens wird vorher
+    entfernt. **Nur der Zertifikatsschritt läuft erhöht (eine UAC-Abfrage, entfällt, wenn das Zertifikat schon
+    vertraut ist):** Der Bereitstellungsdienst akzeptiert ausschließlich den Maschinenspeicher – ein Vertrauen nur für
+    den Benutzer (`CurrentUser\TrustedPeople`) scheitert mit `0x800B0109`, anders als Microsofts Anleitung
+    nahelegt (am echten System nachgewiesen). PowerShell wird über `Sysnative` als 64-Bit-Prozess gestartet (der
+    Installer ist 32-Bit, dort fehlen die Appx-Cmdlets). Abgelehnte UAC oder ein anderer Fehler → rice läuft ohne
+    Mitteilungen weiter.
   - *Autostart:* einmalig gesetzt (Merker `HKCU\Software\io.github.johnnyjack123.rice\AutostartOffered`); wer ihn in rice
     ausschaltet, behält das über Updates.
-  - *Deinstallation:* `--quit`, `--restore-banners`, `identity.ps1 -Uninstall` (Paket und Zertifikat weg), Autostart-
-    Werte und Merker löschen. Läuft vor Tauris eigener „App läuft noch“-Prüfung.
+  - *Deinstallation:* `--quit`, `--restore-banners`, `identity.ps1 -Uninstall` (Paket weg; das Zertifikat entfernt eine
+    weitere UAC-Abfrage aus dem Maschinenspeicher), Autostart-Werte und Merker löschen. Läuft vor Tauris eigener „App
+    läuft noch“-Prüfung.
 - **`rice.exe --quit`:** sucht das Systemereignis-Fenster und schickt die registrierte Nachricht `rice-quit`; rice
   beendet sich über `app.exit(0)` (Banner zurück), der Aufrufer wartet bis 5 s. Debug- und Release-Builds haben
   getrennte Fensterklassen und treffen sich nie.

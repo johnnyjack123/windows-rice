@@ -51,11 +51,13 @@ Baut Frontend, signiertes Identitätspaket und `rice.exe` (Release) und erzeugt
 SignTool). Beim ersten Mal legt das Skript das Signierzertifikat „rice package signing“ in deinem persönlichen
 Zertifikatspeicher an (privater Schlüssel nicht exportierbar).
 
-Der Installer braucht keine Adminrechte und keinen Entwicklermodus. Er installiert nach `%LOCALAPPDATA%\rice`, vertraut
-dem Zertifikat nur für dein Benutzerkonto, registriert die Paket-Identität und schaltet „Mit Windows starten“ ein.
-SmartScreen warnt beim ersten Start („Weitere Informationen“ → „Trotzdem ausführen“), weil der Installer nicht mit einem
-gekauften Zertifikat signiert ist. Beenden: Einstellungen → Über rice → „rice beenden“. Deinstallieren über
-Windows-Einstellungen → Apps; das holt auch die Windows-Banner zurück und entfernt Paket, Zertifikat und Autostart.
+Der Installer braucht keinen Entwicklermodus und installiert pro Benutzer nach `%LOCALAPPDATA%\rice`. Für die
+Mitteilungen fragt Windows einmal nach Adminrechten (UAC): rechnerweit vertraut wird dabei nur dem rice-Zertifikat, sonst
+nichts. Lehnst du ab, läuft rice ohne Mitteilungen. Danach registriert er die Paket-Identität und schaltet „Mit Windows
+starten“ ein. SmartScreen warnt beim ersten Start („Weitere Informationen“ → „Trotzdem ausführen“), weil der Installer
+nicht mit einem gekauften Zertifikat signiert ist. Beenden: Einstellungen → Über rice → „rice beenden“. Deinstallieren
+über Windows-Einstellungen → Apps; das holt auch die Windows-Banner zurück und entfernt Paket, Zertifikat (noch einmal
+UAC) und Autostart.
 
 ### Im Browser (Mock-Backend)
 
