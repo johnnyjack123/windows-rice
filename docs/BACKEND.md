@@ -261,6 +261,7 @@ mit der Capability `userNotificationListener`, das der Installer registriert. Oh
 | `notifications_get` | `GetAccessStatus` → `granted`/`denied`/`unknown` (bzw. `unsupported`). Bei `granted`: `GetNotificationsAsync(Toast)` → `AppNotification` (`id` = Id als String, `appId` = AUMID, `appName` = Anzeigename, `iconUrl` = Logo 48 px als Data-URL, `title` = erster Text des Toast-Bindings, `body` = restliche Texte, `time` = `CreationTime`). |
 | `notifications_request_access` | `RequestAccessAsync` (UI-Thread). → `notifications://state`. |
 | `notifications_dismiss { id }` / `notifications_clear` | `RemoveNotification` / `ClearNotifications`. → `notifications://removed` je Id. |
+| `notifications_open { id }` | Startet die sendende App bzw. holt sie nach vorn (`shell:AppsFolder\<AUMID>` per `ShellExecuteEx` ohne Fehlerdialog, vorher `AllowSetForegroundWindow`) und entfernt die Mitteilung wie ein Klick auf das Windows-Banner. Pfad-AUMIDs werden nie gestartet; Phone-Link-Unter-AUMIDs fallen auf die Haupt-App des Pakets zurück. Das eigentliche Ziel der Mitteilung (z. B. ein Chat) kann keine fremde App auslösen – Windows gibt die Aktivierung nur an den Absender. Geht es nicht: `not_supported`, die Mitteilung bleibt. → `notifications://removed`. |
 | → `notifications://posted` / `removed` | Über `NotificationChanged`; falls das Event in deiner Konfiguration nicht feuert, alle 2 s abgleichen (Diff nach Id). |
 
 **Windows-Banner ausblenden (`notifications.hideWindowsBanners`, Standard `true`).** Solange rice läuft, zeigt nur die
@@ -518,6 +519,9 @@ Vertrag stehen.
   blendet rice in dieser Sitzung nichts mehr aus), wenn das Setting ausgeht oder der Zugriff nicht (mehr) erteilt ist,
   bei jedem Start und per `rice.exe --restore-banners` (für den Deinstaller).
 - **Neue Apps:** Bei der ersten Mitteilung einer App in dieser Sitzung wird ihr Schlüssel nachgezogen.
+- **Öffnen** (`notifications_open`, nachgereicht): Ein Klick auf das Island-Banner oder ein Antippen in der Liste öffnet
+  die App (Aktivitäts-Registry: neues optionales `open` an `ActivityDef`; scheitert es, öffnet das Banner wie vorher
+  den Mitteilungsbereich). In der Liste ist der Titel dafür ein Knopf (Tastatur), Wischen entfernt weiterhin.
 
 **Schritt 7 (Installer, Autostart, Einzelinstanz)**
 

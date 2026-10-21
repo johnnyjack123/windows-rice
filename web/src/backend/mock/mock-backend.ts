@@ -394,6 +394,13 @@ export class MockBackend implements Transport {
       this.notifications = { ...this.notifications, items: this.notifications.items.filter((n) => n.id !== id) };
       this.emit('notifications://removed', { id });
     },
+    notifications_open: ({ id }) => {
+      const item = this.notifications.items.find((n) => n.id === id) ?? fail('not_found', `no notification ${id}`);
+      // The browser cannot start apps; it only logs which one Windows would open.
+      console.info(`[mock] open ${item.appName}`);
+      this.notifications = { ...this.notifications, items: this.notifications.items.filter((n) => n.id !== id) };
+      this.emit('notifications://removed', { id });
+    },
     notifications_clear: () => {
       const ids = this.notifications.items.map((n) => n.id);
       this.notifications = { ...this.notifications, items: [] };

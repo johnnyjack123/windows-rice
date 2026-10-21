@@ -151,7 +151,12 @@
       return;
     }
     const main = registry.main;
-    controller.expand(main ? registry.def(main.id)?.section ?? null : null);
+    const def = main ? registry.def(main.id) : undefined;
+    if (def?.open) {
+      void def.open().catch(() => controller.expand(def.section ?? null));
+      return;
+    }
+    controller.expand(def?.section ?? null);
   }
 
   function key(e: KeyboardEvent): void {

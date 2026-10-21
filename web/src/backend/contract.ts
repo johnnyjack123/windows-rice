@@ -531,6 +531,11 @@ export interface Commands {
   notifications_get: { args: void; result: NotificationsState };
   notifications_request_access: { args: void; result: NotificationPermission };
   notifications_dismiss: { args: { id: string }; result: void };
+  /**
+   * Opens the app that sent the notification and removes the notification (like a click on the Windows banner).
+   * Windows cannot replay the notification's own target (e.g. a chat); `not_supported` if the app cannot be started.
+   */
+  notifications_open: { args: { id: string }; result: void };
   notifications_clear: { args: void; result: void };
 
   calendar_accounts: { args: void; result: CalendarAccount[] };

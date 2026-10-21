@@ -75,6 +75,7 @@ commands![
     notifications::notifications_get,
     notifications::notifications_request_access,
     notifications::notifications_dismiss,
+    notifications::notifications_open,
     notifications::notifications_clear,
     calendar::calendar_accounts,
     calendar::calendar_add_account,

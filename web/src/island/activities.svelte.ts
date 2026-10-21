@@ -39,6 +39,8 @@ export interface ActivityDef {
   bubble?: Component;
   /** Panel section opened on click. */
   section?: string;
+  /** Click action instead of opening `section` (a notification opens its app); if it fails, `section` opens. */
+  open?: () => Promise<void>;
   /** Short-lived; may briefly show while the island is auto-hidden. */
   transient?: boolean;
   /** Also shows over full-screen apps (alarms, finished timers). */

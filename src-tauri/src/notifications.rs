@@ -6,7 +6,7 @@ use crate::blocking::blocking;
 use crate::state::{AppState, Locked};
 use rice_core::contract::{AppNotification, NotificationPermission, NotificationsState, events};
 use rice_core::media::app_name_fallback;
-use rice_core::notifications::{diff_ids, split_texts};
+use rice_core::notifications::{diff_ids, launch_candidates, split_texts};
 use rice_core::time::{iso_local, now_iso};
 use rice_core::{BackendError, BackendResult};
 use rice_services::imaging::{bytes_to_png_data_url, rgba_to_png_data_url};
@@ -316,6 +316,43 @@ pub async fn dismiss(app: &AppHandle, id: String) -> BackendResult<()> {
         let listener = listener(&handle).ok_or_else(|| BackendError::not_supported("notification access needs the rice package"))?;
         listener.remove(number).map_err(BackendError::internal)?;
         if let Some(items) = handle.state::<AppState>().notifications.items.locked().as_mut() {
+            items.retain(|n| n.id != id);
+        }
+        let _ = handle.emit(events::NOTIFICATIONS_REMOVED, json!({ "id": id }));
+        Ok(())
+    })
+    .await
+}
+
+/// `notifications_open`: starts (or brings forward) the sending app and
+/// removes the notification, like a click on the Windows banner. Windows
+/// offers no way to replay the notification's own click action (say, the
+/// chat it points to), so the app opens where it last was.
+pub async fn open(app: &AppHandle, id: String) -> BackendResult<()> {
+    let handle = app.clone();
+    blocking(move || {
+        let service = &handle.state::<AppState>().notifications;
+        let aumid = service
+            .items
+            .locked()
+            .as_ref()
+            .and_then(|items| items.iter().find(|n| n.id == id).map(|n| n.app_id.clone()))
+            .ok_or_else(|| BackendError::not_found(format!("no notification {id}")))?;
+        let opened = launch_candidates(&aumid).iter().any(|candidate| match rice_win::shell::open_app(candidate) {
+            Ok(()) => true,
+            Err(error) => {
+                log::debug!("notifications: cannot start {candidate} ({error})");
+                false
+            }
+        });
+        if !opened {
+            return Err(BackendError::not_supported(format!("Windows cannot start {aumid}")));
+        }
+        // Like Windows: a clicked notification leaves the notification centre.
+        if let (Some(listener), Ok(number)) = (listener(&handle), id.parse::<u32>()) {
+            let _ = listener.remove(number);
+        }
+        if let Some(items) = service.items.locked().as_mut() {
             items.retain(|n| n.id != id);
         }
         let _ = handle.emit(events::NOTIFICATIONS_REMOVED, json!({ "id": id }));

@@ -21,6 +21,11 @@ pub async fn notifications_dismiss(app: AppHandle, args: IdArgs) -> BackendResul
 }
 
 #[tauri::command]
+pub async fn notifications_open(app: AppHandle, args: IdArgs) -> BackendResult<()> {
+    notifications::open(&app, args.id).await
+}
+
+#[tauri::command]
 pub async fn notifications_clear(app: AppHandle) -> BackendResult<()> {
     notifications::clear(&app).await
 }

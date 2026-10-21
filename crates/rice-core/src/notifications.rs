@@ -93,6 +93,25 @@ pub fn key_for(aumid: &str) -> Option<String> {
     (!key.is_empty() && !key.split('\\').any(|part| part.is_empty() || part == "." || part == "..")).then(|| key.to_owned())
 }
 
+/// AUMIDs to try when the user opens a notification, most specific first: the
+/// app itself, then the main app of its package (Phone Link mirrors phone
+/// apps as `…!YourPhoneNotifications_<app>`, which the Start menu does not
+/// know). Path-like ids are never started.
+pub fn launch_candidates(aumid: &str) -> Vec<String> {
+    let aumid = aumid.trim();
+    if aumid.is_empty() || aumid.contains(['\\', '/', ':']) || aumid.contains("..") {
+        return Vec::new();
+    }
+    let mut candidates = vec![aumid.to_owned()];
+    if let Some((family, app)) = aumid.split_once('!')
+        && !family.is_empty()
+        && app != "App"
+    {
+        candidates.push(format!("{family}!App"));
+    }
+    candidates
+}
+
 /// Title and body from the texts of a toast's generic binding: the first
 /// non-empty text is the title, the others form the body (one per line).
 pub fn split_texts(texts: &[String]) -> (String, String) {
@@ -157,6 +176,20 @@ mod tests {
         assert_eq!(json, r#"{"version":1,"entries":{"Discord":null,"Signal":1}}"#);
         assert_eq!(BannerBackup::parse(&json), backup);
         assert_eq!(BannerBackup::parse("{ broken"), BannerBackup::new());
+    }
+
+    #[test]
+    fn launches_apps_but_never_paths() {
+        assert_eq!(launch_candidates("org.whispersystems.signal-desktop"), vec!["org.whispersystems.signal-desktop"]);
+        assert_eq!(launch_candidates("5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App"), vec!["5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App"]);
+        assert_eq!(
+            launch_candidates("Microsoft.YourPhone_8wekyb3d8bbwe!YourPhoneNotifications_com.whatsapp"),
+            vec!["Microsoft.YourPhone_8wekyb3d8bbwe!YourPhoneNotifications_com.whatsapp", "Microsoft.YourPhone_8wekyb3d8bbwe!App"]
+        );
+        assert!(launch_candidates(r"C:\Tools\app.exe").is_empty());
+        assert!(launch_candidates(r"..\..\Windows\System32\cmd.exe").is_empty());
+        assert!(launch_candidates("shell:Startup").is_empty());
+        assert!(launch_candidates("  ").is_empty());
     }
 
     #[test]

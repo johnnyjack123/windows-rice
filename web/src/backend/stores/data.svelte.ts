@@ -37,6 +37,15 @@ export class NotificationsStore {
     return this.t.invoke('notifications_dismiss', { id });
   }
 
+  /**
+   * Opens the app that sent the notification; the notification then goes
+   * away (the backend announces it). Windows cannot reopen the exact target.
+   * @param id - Notification to open.
+   */
+  open(id: string): Promise<void> {
+    return this.t.invoke('notifications_open', { id });
+  }
+
   /** Removes all notifications. */
   clear(): Promise<void> {
     this.items = [];

@@ -60,6 +60,15 @@ export function registerBuiltinActivities(registry: ActivityRegistry, ctx: Pick<
   registry.define({
     id: 'notification', priority: PRIORITY.notification, view: NotificationView, compact: false, transient: true, section: 'notifications',
     label: () => (ctx.ui.notification ? `${ctx.ui.notification.appName}: ${ctx.ui.notification.title}` : m().sections.notifications),
+    // Like a Windows banner: a click opens the sending app.
+    open: async () => {
+      const shown = ctx.ui.notification;
+      if (!shown) {
+        throw new Error('no notification on show');
+      }
+      await ctx.backend.notifications.open(shown.id);
+      registry.hide('notification');
+    },
   });
   registry.define({ id: 'osd', priority: PRIORITY.osd, view: OsdView, compact: false, transient: true, label: () => (ctx.ui.osd.kind === 'volume' ? m().osd.volume : m().osd.brightness) });
   registry.define({ id: 'charging', priority: PRIORITY.charging, view: ChargingView, compact: true, transient: true, label: () => m().island.charging });
