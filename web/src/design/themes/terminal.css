@@ -131,6 +131,7 @@
   --enter-delay-shrink: 90ms;
   --stagger: 14ms;
   --eq-timing: steps(3, jump-none);
+  --eq-duration: 320ms;
   --spark-style: step;
 }
 

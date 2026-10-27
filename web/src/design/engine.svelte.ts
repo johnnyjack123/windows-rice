@@ -16,6 +16,8 @@ import { prepareGlass, type GlassLayers } from './wallpaper';
 const DURATIONS = ['--dur-instant', '--dur-fast', '--dur-medium', '--dur-slow', '--stagger', '--enter-delay-grow', '--enter-delay-shrink'];
 const EASES = ['--ease-standard', '--ease-enter', '--ease-exit'];
 const GENERATED = ['--ease-spring-content', '--dur-spring-content', '--ease-spring-control', '--dur-spring-control'];
+/** Endless loops (the equaliser): only the lab's slow motion rescales them, not the UI tempo. */
+const LOOPS = ['--eq-duration'];
 
 /** Wallpaper geometry the glass material needs to align with the screen. */
 export interface GlassGeometry {
@@ -143,7 +145,7 @@ export class ThemeEngine {
    */
   refreshMotion(o: ThemeOverrides): void {
     const style = this.root.style;
-    for (const name of [...DURATIONS, ...EASES, ...SPRING_TOKENS, ...GENERATED]) {
+    for (const name of [...DURATIONS, ...LOOPS, ...EASES, ...SPRING_TOKENS, ...GENERATED]) {
       style.removeProperty(name);
     }
     const cs = getComputedStyle(this.root);
@@ -154,6 +156,12 @@ export class ThemeEngine {
       const ms = parseFloat(cs.getPropertyValue(name));
       if (Number.isFinite(ms) && (slow !== 1 || speed !== 1)) {
         style.setProperty(name, `${(ms * slow) / speed}ms`);
+      }
+    }
+    for (const name of LOOPS) {
+      const ms = parseFloat(cs.getPropertyValue(name));
+      if (Number.isFinite(ms) && slow !== 1) {
+        style.setProperty(name, `${ms * slow}ms`);
       }
     }
     if (o.easing !== undefined) {

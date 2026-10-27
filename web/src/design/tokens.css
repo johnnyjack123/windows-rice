@@ -208,6 +208,7 @@
   --enter-delay-shrink: 150ms;
   --stagger: 18ms;
   --eq-timing: ease-in-out;
+  --eq-duration: 400ms;                        /* one bar swing; a loop, so the UI tempo setting leaves it alone */
 
   /* Generated at runtime from --spring-* (fallbacks only). */
   --ease-spring-content: var(--ease-enter);
