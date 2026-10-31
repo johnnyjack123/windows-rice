@@ -17,13 +17,24 @@ export const MASCOT_ASPECT = 1.5;
 /** Releases the GPU context this long after the last frame (ms). */
 const RELEASE_AFTER = 8000;
 
-/** Camera: slightly above, so the top and the shadow read; room above for jumps. */
-const TARGET: [number, number, number] = [CENTER.x, 3.2, CENTER.z];
-const EYE: [number, number, number] = [CENTER.x, 3.2 + 4, CENTER.z + 30];
+/**
+ * Camera: slightly above, so the top and the shadow read. It frames about
+ * 21 × 14 units: the figure (16 × 10) with room above for jumps.
+ */
+const TARGET: [number, number, number] = [CENTER.x, 6, CENTER.z];
+const EYE: [number, number, number] = [CENTER.x, 6 + 4.5, CENTER.z + 32.6];
 const VIEW_PROJ = chain(perspective((24 * Math.PI) / 180, MASCOT_ASPECT, 1, 100), lookAt(EYE, TARGET));
 
 /** Shadow ellipse on the ground (grid units). */
-const SHADOW = { rx: 7.6, rz: 2.8 };
+const SHADOW = { rx: 7.2, rz: 3.8 };
+
+/**
+ * How far in front of the screen the mascot imagines the viewer (CSS px):
+ * the cursor this far to the side turns its head by 45°.
+ */
+const LOOK_DISTANCE = 420;
+/** How quickly the gaze catches up with the cursor (1/s). */
+const LOOK_RATE = 7;
 
 type Rgb = [number, number, number];
 
@@ -41,6 +52,11 @@ export interface MascotHandle {
   setMood(mood: MascotMood): void;
   /** Animates while true; otherwise the last frame stays. */
   setActive(active: boolean): void;
+  /**
+   * Turns towards a point, given relative to the mascot's centre in CSS px
+   * (x right, y down); `null` returns to its own looking around.
+   */
+  lookAt(dx: number | null, dy?: number): void;
   /** Re-reads size, colours and the motion setting (theme changes). */
   refresh(): void;
   /** Stops drawing into the canvas. */
@@ -259,6 +275,9 @@ class Slot implements MascotHandle {
   moodClock = 0;
   active = false;
   dirty = true;
+  /** Where the cursor is (radians), and the smoothed gaze following it. */
+  private gazeTarget: { yaw: number; pitch: number } | null = null;
+  private gaze = { yaw: 0, pitch: 0, weight: 0 };
   colors: Colors = { body: [0.85, 0.47, 0.34], eye: [0.1, 0.08, 0.07], shadow: [0, 0, 0], shadowAlpha: 0.3 };
 
   constructor(
@@ -282,6 +301,24 @@ class Slot implements MascotHandle {
     this.active = active;
     this.dirty = true;
     this.stage.request();
+  }
+
+  lookAt(dx: number | null, dy = 0): void {
+    const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
+    // Below the island is where the cursor usually is: looking down may go further than up.
+    this.gazeTarget =
+      dx === null ? null : { yaw: clamp(Math.atan2(dx, LOOK_DISTANCE), -1, 1), pitch: clamp(Math.atan2(dy, LOOK_DISTANCE) * 0.6, -0.25, 0.45) };
+  }
+
+  /** Lets the gaze catch up with the cursor (frame-rate independent). */
+  follow(dt: number): void {
+    const k = 1 - Math.exp(-dt * LOOK_RATE);
+    const target = this.gazeTarget;
+    this.gaze.weight += ((target ? 1 : 0) - this.gaze.weight) * k;
+    if (target) {
+      this.gaze.yaw += (target.yaw - this.gaze.yaw) * k;
+      this.gaze.pitch += (target.pitch - this.gaze.pitch) * k;
+    }
   }
 
   refresh(): void {
@@ -328,7 +365,16 @@ class Slot implements MascotHandle {
     if (!this.moving) {
       return { ...pose('idle', 0, 0), blink: 1 };
     }
-    return pose(this.mood, this.clock, this.moodClock);
+    const p = pose(this.mood, this.clock, this.moodClock);
+    const w = this.gaze.weight;
+    if (w > 0.001) {
+      // The head follows the cursor; the mood's own turning stays as a hint,
+      // except for the jump's spin and the head shake, which play in full.
+      const own = this.mood === 'yes' || this.mood === 'no' ? 1 : this.mood === 'waiting' ? 0.15 : 0.35;
+      p.yaw = p.yaw * (1 - w + w * own) + this.gaze.yaw * w;
+      p.pitch += this.gaze.pitch * w;
+    }
+    return p;
   }
 }
 
@@ -371,6 +417,7 @@ class Stage {
       if (moving) {
         slot.clock += dt * motionSettings.timeScale;
         slot.moodClock += dt * motionSettings.timeScale;
+        slot.follow(dt * motionSettings.timeScale);
       }
       if (slot.needsFrame) {
         slot.dirty = false;

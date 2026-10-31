@@ -5,7 +5,7 @@
 use crate::state::{AppState, Locked};
 use crate::system;
 use crate::webview::{BROWSER_ARGS, TITLE};
-use rice_core::contract::{EdgeState, Occlusion, Rect, Size, events};
+use rice_core::contract::{EdgeState, Occlusion, Point, Rect, Size, events};
 use rice_core::edge::{EdgeInput, EdgeTracker};
 use rice_core::geometry::{self, PhysPoint, PhysRect};
 use rice_core::settings::MonitorSelection;
@@ -26,6 +26,8 @@ const TICK: Duration = Duration::from_millis(16);
 /// Grace period before a blur counts as "focus lost": focus moving into the
 /// webview's child window also blurs the top-level window briefly.
 const BLUR_GRACE: Duration = Duration::from_millis(40);
+/// `island://cursor` goes out at most every this many ms (~30 Hz).
+const CURSOR_EVERY_MS: u64 = 33;
 
 /// Where the island window sits.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -56,6 +58,10 @@ struct Inner {
     edge: EdgeTracker,
     /// Whether the window currently takes mouse input.
     interactive: bool,
+    /// The frontend follows the cursor (a mascot looks at it).
+    cursor_tracking: bool,
+    /// Last cursor position sent and when.
+    cursor_sent: Option<(PhysPoint, u64)>,
 }
 
 impl Default for Inner {
@@ -70,6 +76,8 @@ impl Default for Inner {
             occlusion: Occlusion::default(),
             edge: EdgeTracker::default(),
             interactive: false,
+            cursor_tracking: false,
+            cursor_sent: None,
         }
     }
 }
@@ -227,6 +235,16 @@ pub fn set_expanded(app: &AppHandle, expanded: bool) -> BackendResult<()> {
     Ok(())
 }
 
+/// `island_track_cursor`: while on, the cursor thread reports the cursor
+/// (CSS px relative to the island window) whenever it moves, at most ~30 Hz.
+/// A reloading island page starts with it off.
+pub fn track_cursor(app: &AppHandle, enabled: bool) {
+    let state = app.state::<AppState>();
+    let mut inner = state.island.inner.locked();
+    inner.cursor_tracking = enabled;
+    inner.cursor_sent = None;
+}
+
 /// The island window was deactivated. If the panel is open and the
 /// keyboard really went elsewhere, the frontend collapses it.
 pub fn on_blur(app: &AppHandle) {
@@ -288,13 +306,18 @@ fn tick(app: &AppHandle, now_ms: u64) {
         return;
     };
     let state = app.state::<AppState>();
-    let (interactive, edge) = {
+    let (interactive, edge, follow) = {
         let mut guard = state.island.inner.locked();
         let inner = &mut *guard;
         let Some(p) = inner.placement else {
             return;
         };
         let origin = PhysPoint { x: p.window.x, y: p.window.y };
+        let due = inner.cursor_sent.is_none_or(|(sent, at)| sent != cursor && now_ms.saturating_sub(at) >= CURSOR_EVERY_MS);
+        let follow = (inner.cursor_tracking && due).then(|| {
+            inner.cursor_sent = Some((cursor, now_ms));
+            Point { x: f64::from(cursor.x - origin.x) / p.scale, y: f64::from(cursor.y - origin.y) / p.scale }
+        });
         let inside = geometry::hits(cursor, origin, p.scale, &inner.regions);
         // A held button keeps a drag (slider) alive past the region's edge.
         let wanted = inside || (inner.interactive && rice_win::window::mouse_button_down());
@@ -310,8 +333,11 @@ fn tick(app: &AppHandle, now_ms: u64) {
             window_origin: origin,
             regions: &inner.regions,
         });
-        (interactive, edge)
+        (interactive, edge, follow)
     };
+    if let Some(point) = follow {
+        let _ = app.emit(events::ISLAND_CURSOR, point);
+    }
     if let Some(interactive) = interactive
         && let Some(window) = app.get_webview_window(LABEL)
         && let Err(error) = window.set_ignore_cursor_events(!interactive)

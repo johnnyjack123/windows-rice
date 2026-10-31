@@ -501,6 +501,8 @@ pub struct AgentRequest {
     pub kind: ToolKind,
     /// Command, path or URL; may be long (the UI truncates).
     pub detail: String,
+    /// The agent's own description of the call, if it gave one.
+    pub summary: Option<String>,
     pub time: String,
 }
 
@@ -814,6 +816,7 @@ pub mod events {
     pub const WALLPAPER: &str = "system://wallpaper";
     pub const ISLAND_OCCLUSION: &str = "island://occlusion";
     pub const ISLAND_EDGE: &str = "island://edge";
+    pub const ISLAND_CURSOR: &str = "island://cursor";
     pub const ISLAND_FOCUS_LOST: &str = "island://focus-lost";
     pub const ISLAND_TOGGLE: &str = "island://toggle";
     pub const BREAK_STATE: &str = "break://state";

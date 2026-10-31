@@ -110,9 +110,9 @@
               <div class="view view--live view--agent">
                 <div class="agent-head">
                   <Mascot still class="mascot--live" />
-                  <div class="truncate">
+                  <div class="agent-text">
                     <div class="nv-meta"><span class="truncate">{m.agents.names.claude} · rice</span><span>{m.agents.more(1)}</span></div>
-                    <div class="live-title truncate">{m.agents.asks.command}</div>
+                    <div class="agent-title">{decided === null ? 'Frontend und Rust-Code prüfen, danach alle Tests im Workspace ausführen' : m.agents.asks.command}</div>
                   </div>
                 </div>
                 <div class="agent-detail">pnpm verify &amp;&amp; cargo clippy --workspace --all-targets -- -D warnings &amp;&amp; cargo test --workspace</div>

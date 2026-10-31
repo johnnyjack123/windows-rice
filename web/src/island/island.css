@@ -636,6 +636,18 @@
   align-items: center;
   gap: var(--space-3);
 }
+.agent-text {
+  min-width: 0;
+}
+/* The agent's description ("Run the tests"): up to two lines. */
+.agent-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: var(--space-half);
+  font: var(--type-title);
+}
 /* Commands and paths: monospaced, at most two lines, never wider than the island. */
 .agent-detail {
   display: -webkit-box;
@@ -646,7 +658,7 @@
   padding: var(--space-2) var(--space-3);
   border-radius: max(var(--radius-min), calc(var(--radius-live) - var(--space-4)));
   background: color-mix(in srgb, var(--color-on-island) 8%, transparent);
-  color: var(--color-on-island);
+  color: var(--color-on-island-muted);
   font: var(--type-code);
 }
 .agent-actions {

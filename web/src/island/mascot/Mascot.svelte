@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
+  import { useBackend } from '$backend/index';
   import { useEngine } from '$design/engine.svelte';
+  import { followCursor } from './cursor';
   import type { MascotMood } from './motion';
   import { attachMascot, type MascotHandle } from './renderer';
 
@@ -12,6 +14,7 @@
   }
 
   const { mood = 'idle', still = false, class: className = '' }: Props = $props();
+  const backend = useBackend();
   const engine = useEngine();
   let canvas: HTMLCanvasElement;
   let handle = $state<MascotHandle | null>(null);
@@ -19,9 +22,24 @@
   onMount(() => {
     const mascot = attachMascot(canvas, still);
     handle = mascot;
-    // Only the view on show animates (DESIGN §11.4: hidden views stand still).
+    let unfollow: (() => void) | null = null;
+    // Only the view on show animates (DESIGN §11.4: hidden views stand still)
+    // and only then is the cursor reported.
     const view = canvas.closest('.view');
-    const sync = (): void => mascot.setActive(view?.classList.contains('is-active') ?? false);
+    const sync = (): void => {
+      const active = view?.classList.contains('is-active') ?? false;
+      mascot.setActive(active);
+      if (active && !still && !unfollow) {
+        unfollow = followCursor(backend.transport, (point) => {
+          const rect = canvas.getBoundingClientRect();
+          mascot.lookAt(point.x - (rect.left + rect.width / 2), point.y - (rect.top + rect.height / 2));
+        });
+      } else if (!active && unfollow) {
+        unfollow();
+        unfollow = null;
+        mascot.lookAt(null);
+      }
+    };
     const classes = new MutationObserver(sync);
     if (view) {
       classes.observe(view, { attributes: true, attributeFilter: ['class'] });
@@ -32,6 +50,7 @@
     return () => {
       classes.disconnect();
       size.disconnect();
+      unfollow?.();
       mascot.dispose();
       handle = null;
     };

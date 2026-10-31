@@ -11,9 +11,16 @@ describe('mascot model', () => {
     const voxels = buildVoxels();
     const parts = new Set(voxels.map((v) => v.part));
     expect(parts.size).toBe(PART_COUNT);
+    // Logo pixels are twice as tall as wide: each leg is 1 wide, 2 high, 2 deep.
     for (let leg = 0; leg < 4; leg += 1) {
-      expect(voxels.filter((v) => v.part === PART.leg + leg)).toHaveLength(2);
+      const voxelsOfLeg = voxels.filter((v) => v.part === PART.leg + leg);
+      expect(voxelsOfLeg).toHaveLength(4);
+      expect(new Set(voxelsOfLeg.map((v) => v.x)).size).toBe(1);
     }
+    // The body is 12 wide and 8 high, like the logo (not twice as wide).
+    const body = voxels.filter((v) => v.part === PART.body);
+    const span = (axis: 'x' | 'y'): number => Math.max(...body.map((v) => v[axis])) - Math.min(...body.map((v) => v[axis])) + 1;
+    expect([span('x'), span('y')]).toEqual([12, 8]);
     // Eyes sit one layer behind the front, so they read as sockets.
     const front = Math.max(...voxels.map((v) => v.z));
     expect(voxels.filter((v) => v.part === PART.eyeLeft).every((v) => v.z < front)).toBe(true);
@@ -59,8 +66,8 @@ describe('mascot rig', () => {
     const squashed = partMatrices({ ...rest, squash: 0.8 });
     expect(apply(squashed[PART.body]!, [8.5, GROUND, 1.5])[1]).toBeCloseTo(GROUND, 5);
     const tapping = partMatrices({ ...rest, legs: [0.3, 0, 0, 0] });
-    expect(apply(tapping[PART.leg]!, [4, 0, 1])[1]).toBeCloseTo(0.3, 5);
-    expect(apply(tapping[PART.leg + 1]!, [6, 0, 1])[1]).toBeCloseTo(0, 5);
+    expect(apply(tapping[PART.leg]!, [4, 0, 2])[1]).toBeCloseTo(0.3, 5);
+    expect(apply(tapping[PART.leg + 1]!, [6, 0, 2])[1]).toBeCloseTo(0, 5);
   });
 
   it('composes matrices right to left', () => {

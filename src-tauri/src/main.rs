@@ -85,6 +85,9 @@ fn main() {
             // A reloaded page starts without subscriptions.
             if payload.event() == PageLoadEvent::Started {
                 sysmon::forget(webview.app_handle(), webview.label());
+                if webview.label() == island::LABEL {
+                    island::track_cursor(webview.app_handle(), false);
+                }
             }
         })
         .build(tauri::generate_context!());

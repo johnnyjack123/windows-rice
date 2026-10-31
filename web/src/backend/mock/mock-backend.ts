@@ -108,6 +108,8 @@ export class MockBackend implements Transport {
   private agentIntegrations: AgentIntegration[] = [{ id: 'claude', available: true, connected: false }];
   private agentPool = 0;
   private statusPool = 0;
+  /** The page stands in for the screen: pointer moves are the cursor. */
+  private cursorListener: ((e: PointerEvent) => void) | null = null;
   private tasks: Task[] = initialTasks();
   private extraEvents: CalendarEvent[] = [];
   private processes: ProcessInfo[] = PROCESSES.map((p) => ({ ...p }));
@@ -232,6 +234,15 @@ export class MockBackend implements Transport {
     },
     island_set_expanded: () => undefined,
     island_occlusion: () => this.occlusion,
+    island_track_cursor: ({ enabled }) => {
+      if (enabled && !this.cursorListener) {
+        this.cursorListener = (e) => this.emit('island://cursor', { x: e.clientX, y: e.clientY });
+        window.addEventListener('pointermove', this.cursorListener, { passive: true });
+      } else if (!enabled && this.cursorListener) {
+        window.removeEventListener('pointermove', this.cursorListener);
+        this.cursorListener = null;
+      }
+    },
 
     window_open_settings: ({ page }) => {
       window.open(`settings.html${page ? `#${page}` : ''}`, 'rice-settings', 'width=1120,height=780');

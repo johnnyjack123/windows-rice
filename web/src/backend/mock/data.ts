@@ -52,10 +52,17 @@ export const NOTIFICATION_POOL: MockNotification[] = [
 
 /** Permission requests the lab can deliver, in order (without id and time). */
 export const AGENT_REQUESTS: Array<Omit<AgentRequest, 'id' | 'time'>> = [
-  { agent: 'claude', project: 'rice', tool: 'Bash', kind: 'command', detail: 'pnpm verify && cargo clippy --workspace -- -D warnings' },
-  { agent: 'claude', project: 'rice', tool: 'Edit', kind: 'edit', detail: 'C:\\Users\\demo\\Projekte\\rice\\web\\src\\island\\island.css' },
-  { agent: 'claude', project: 'nextcloud-sync', tool: 'WebFetch', kind: 'fetch', detail: 'https://docs.nextcloud.com/server/latest/developer_manual/' },
-  { agent: 'claude', project: 'rice', tool: 'mcp__github__create_pull_request', kind: 'mcp', detail: 'github · create_pull_request' },
+  {
+    agent: 'claude', project: 'rice', tool: 'Bash', kind: 'command', summary: 'Frontend und Rust-Code prüfen',
+    detail: 'pnpm verify && cargo clippy --workspace -- -D warnings',
+  },
+  { agent: 'claude', project: 'rice', tool: 'Edit', kind: 'edit', summary: null, detail: 'C:\\Users\\demo\\Projekte\\rice\\web\\src\\island\\island.css' },
+  {
+    agent: 'claude', project: 'nextcloud-sync', tool: 'Bash', kind: 'command', summary: 'Alle Abhängigkeiten auf die neueste Version bringen und den Lockfile neu schreiben',
+    detail: 'pnpm up --latest && pnpm install --frozen-lockfile=false',
+  },
+  { agent: 'claude', project: 'nextcloud-sync', tool: 'WebFetch', kind: 'fetch', summary: null, detail: 'https://docs.nextcloud.com/server/latest/developer_manual/' },
+  { agent: 'claude', project: 'rice', tool: 'mcp__github__create_pull_request', kind: 'mcp', summary: null, detail: 'github · create_pull_request' },
 ];
 
 /** Status reports the lab can deliver, in order (without time). */

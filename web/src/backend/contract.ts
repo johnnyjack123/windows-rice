@@ -407,6 +407,8 @@ export interface AgentRequest {
   kind: ToolKind;
   /** Command, path or URL; may be long (truncate in the UI). */
   detail: string;
+  /** The agent's own description of the call ("Run the tests"), if it gave one. */
+  summary: string | null;
   time: Iso;
 }
 
@@ -527,6 +529,8 @@ export interface Commands {
   island_set_hit_regions: { args: { rects: Rect[] }; result: void };
   island_set_expanded: { args: { expanded: boolean }; result: void };
   island_occlusion: { args: void; result: Occlusion };
+  /** While on, `island://cursor` reports the cursor (a mascot follows it). Off again after a page reload. */
+  island_track_cursor: { args: { enabled: boolean }; result: void };
 
   window_open_settings: { args: { page?: string }; result: void };
 
@@ -618,6 +622,8 @@ export interface Events {
   'island://occlusion': Occlusion;
   /** Cursor pushes against the top edge in the island zone (true) or left it (false). */
   'island://edge': { active: boolean };
+  /** Cursor moved (CSS px relative to the island window, anywhere on screen); ≤ 30 per second, only while tracked. */
+  'island://cursor': { x: number; y: number };
   /** The expanded island lost focus (click elsewhere). */
   'island://focus-lost': null;
   /** Global hotkey pressed. */

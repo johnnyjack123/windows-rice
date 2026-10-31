@@ -15,6 +15,7 @@ pub const MAX_MESSAGE: u64 = 1024 * 1024;
 pub const HOOK_FLAG: &str = "--agent-hook";
 
 const DETAIL_MAX: usize = 600;
+const SUMMARY_MAX: usize = 160;
 const MESSAGE_MAX: usize = 300;
 
 /// One message from a hook process to rice, one JSON line per connection.
@@ -59,6 +60,12 @@ pub fn describe(tool: &str, input: &Value) -> (ToolKind, String) {
         },
     };
     (kind, clip(detail.trim(), DETAIL_MAX))
+}
+
+/// The agent's own words for what a tool call does (Claude Code's
+/// `description` of a command or subagent).
+pub fn summary(input: &Value) -> Option<String> {
+    input["description"].as_str().map(str::trim).filter(|s| !s.is_empty()).map(|s| clip(s, SUMMARY_MAX))
 }
 
 /// Last folder of a working directory, shown as the project.
@@ -215,6 +222,9 @@ mod tests {
         assert_eq!(describe("Task", &json!({ "a": 1 })), (ToolKind::Other, r#"Task {"a":1}"#.into()));
         let (_, long) = describe("Bash", &json!({ "command": "x".repeat(700) }));
         assert_eq!(long.chars().count(), DETAIL_MAX + 1);
+        assert_eq!(summary(&json!({ "command": "ls", "description": " List files " })), Some("List files".into()));
+        assert_eq!(summary(&json!({ "command": "ls", "description": "" })), None);
+        assert_eq!(summary(&json!({ "file_path": "a.rs" })), None);
         assert_eq!(project_name(r"C:\Users\joni\Projekte\rice\"), "rice");
         assert_eq!(project_name("/home/joni/rice"), "rice");
     }

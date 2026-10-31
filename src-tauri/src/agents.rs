@@ -104,8 +104,16 @@ async fn converse(app: &AppHandle, pipe: NamedPipeServer) -> io::Result<()> {
             let decision = match known(v, &agent) {
                 Some(agent) => {
                     let (kind, detail) = agents::describe(&tool, &input);
-                    let request =
-                        AgentRequest { id: String::new(), agent, project: agents::project_name(&cwd), tool, kind, detail, time: now_iso() };
+                    let request = AgentRequest {
+                        id: String::new(),
+                        agent,
+                        project: agents::project_name(&cwd),
+                        tool,
+                        kind,
+                        detail,
+                        summary: agents::summary(&input),
+                        time: now_iso(),
+                    };
                     ask(app, request, reader).await
                 }
                 None => Decision::Terminal,

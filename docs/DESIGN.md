@@ -315,7 +315,7 @@ Bedeutung nie nur über Farbe.
 | `timer:expanded`, `stopwatch:expanded`, `pomodoro:expanded` | 304 × Inhalt | Schnellaktionen: Ring + Restzeit, darunter +1 Min/Pause/Abbrechen bzw. Runde/Pause bzw. Pause/Überspringen/Beenden |
 | `pomodoroPhase` | 304 × Inhalt | Ankündigung eines automatischen Phasenwechsels („Zeit für eine Pause · 5 Min“) |
 | `charging` | ≥ 264 × 34 | „Wird geladen“, Prozent, Akku |
-| `agent` | 392 × Inhalt | Voxel-Maskottchen (WebGL), Agent · Projekt (+n weitere), was er tun will, Befehl/Pfad in Mono (2 Zeilen), „Im Terminal“/„Ablehnen“/„Erlauben“; nach der Entscheidung reagiert das Maskottchen (Sprung mit Drehung bzw. Kopfschütteln) |
+| `agent` | 392 × Inhalt | Voxel-Maskottchen (WebGL, schaut dem Mauszeiger nach), Agent · Projekt (+n weitere), die Beschreibung des Agents (sonst was er tun will, 2 Zeilen), darunter klein der echte Befehl/Pfad in Mono (2 Zeilen), „Im Terminal“/„Ablehnen“/„Erlauben“; nach der Entscheidung reagiert das Maskottchen (Sprung mit Drehung bzw. Kopfschütteln) |
 | `agentStatus` | Inhalt × 34 | Kleines Maskottchen, „Claude Code ist fertig“ bzw. „wartet auf dich“, Projekt |
 | `alarm` / `timerDone` / `pomodoroDone` | 392 × Inhalt | Wackelnde Glocke, Uhrzeit bzw. Name, Schlummern/+1 Min und Ausschalten/Stopp; beim Pomodoro „Pause starten“/„Fokus starten“ und Beenden |
 | `panel` | 800 × 556 | Kontrollzentrum |

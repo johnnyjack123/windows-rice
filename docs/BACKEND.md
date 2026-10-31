@@ -116,6 +116,11 @@ höchstens 160 px von der Monitormitte entfernt → `{ active: true }`. Aktiv bl
 aktuellen Hit-Regions plus 32 px Rand verlässt **und** tiefer als 40 px unter der Oberkante ist → `{ active: false }`.
 (Referenzlogik: `trackEdge()` im Mock.)
 
+**Cursor (`island_track_cursor { enabled }` → `island://cursor`).** Solange ein Coding-Agent-Maskottchen zu sehen ist,
+schaut es dem Mauszeiger nach. Dann meldet der Cursor-Thread die Position (CSS-px relativ zur linken oberen Ecke des
+Island-Fensters, auch außerhalb des Fensters), nur bei Bewegung und höchstens alle 33 ms. Lädt die Island-Seite neu, ist
+das Melden wieder aus.
+
 **Hotkey.** `settings.island.hotkey` (Standard `"Super+Alt+Space"`) global registrieren → `island://toggle`. Bei
 Änderung der Einstellung neu registrieren.
 
@@ -303,7 +308,7 @@ spricht über eine Named Pipe mit der laufenden Instanz.
 | `agents_respond { id, decision }` | `allow` / `deny` / `terminal` an den wartenden Hook. Unbekannte Id (schon im Terminal beantwortet, Agent gibt auf) → `not_found`. Das `agents://resolved` sendet der wartende Hook-Task. |
 | `agents_list` | Integrationen: `available` = Konfigurationsordner gefunden (`%CLAUDE_CONFIG_DIR%` bzw. `%USERPROFILE%\.claude`), `connected` = rice' Hooks stehen in `settings.json`. |
 | `agents_connect { id }` / `agents_disconnect { id }` | Hooks eintragen bzw. entfernen; nur rice' Einträge, alle anderen Hooks und Schlüssel bleiben (Reihenfolge erhalten). Vorher Kopie als `settings.json.rice-backup`, dann atomar schreiben; ungültiges JSON → `invalid_args`, die Datei bleibt unangetastet. OpenCode/Pi → `not_supported`. |
-| → `agents://request` | Neue Anfrage: Agent, Projekt (letzter Ordner von `cwd`), Werkzeug, Art (`command`, `edit`, `write`, `read`, `fetch`, `mcp`, `other`) und das aussagekräftigste Argument (Befehl, Pfad, URL; höchstens 600 Zeichen). |
+| → `agents://request` | Neue Anfrage: Agent, Projekt (letzter Ordner von `cwd`), Werkzeug, Art (`command`, `edit`, `write`, `read`, `fetch`, `mcp`, `other`) und das aussagekräftigste Argument (Befehl, Pfad, URL; höchstens 600 Zeichen); `summary` = die Beschreibung des Agents (`description` bei Befehlen und Subagents, höchstens 160 Zeichen) oder `null`. |
 | → `agents://resolved` | Anfrage erledigt – hier, im Terminal, durch Zeitablauf oder weil der Agent aufgegeben hat. |
 | → `agents://status` | `done` (Hook `Stop`, mit dem Anfang der letzten Antwort) oder `waiting` (`Notification` mit `idle_prompt`). |
 

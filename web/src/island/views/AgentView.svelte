@@ -63,12 +63,13 @@
 {#if shown}
   <div class="agent-head">
     <Mascot {mood} class="mascot--live" />
-    <div class="truncate">
+    <div class="agent-text">
       <div class="nv-meta">
         <span class="truncate">{a.names[shown.agent]} · {shown.project}</span>
         {#if more > 0}<span>{a.more(more)}</span>{/if}
       </div>
-      <div class="live-title truncate">{a.asks[shown.kind]}</div>
+      <!-- The agent's own description reads best; the command below shows what really runs. -->
+      <div class="agent-title" title={shown.summary ?? undefined}>{shown.summary ?? a.asks[shown.kind]}</div>
     </div>
   </div>
   <div class="agent-detail" title={shown.detail}>{shown.detail}</div>

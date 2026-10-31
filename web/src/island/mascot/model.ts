@@ -30,17 +30,24 @@ export interface Voxel {
   color: number;
 }
 
-/** Front silhouette, top row first: `#` body, `e` eye socket, `a` arm, `l` leg. */
-const ROWS = [
+/**
+ * Front silhouette, top row first: `#` body, `e` eye socket, `a` arm, `l` leg.
+ * The logo's quarter-block pixels are twice as tall as wide, so every logo
+ * row becomes two voxel rows.
+ */
+const LOGO = [
   '...############...',
   '...##e######e##...',
   '.aa############aa.',
   '...############...',
   '....l.l....l.l....',
 ];
+const ROWS = LOGO.flatMap((row) => [row, row]);
 
-/** Body depth in voxels; arms and legs sit in the middle two layers. */
-const DEPTH = 4;
+/** Body depth in voxels. */
+const DEPTH = 6;
+/** Depth layers of arms and legs (the middle of the body). */
+const LIMB_LAYERS = [2, 3];
 
 /** Model centre (grid units); the motion rotates around it. */
 export const CENTER = { x: (ROWS[0]!.length - 1) / 2, y: (ROWS.length - 1) / 2, z: (DEPTH - 1) / 2 };
@@ -48,11 +55,11 @@ export const CENTER = { x: (ROWS[0]!.length - 1) / 2, y: (ROWS.length - 1) / 2, 
 /** Underside of the feet (grid units); squashing keeps it on the ground. */
 export const GROUND = -0.5;
 
-/** Shoulder pivots of the arms (grid units). */
-export const SHOULDER = { left: { x: 2.5, y: 2 }, right: { x: 14.5, y: 2 } };
+/** Shoulder pivots of the arms (grid units, centre of the arm rows). */
+export const SHOULDER = { left: { x: 2.5, y: ROWS.length - 1 - 4.5 }, right: { x: 14.5, y: ROWS.length - 1 - 4.5 } };
 
-/** Height of the eye row (blinking scales around it). */
-export const EYE_Y = 3;
+/** Centre height of the eyes (blinking scales around it). */
+export const EYE_Y = ROWS.length - 1 - 2.5;
 
 /**
  * Builds the voxel list. Eye sockets are recessed: the front layer is open,
@@ -62,7 +69,7 @@ export const EYE_Y = 3;
  */
 export function buildVoxels(): Voxel[] {
   const voxels: Voxel[] = [];
-  let leg = 0;
+  const legs: number[] = [];
   ROWS.forEach((row, index) => {
     const y = ROWS.length - 1 - index;
     [...row].forEach((cell, x) => {
@@ -78,14 +85,17 @@ export function buildVoxels(): Voxel[] {
         }
       } else if (cell === 'a') {
         const part = x < CENTER.x ? PART.armLeft : PART.armRight;
-        for (const z of [1, 2]) {
+        for (const z of LIMB_LAYERS) {
           voxels.push({ x, y, z, part, color: COLOR.body });
         }
       } else if (cell === 'l') {
-        for (const z of [1, 2]) {
-          voxels.push({ x, y, z, part: PART.leg + leg, color: COLOR.body });
+        // Legs are numbered by column, left to right.
+        if (!legs.includes(x)) {
+          legs.push(x);
         }
-        leg += 1;
+        for (const z of LIMB_LAYERS) {
+          voxels.push({ x, y, z, part: PART.leg + legs.indexOf(x), color: COLOR.body });
+        }
       }
     });
   });

@@ -70,7 +70,7 @@ function blinkAt(t: number): number {
 /** Calm breathing and looking around. */
 function idle(t: number): Pose {
   return {
-    y: 0.12 * Math.sin((t * TAU) / 2.6),
+    y: 0.2 * Math.sin((t * TAU) / 2.6),
     squash: 1 + 0.025 * Math.sin((t * TAU) / 1.3),
     yaw: 0.32 * Math.sin((t * TAU) / 7),
     pitch: BASE_PITCH,
@@ -87,8 +87,8 @@ function ask(t: number): Pose {
   const cycle = t % 1.9;
   const crouch = 0.18;
   const air = 0.42;
-  const lift = cycle > crouch ? arc(cycle - crouch, air, 1.1) : 0;
-  const tap = (offset: number): number => Math.max(0, Math.sin(((t + offset) * TAU) / 0.5)) * 0.35;
+  const lift = cycle > crouch ? arc(cycle - crouch, air, 2) : 0;
+  const tap = (offset: number): number => Math.max(0, Math.sin(((t + offset) * TAU) / 0.5)) * 0.6;
   return {
     y: lift,
     squash: hopSquash(cycle, crouch, air),
@@ -98,7 +98,7 @@ function ask(t: number): Pose {
     blink: blinkAt(t + 1.1),
     armLeft: 0.18,
     armRight: 1.05 + 0.4 * Math.sin(t * TAU * 1.6),
-    legs: lift > 0.05 ? [0.2, 0.2, 0.2, 0.2] : [tap(0), tap(0.25), tap(0.12), tap(0.37)],
+    legs: lift > 0.1 ? [0.4, 0.4, 0.4, 0.4] : [tap(0), tap(0.25), tap(0.12), tap(0.37)],
   };
 }
 
@@ -137,12 +137,12 @@ export function pose(mood: MascotMood, t: number, since: number): Pose {
       const inAir = clamp01((since - crouch) / air);
       return {
         ...idle(t),
-        y: since > crouch ? arc(since - crouch, air, 2.4) : 0,
+        y: since > crouch ? arc(since - crouch, air, 3.2) : 0,
         squash: hopSquash(since, crouch, air),
         yaw: TAU * smooth(inAir),
         armLeft: 1.25 * smooth(since / 0.2),
         armRight: 1.25 * smooth(since / 0.2),
-        legs: [0.25, 0.25, 0.25, 0.25],
+        legs: [0.5, 0.5, 0.5, 0.5],
         blink: since > crouch && since < crouch + air ? 0.25 : 1,
       };
     }
@@ -151,7 +151,7 @@ export function pose(mood: MascotMood, t: number, since: number): Pose {
       const fade = 1 - since / duration!;
       return {
         ...idle(t),
-        y: -0.18 * Math.sin(clamp01(since / duration!) * Math.PI),
+        y: -0.3 * Math.sin(clamp01(since / duration!) * Math.PI),
         yaw: 0.5 * Math.sin(since * TAU * 3.6) * fade,
         armLeft: -0.35,
         armRight: -0.35,
@@ -164,7 +164,7 @@ export function pose(mood: MascotMood, t: number, since: number): Pose {
       const local = first ? since : since - 0.5;
       return {
         ...idle(t),
-        y: arc(local, 0.45, first ? 0.9 : 0.6),
+        y: arc(local, 0.45, first ? 1.6 : 1.1),
         squash: hopSquash(local + 0.12, 0.12, 0.45),
         armLeft: 1.1,
         armRight: 1.1,
