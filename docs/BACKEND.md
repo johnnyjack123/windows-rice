@@ -586,7 +586,11 @@ Vertrag stehen.
     den Benutzer (`CurrentUser\TrustedPeople`) scheitert mit `0x800B0109`, anders als Microsofts Anleitung
     nahelegt (am echten System nachgewiesen). PowerShell wird über `Sysnative` als 64-Bit-Prozess gestartet (der
     Installer ist 32-Bit, dort fehlen die Appx-Cmdlets). Abgelehnte UAC oder ein anderer Fehler → rice läuft ohne
-    Mitteilungen weiter.
+    Mitteilungen weiter. **Achtung:** `Cert:\CurrentUser\TrustedPeople` listet auch die Zertifikate des
+    Maschinenspeichers; ein `Remove-Item` darauf will die Maschinenkopie löschen und scheitert ohne Adminrechte. Das
+    Skript entfernt deshalb nur eine Kopie, die wirklich im Benutzerspeicher liegt
+    (`HKCU\Software\Microsoft\SystemCertificates\TrustedPeople\Certificates\<Fingerabdruck>`), und bricht dabei nie ab –
+    sonst verliert jedes Update die Paket-Identität.
   - *Autostart:* einmalig gesetzt (Merker `HKCU\Software\io.github.johnnyjack123.rice\AutostartOffered`); wer ihn in rice
     ausschaltet, behält das über Updates.
   - *Deinstallation:* `--quit`, `--restore-banners`, `identity.ps1 -Uninstall` (Paket weg; das Zertifikat entfernt eine

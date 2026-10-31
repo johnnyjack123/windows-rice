@@ -35,10 +35,21 @@ function Invoke-Elevated([string]$command) {
     -ArgumentList '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encoded
 }
 
+# Earlier installers trusted the certificate for the user only, which Windows ignores.
+# The user's view of a store also lists the machine's certificates, and deleting
+# that one needs an administrator: the error used to stop this script right after
+# it had removed the package, so every update lost the identity. Only a copy that
+# really lives in the user's store is removed, and a failure never stops us.
+if (Test-Path "HKCU:\Software\Microsoft\SystemCertificates\TrustedPeople\Certificates\$thumbprint") {
+  try {
+    Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$thumbprint" -ErrorAction Stop
+  } catch {
+    Write-Warning "Could not remove the per-user certificate: $_"
+  }
+}
+
 # Updates and repairs start from scratch (the same version cannot be added twice).
 Get-AppxPackage -Name $name | ForEach-Object { Remove-AppxPackage -Package $_.PackageFullName }
-# Earlier installers trusted the certificate for the user only, which Windows ignores.
-Get-ChildItem Cert:\CurrentUser\TrustedPeople | Where-Object { $_.Thumbprint -eq $thumbprint } | Remove-Item
 
 if ($Uninstall) {
   if (Test-Path $machineCert) {
