@@ -4,6 +4,7 @@
 //! `web/src/backend/contract.ts`, the settings patch semantics, island
 //! geometry (hit testing, edge detection, placement) and input validation.
 
+pub mod agents;
 pub mod contract;
 pub mod devices;
 pub mod edge;

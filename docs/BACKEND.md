@@ -291,6 +291,43 @@ Island neue Mitteilungen; im Infocenter von Windows bleiben sie. Recherche (Okto
 - **Offen, früh testen:** ob `ShowBanner = 0` auch Wecker-/Anruf-Toasts betrifft, und ob der Listener Mitteilungen
   klassischer Desktop-Apps (Discord, Outlook, Signal) sieht.
 
+### Coding-Agents (Claude Code; OpenCode und Pi folgen)
+
+Fragt ein Coding-Agent um Erlaubnis für ein Werkzeug, erscheint die Frage in der Island. rice registriert sich dafür
+als Hook des Agents; der Hook-Prozess ist rice selbst (`rice.exe --agent-hook claude`, Exec-Form ohne Shell) und
+spricht über eine Named Pipe mit der laufenden Instanz.
+
+| Command / Event | Verhalten |
+|---|---|
+| `agents_pending` | Wartende Anfragen, älteste zuerst (nach einem Neuladen der Island). |
+| `agents_respond { id, decision }` | `allow` / `deny` / `terminal` an den wartenden Hook. Unbekannte Id (schon im Terminal beantwortet, Agent gibt auf) → `not_found`. Das `agents://resolved` sendet der wartende Hook-Task. |
+| `agents_list` | Integrationen: `available` = Konfigurationsordner gefunden (`%CLAUDE_CONFIG_DIR%` bzw. `%USERPROFILE%\.claude`), `connected` = rice' Hooks stehen in `settings.json`. |
+| `agents_connect { id }` / `agents_disconnect { id }` | Hooks eintragen bzw. entfernen; nur rice' Einträge, alle anderen Hooks und Schlüssel bleiben (Reihenfolge erhalten). Vorher Kopie als `settings.json.rice-backup`, dann atomar schreiben; ungültiges JSON → `invalid_args`, die Datei bleibt unangetastet. OpenCode/Pi → `not_supported`. |
+| → `agents://request` | Neue Anfrage: Agent, Projekt (letzter Ordner von `cwd`), Werkzeug, Art (`command`, `edit`, `write`, `read`, `fetch`, `mcp`, `other`) und das aussagekräftigste Argument (Befehl, Pfad, URL; höchstens 600 Zeichen). |
+| → `agents://resolved` | Anfrage erledigt – hier, im Terminal, durch Zeitablauf oder weil der Agent aufgegeben hat. |
+| → `agents://status` | `done` (Hook `Stop`, mit dem Anfang der letzten Antwort) oder `waiting` (`Notification` mit `idle_prompt`). |
+
+**Hooks in Claude Code:** `PermissionRequest` (Matcher `*`, Timeout 600 s), `Stop` und `Notification` (`idle_prompt`,
+je 10 s). `PermissionRequest` feuert nur, wenn Claude Code sonst selbst fragen würde. Antwort auf stdout:
+`{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}` bzw. `"deny"` mit
+`message`; **keine Ausgabe** heißt „im Terminal fragen“.
+
+**Sicherheitsregeln (verbindlich)**
+
+- rice erlaubt **nie** von selbst: Zweifel, Fehler, Zeitablauf (15 min), unbekannte Protokollversion oder unbekannter
+  Agent → keine Entscheidung, der Agent fragt im Terminal.
+- Der Hook endet **immer** mit Exit-Code 0 und fängt Panics ab – unter Windows kann ein fehlschlagender
+  Permission-Hook den Aufruf blockieren. Läuft rice nicht, endet er sofort ohne Ausgabe.
+- Pipe `\\.\pipe\rice-agents-<Sitzung>` (Entwicklung: Suffix `-dev`): DACL nur für den angemeldeten Benutzer und
+  SYSTEM, entfernte Clients abgelehnt, erste Instanz exklusiv (`first_pipe_instance`).
+- Der Hook schickt Werkzeug-Eingaben (können Geheimnisse enthalten) nur an einen Server, dessen Programm **dieselbe
+  `rice.exe`** ist (`GetNamedPipeServerProcessId`), und verbindet mit `SECURITY_IDENTIFICATION` (keine Impersonation).
+- Protokoll: eine JSON-Zeile je Verbindung (`{"type":"permission"|"status","v":1,…}`, höchstens 1 MiB), Antwort
+  `{"decision":"allow"|"deny"|"terminal"}`. Schließt der Hook die Pipe (im Terminal beantwortet, abgebrochen), zieht rice
+  die Anfrage zurück.
+- Die Island nimmt in den ersten 500 ms einer neuen Anfrage keine Klicks an (`--agent-arm-delay`).
+- Der Deinstaller entfernt die Hooks (`rice.exe --disconnect-agents`).
+
 ### Kalender und Aufgaben (CalDAV, Nextcloud)
 
 | Command / Event | Verhalten |
@@ -356,11 +393,11 @@ Vertrag stehen.
 
 | Crate | Inhalt |
 |---|---|
-| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen, Regeln für Mitteilungen und Banner |
+| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen, Regeln für Mitteilungen und Banner, Coding-Agent-Protokoll und Hook-Einträge in `settings.json` |
 | `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG/PNG-Data-URL, Banner ausblenden mit Backup |
 | `crates/rice-caldav` | iCalendar lesen/schreiben, Wiederholungen, Zeitzonen, WebDAV-XML, HTTP-Client, Discovery, Sync, SQLite-Cache, `accounts.json` |
-| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse, WLAN, Funk/Hotspot, Bluetooth, Anmeldeinformationen, Mitteilungen (`UserNotificationListener`), Banner-Schalter in der Registry, Konsolen-Handler |
-| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor/Netzwerk/Bluetooth/Kalender/Mitteilungen; `package/` (Sparse Package), `windows-app-manifest.xml` |
+| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse, WLAN, Funk/Hotspot, Bluetooth, Anmeldeinformationen, Mitteilungen (`UserNotificationListener`), Banner-Schalter in der Registry, Konsolen-Handler, Named-Pipe-Name und -Rechte |
+| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor/Netzwerk/Bluetooth/Kalender/Mitteilungen/Coding-Agents (Pipe-Server, Hook-Prozess `--agent-hook`); `package/` (Sparse Package), `windows-app-manifest.xml` |
 
 **Präzisierungen gegenüber §3/§4**
 

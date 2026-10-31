@@ -1,6 +1,7 @@
 //! Every command of `web/src/backend/contract.ts`. Commands with input take
 //! one parameter named `args`; all are async so they never block the UI thread.
 
+mod agents;
 mod app;
 mod calendar;
 mod connectivity;
@@ -77,6 +78,11 @@ commands![
     notifications::notifications_dismiss,
     notifications::notifications_open,
     notifications::notifications_clear,
+    agents::agents_pending,
+    agents::agents_respond,
+    agents::agents_list,
+    agents::agents_connect,
+    agents::agents_disconnect,
     calendar::calendar_accounts,
     calendar::calendar_add_account,
     calendar::calendar_remove_account,
@@ -158,6 +164,9 @@ mod tests {
             events::NOTIFICATIONS_POSTED,
             events::NOTIFICATIONS_REMOVED,
             events::NOTIFICATIONS_STATE,
+            events::AGENTS_REQUEST,
+            events::AGENTS_RESOLVED,
+            events::AGENTS_STATUS,
             events::CALENDAR_ACCOUNTS,
             events::CALENDAR_CHANGED,
             events::TASKS_CHANGED,

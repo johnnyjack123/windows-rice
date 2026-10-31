@@ -466,6 +466,87 @@ pub struct NotificationsState {
     pub items: Vec<AppNotification>,
 }
 
+/// A coding agent rice can talk to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AgentId {
+    Claude,
+    OpenCode,
+    Pi,
+}
+
+/// What a tool call the agent asks about does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ToolKind {
+    Command,
+    Edit,
+    Write,
+    Read,
+    Fetch,
+    Mcp,
+    Other,
+}
+
+/// A coding agent waits for the user's permission.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRequest {
+    pub id: String,
+    pub agent: AgentId,
+    /// Last folder of the working directory.
+    pub project: String,
+    /// Tool name as the agent calls it ("Bash", "Edit", "mcp__…").
+    pub tool: String,
+    pub kind: ToolKind,
+    /// Command, path or URL; may be long (the UI truncates).
+    pub detail: String,
+    pub time: String,
+}
+
+/// What an agent reports without asking.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AgentStatusState {
+    Done,
+    Waiting,
+}
+
+/// An agent finished or waits for input.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStatus {
+    pub agent: AgentId,
+    pub project: String,
+    pub state: AgentStatusState,
+    /// Start of the agent's last answer, if it sent one.
+    pub message: Option<String>,
+    pub time: String,
+}
+
+/// A coding agent and whether rice is hooked into it.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentIntegration {
+    pub id: AgentId,
+    /// The agent's configuration was found on this machine.
+    pub available: bool,
+    pub connected: bool,
+}
+
+/// `agents_respond`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AgentRespondArgs {
+    pub id: String,
+    pub decision: crate::agents::Decision,
+}
+
+/// `agents_connect`, `agents_disconnect`.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AgentIdArgs {
+    pub id: AgentId,
+}
+
 /// A calendar collection (events, tasks or both).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -748,6 +829,9 @@ pub mod events {
     pub const NOTIFICATIONS_POSTED: &str = "notifications://posted";
     pub const NOTIFICATIONS_REMOVED: &str = "notifications://removed";
     pub const NOTIFICATIONS_STATE: &str = "notifications://state";
+    pub const AGENTS_REQUEST: &str = "agents://request";
+    pub const AGENTS_RESOLVED: &str = "agents://resolved";
+    pub const AGENTS_STATUS: &str = "agents://status";
     pub const CALENDAR_ACCOUNTS: &str = "calendar://accounts";
     pub const CALENDAR_CHANGED: &str = "calendar://changed";
     pub const TASKS_CHANGED: &str = "tasks://changed";

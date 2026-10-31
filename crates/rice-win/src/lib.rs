@@ -21,6 +21,7 @@ pub mod media;
 pub mod monitors;
 pub mod notifications;
 pub mod occlusion;
+pub mod pipes;
 pub mod power;
 pub mod processes;
 pub mod radios;

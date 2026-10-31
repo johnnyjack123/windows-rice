@@ -1,6 +1,7 @@
 //! Shared application state (managed by Tauri, reachable from every thread
 //! through `AppHandle::state`).
 
+use crate::agents::Agents;
 use crate::audio::Audio;
 use crate::bluetooth::Bluetooth;
 use crate::breaks::Breaks;
@@ -65,6 +66,7 @@ pub struct AppState {
     pub network: Network,
     pub bluetooth: Bluetooth,
     pub notifications: Notifications,
+    pub agents: Agents,
     pub calendar: Calendars,
     /// Invisible owner of the island and break windows (keeps them out of Alt+Tab).
     pub owner: isize,

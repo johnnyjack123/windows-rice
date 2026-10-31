@@ -388,6 +388,49 @@ export interface NotificationsState {
   items: AppNotification[];
 }
 
+// ── Coding agents (Claude Code, OpenCode, Pi) ────────────────────────────
+
+/** A coding agent rice can be hooked into. */
+export type AgentId = 'claude' | 'opencode' | 'pi';
+
+/** What a tool call the agent asks about does. */
+export type ToolKind = 'command' | 'edit' | 'write' | 'read' | 'fetch' | 'mcp' | 'other';
+
+/** A coding agent waits for the user's permission (answered with `agents_respond`). */
+export interface AgentRequest {
+  id: string;
+  agent: AgentId;
+  /** Last folder of the agent's working directory. */
+  project: string;
+  /** Tool name as the agent calls it ("Bash", "Edit", "mcp__…"). */
+  tool: string;
+  kind: ToolKind;
+  /** Command, path or URL; may be long (truncate in the UI). */
+  detail: string;
+  time: Iso;
+}
+
+/** How the user decides; `terminal` leaves it to the agent's own prompt. */
+export type AgentDecision = 'allow' | 'deny' | 'terminal';
+
+/** An agent finished or waits for input (shown briefly, no answer needed). */
+export interface AgentStatus {
+  agent: AgentId;
+  project: string;
+  state: 'done' | 'waiting';
+  /** Start of the agent's last answer, if any. */
+  message: string | null;
+  time: Iso;
+}
+
+/** A coding agent and whether rice is hooked into it. */
+export interface AgentIntegration {
+  id: AgentId;
+  /** The agent's configuration was found on this machine. */
+  available: boolean;
+  connected: boolean;
+}
+
 // ── Calendar & tasks (CalDAV, Nextcloud) ─────────────────────────────────
 
 /** A calendar collection (events, tasks or both). */
@@ -538,6 +581,15 @@ export interface Commands {
   notifications_open: { args: { id: string }; result: void };
   notifications_clear: { args: void; result: void };
 
+  /** Requests still waiting (e.g. after a reload), oldest first. */
+  agents_pending: { args: void; result: AgentRequest[] };
+  /** Answers a request; `not_found` if the agent stopped waiting meanwhile. → `agents://resolved`. */
+  agents_respond: { args: { id: string; decision: AgentDecision }; result: void };
+  agents_list: { args: void; result: AgentIntegration[] };
+  /** Registers rice's hook in the agent's configuration (with a backup of the file). */
+  agents_connect: { args: { id: AgentId }; result: AgentIntegration };
+  agents_disconnect: { args: { id: AgentId }; result: AgentIntegration };
+
   calendar_accounts: { args: void; result: CalendarAccount[] };
   calendar_add_account: { args: { name: string; url: string; user: string; password: string }; result: CalendarAccount };
   calendar_remove_account: { args: { id: string }; result: void };
@@ -587,6 +639,11 @@ export interface Events {
   'notifications://posted': AppNotification;
   'notifications://removed': { id: string };
   'notifications://state': NotificationsState;
+
+  'agents://request': AgentRequest;
+  /** A request was answered here, in the terminal, or the agent stopped waiting. */
+  'agents://resolved': { id: string };
+  'agents://status': AgentStatus;
 
   'calendar://accounts': CalendarAccount[];
   /** Events or tasks changed after a sync; the UI refetches its range. */

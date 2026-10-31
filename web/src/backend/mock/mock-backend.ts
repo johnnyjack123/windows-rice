@@ -4,7 +4,7 @@
  * reviewed without Windows APIs. The lab drives it through `debug`.
  */
 import type {
-  AppNotification, Appearance, ArgsOf, AudioState, AutostartState, BackendError, BluetoothState, BreakOverlay, CalendarAccount,
+  AgentIntegration, AgentRequest, AppNotification, Appearance, ArgsOf, AudioState, AutostartState, BackendError, BluetoothState, BreakOverlay, CalendarAccount,
   CalendarEvent, CommandName, DisplayState, EventName, Events, MediaState, NetworkState,
   NotificationsState, Occlusion, PowerState, ProcessInfo, Rect, ResultOf, StoredSettings,
   SystemSample, Task, UserTheme, WallpaperInfo, WifiNetwork,
@@ -13,7 +13,7 @@ import { Emitter, type InvokeArgs, type Transport } from '../transport';
 import { applyPatch } from '../settings';
 import { WALLPAPERS } from './art';
 import {
-  CALENDARS, DEVICES, eventsOfDay, INITIAL_NOTIFICATIONS, initialTasks, NETWORKS, NOTIFICATION_POOL,
+  AGENT_REQUESTS, AGENT_STATUS, CALENDARS, DEVICES, eventsOfDay, INITIAL_NOTIFICATIONS, initialTasks, NETWORKS, NOTIFICATION_POOL,
   PROCESSES, SYSTEM_FONTS, TRACKS, dayStart,
 } from './data';
 
@@ -104,6 +104,10 @@ export class MockBackend implements Transport {
     })),
   };
   private pool = 0;
+  private agentRequests: AgentRequest[] = [];
+  private agentIntegrations: AgentIntegration[] = [{ id: 'claude', available: true, connected: false }];
+  private agentPool = 0;
+  private statusPool = 0;
   private tasks: Task[] = initialTasks();
   private extraEvents: CalendarEvent[] = [];
   private processes: ProcessInfo[] = PROCESSES.map((p) => ({ ...p }));
@@ -409,6 +413,17 @@ export class MockBackend implements Transport {
       }
     },
 
+    agents_pending: () => this.agentRequests,
+    agents_respond: ({ id, decision }) => {
+      const request = this.agentRequests.find((r) => r.id === id) ?? fail('not_found', `no request ${id}`);
+      console.info(`[mock] ${decision}: ${request.tool} ${request.detail}`);
+      this.agentRequests = this.agentRequests.filter((r) => r.id !== id);
+      this.emit('agents://resolved', { id });
+    },
+    agents_list: () => this.agentIntegrations,
+    agents_connect: async ({ id }) => this.setAgentConnected(id, true),
+    agents_disconnect: async ({ id }) => this.setAgentConnected(id, false),
+
     calendar_accounts: () => this.accounts,
     calendar_add_account: async ({ name, url, user, password }) => {
       await sleep(1600);
@@ -512,8 +527,30 @@ export class MockBackend implements Transport {
 
   // ── Lab hooks ───────────────────────────────────────────────────────────
 
+  private async setAgentConnected(id: AgentIntegration['id'], connected: boolean): Promise<AgentIntegration> {
+    await sleep(250);
+    const integration = this.agentIntegrations.find((i) => i.id === id) ?? fail('not_found', `unknown agent ${id}`);
+    const next = { ...integration, connected };
+    this.agentIntegrations = this.agentIntegrations.map((i) => (i.id === id ? next : i));
+    return next;
+  }
+
   /** Simulated system events, triggered from the lab. */
   readonly debug = {
+    /** A coding agent asks for permission. */
+    agentRequest: (): void => {
+      const template = AGENT_REQUESTS[this.agentPool % AGENT_REQUESTS.length]!;
+      this.agentPool += 1;
+      const request: AgentRequest = { ...template, id: `a${Date.now()}`, time: new Date().toISOString() };
+      this.agentRequests = [...this.agentRequests, request];
+      this.emit('agents://request', request);
+    },
+    /** A coding agent finished or waits for input. */
+    agentStatus: (): void => {
+      const template = AGENT_STATUS[this.statusPool % AGENT_STATUS.length]!;
+      this.statusPool += 1;
+      this.emit('agents://status', { ...template, time: new Date().toISOString() });
+    },
     pushNotification: (): void => {
       const template = NOTIFICATION_POOL[this.pool % NOTIFICATION_POOL.length]!;
       this.pool += 1;

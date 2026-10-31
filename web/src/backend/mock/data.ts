@@ -2,7 +2,7 @@
  * Seed data of the simulated backend. Content (titles, names) is data, not
  * UI text, and therefore not translated.
  */
-import type { BluetoothDevice, Calendar, CalendarEvent, ProcessInfo, Task, WifiNetwork } from '../contract';
+import type { AgentRequest, AgentStatus, BluetoothDevice, Calendar, CalendarEvent, ProcessInfo, Task, WifiNetwork } from '../contract';
 import { appIcon, COVERS } from './art';
 
 /** A simulated track. */
@@ -48,6 +48,20 @@ export const NOTIFICATION_POOL: MockNotification[] = [
   { appId: 'signal', appName: 'Signal', iconUrl: SIGNAL, title: 'Mama', body: 'Denkst du an Sonntag? Oma freut sich schon riesig auf euch!' },
   { appId: 'windows-update', appName: 'Windows Update', iconUrl: appIcon('#0078d4', 'update'), title: 'Neustart erforderlich', body: 'Updates werden beim nächsten Neustart installiert.' },
   { appId: 'github', appName: 'GitHub', iconUrl: null, title: 'rice/shell · CI', body: 'Build #128 erfolgreich · alle Checks bestanden' },
+];
+
+/** Permission requests the lab can deliver, in order (without id and time). */
+export const AGENT_REQUESTS: Array<Omit<AgentRequest, 'id' | 'time'>> = [
+  { agent: 'claude', project: 'rice', tool: 'Bash', kind: 'command', detail: 'pnpm verify && cargo clippy --workspace -- -D warnings' },
+  { agent: 'claude', project: 'rice', tool: 'Edit', kind: 'edit', detail: 'C:\\Users\\demo\\Projekte\\rice\\web\\src\\island\\island.css' },
+  { agent: 'claude', project: 'nextcloud-sync', tool: 'WebFetch', kind: 'fetch', detail: 'https://docs.nextcloud.com/server/latest/developer_manual/' },
+  { agent: 'claude', project: 'rice', tool: 'mcp__github__create_pull_request', kind: 'mcp', detail: 'github · create_pull_request' },
+];
+
+/** Status reports the lab can deliver, in order (without time). */
+export const AGENT_STATUS: Array<Omit<AgentStatus, 'time'>> = [
+  { agent: 'claude', project: 'rice', state: 'done', message: 'Der Equalizer hat jetzt ein eigenes Tempo; alle Checks sind grün.' },
+  { agent: 'claude', project: 'nextcloud-sync', state: 'waiting', message: null },
 ];
 
 /** Wi-Fi networks in range. */

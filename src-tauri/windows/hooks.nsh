@@ -45,6 +45,9 @@
   Pop $0
   nsExec::Exec '"$INSTDIR\rice.exe" --restore-banners'
   Pop $0
+  ; Coding agents would otherwise keep calling a rice.exe that is gone.
+  nsExec::Exec '"$INSTDIR\rice.exe" --disconnect-agents'
+  Pop $0
   !insertmacro RICE_POWERSHELL '-File "$INSTDIR\identity\identity.ps1" -Uninstall'
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "rice"
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" "rice"

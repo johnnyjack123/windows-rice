@@ -5,6 +5,8 @@
 // No console window in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod agent_hook;
+mod agents;
 mod audio;
 mod autostart;
 mod banners;
@@ -37,7 +39,18 @@ use tauri::webview::PageLoadEvent;
 use tauri::{AppHandle, Manager, RunEvent, Window, WindowEvent};
 
 fn main() {
-    let flag = |name: &str| std::env::args().skip(1).any(|arg| arg == name);
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    let flag = |name: &str| args.iter().any(|arg| arg == name);
+    // For coding agents: forward one hook call to the running rice (exits with 0).
+    if let Some(position) = args.iter().position(|arg| arg == rice_core::agents::HOOK_FLAG) {
+        agent_hook::run(args.get(position + 1).map_or("", String::as_str));
+        return;
+    }
+    // For the uninstaller: take rice's hooks out of the agents' settings.
+    if flag("--disconnect-agents") {
+        agents::disconnect_all();
+        return;
+    }
     // For the installer: end a running rice in an orderly way (its banners come back).
     if flag("--quit") {
         rice_win::events::request_quit(Duration::from_secs(5));
@@ -117,6 +130,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         network: network::Network::default(),
         bluetooth: bluetooth::Bluetooth::default(),
         notifications: notifications::Notifications::default(),
+        agents: agents::Agents::default(),
         calendar: calendars,
         owner,
         watchers: Mutex::new(Vec::new()),
@@ -132,6 +146,7 @@ fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     bluetooth::start(app);
     calendar::start(app);
     notifications::start(app);
+    agents::start(app);
     power::check_updates(app);
     autostart::repair();
     log::info!("rice {} started; config in {}", app.package_info().version, app.state::<AppState>().paths.config_dir.display());

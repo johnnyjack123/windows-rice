@@ -2,6 +2,7 @@ import { getContext, setContext } from 'svelte';
 import { MockBackend } from './mock/mock-backend';
 import { createTauriTransport, isTauri } from './tauri';
 import type { Transport } from './transport';
+import { AgentsStore } from './stores/agents.svelte';
 import { SettingsStore, SystemInfoStore, UserThemesStore } from './stores/core.svelte';
 import { AudioStore, BluetoothStore, DisplayStore, MediaStore, NetworkStore, PowerStore } from './stores/devices.svelte';
 import { CalendarStore, NotificationsStore, SystemStore, TasksStore } from './stores/data.svelte';
@@ -9,7 +10,7 @@ import { CalendarStore, NotificationsStore, SystemStore, TasksStore } from './st
 /** Stores a window can initialise. */
 export type StoreKey =
   | 'settings' | 'system' | 'themes' | 'media' | 'audio' | 'display' | 'power'
-  | 'network' | 'bluetooth' | 'notifications' | 'calendar' | 'tasks';
+  | 'network' | 'bluetooth' | 'notifications' | 'calendar' | 'tasks' | 'agents';
 
 /** Everything a window needs from the backend, as reactive stores. */
 export class Backend {
@@ -26,6 +27,7 @@ export class Backend {
   readonly calendar: CalendarStore;
   readonly tasks: TasksStore;
   readonly monitor: SystemStore;
+  readonly agents: AgentsStore;
 
   /** @param transport - Tauri or simulated transport. */
   constructor(readonly transport: Transport) {
@@ -42,6 +44,7 @@ export class Backend {
     this.calendar = new CalendarStore(transport);
     this.tasks = new TasksStore(transport);
     this.monitor = new SystemStore(transport);
+    this.agents = new AgentsStore(transport);
   }
 
   /** The simulated backend, when running in a browser (lab hooks). */
@@ -69,6 +72,7 @@ export class Backend {
       notifications: () => this.notifications.init(),
       calendar: () => this.calendar.init(),
       tasks: () => this.tasks.init(),
+      agents: () => this.agents.init(),
     };
     const results = await Promise.allSettled(keys.map((k) => run[k]()));
     results.forEach((r, i) => {
