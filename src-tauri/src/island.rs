@@ -262,18 +262,24 @@ pub fn on_blur(app: &AppHandle) {
     });
 }
 
+/// The island zone and the placement it belongs to.
+fn zone(app: &AppHandle) -> Option<(PhysRect, Placement)> {
+    let state = app.state::<AppState>();
+    let p = state.island.placement()?;
+    let offset_top = state.settings.locked().offset_top;
+    Some((geometry::island_zone(p.monitor, p.work, p.scale, offset_top), p))
+}
+
 /// Computes the overlap state of the island zone right now.
 pub fn compute_occlusion(app: &AppHandle) -> Occlusion {
-    let state = app.state::<AppState>();
-    let Some(p) = state.island.placement() else {
-        return Occlusion::default();
-    };
-    let offset_top = state.settings.locked().offset_top;
-    let zone = geometry::island_zone(p.monitor, p.work, p.scale, offset_top);
-    rice_win::occlusion::query(zone, p.monitor, p.monitor_handle)
+    match zone(app) {
+        Some((zone, p)) => rice_win::occlusion::query(zone, p.monitor, p.monitor_handle),
+        None => Occlusion::default(),
+    }
 }
 
 /// Recomputes the overlap state; sends `island://occlusion` only on change.
+/// Changes go to the log with the program that hides the island.
 pub fn refresh_occlusion(app: &AppHandle) -> Occlusion {
     let occlusion = compute_occlusion(app);
     let changed = {
@@ -282,6 +288,13 @@ pub fn refresh_occlusion(app: &AppHandle) -> Occlusion {
         std::mem::replace(&mut inner.occlusion, occlusion) != occlusion
     };
     if changed {
+        if occlusion.occluded || occlusion.fullscreen {
+            let reason = if occlusion.fullscreen { "full-screen app" } else { "window over the island" };
+            let culprit = zone(app).and_then(|(zone, _)| rice_win::occlusion::culprit(zone)).unwrap_or_else(|| "unknown".into());
+            log::info!("island: hidden ({reason}): {culprit}");
+        } else {
+            log::info!("island: visible again");
+        }
         let _ = app.emit(events::ISLAND_OCCLUSION, occlusion);
     }
     occlusion
@@ -316,7 +329,8 @@ fn tick(app: &AppHandle, now_ms: u64) {
         let due = inner.cursor_sent.is_none_or(|(sent, at)| sent != cursor && now_ms.saturating_sub(at) >= CURSOR_EVERY_MS);
         let follow = (inner.cursor_tracking && due).then(|| {
             inner.cursor_sent = Some((cursor, now_ms));
-            Point { x: f64::from(cursor.x - origin.x) / p.scale, y: f64::from(cursor.y - origin.y) / p.scale }
+            let (x, y) = geometry::to_window_css(cursor, origin, p.scale);
+            Point { x, y }
         });
         let inside = geometry::hits(cursor, origin, p.scale, &inner.regions);
         // A held button keeps a drag (slider) alive past the region's edge.

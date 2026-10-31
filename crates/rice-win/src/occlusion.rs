@@ -29,6 +29,25 @@ pub fn query(zone: PhysRect, monitor: PhysRect, monitor_handle: isize) -> Occlus
     Occlusion { occluded, fullscreen: fullscreen(monitor, monitor_handle, own_pid) }
 }
 
+/// Who hides the island right now, for the log: the first window over the
+/// zone, otherwise the full-screen app in front. Program and window class
+/// only; titles can name private documents.
+pub fn culprit(zone: PhysRect) -> Option<String> {
+    // SAFETY: no arguments.
+    let own_pid = unsafe { GetCurrentProcessId() };
+    let window = top_level_windows().into_iter().find(|&w| covers(w, own_pid, zone)).or_else(|| {
+        let front = foreground();
+        (front != 0 && is_candidate(front, own_pid)).then_some(front)
+    })?;
+    let mut pid = 0u32;
+    // SAFETY: read-only query into a local.
+    unsafe { GetWindowThreadProcessId(hwnd(window), Some(&mut pid)) };
+    let program = crate::processes::exe_path(pid)
+        .and_then(|path| path.file_name().map(|name| name.to_string_lossy().into_owned()))
+        .unwrap_or_else(|| format!("pid {pid}"));
+    Some(format!("{program} ({})", class_name(window)))
+}
+
 fn top_level_windows() -> Vec<isize> {
     let mut windows: Vec<isize> = Vec::new();
     // SAFETY: the callback only pushes into the Vec passed through LPARAM,
@@ -89,4 +108,37 @@ fn fullscreen(monitor: PhysRect, monitor_handle: isize, own_pid: u32) -> bool {
     }
     matches!(state, Some(QUNS_BUSY | QUNS_RUNNING_D3D_FULL_SCREEN))
         || window_rect(front).is_some_and(|r| r.contains_rect(&monitor))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use windows::Win32::UI::WindowsAndMessaging::GetWindowTextW;
+
+    /// `cargo test -p rice-win prints_covering_windows -- --ignored --nocapture` (read-only):
+    /// which windows hide the island on each monitor, and the full-screen verdict.
+    #[test]
+    #[ignore = "diagnostic: lists the windows that count as covering the island zone"]
+    fn prints_covering_windows() {
+        // SAFETY: no arguments.
+        let own_pid = unsafe { GetCurrentProcessId() };
+        for monitor in crate::monitors::list() {
+            let zone = rice_core::geometry::island_zone(monitor.rect, monitor.work, monitor.scale, 0.0);
+            let state = query(zone, monitor.rect, monitor.handle);
+            println!("monitor {} {:?}: zone {zone:?} → {state:?}", monitor.index, monitor.name);
+            for window in top_level_windows().into_iter().filter(|&w| covers(w, own_pid, zone)) {
+                let mut pid = 0u32;
+                let mut title = [0u16; 256];
+                // SAFETY: read-only queries into locals.
+                let length = unsafe {
+                    GetWindowThreadProcessId(hwnd(window), Some(&mut pid));
+                    GetWindowTextW(hwnd(window), &mut title)
+                };
+                let title = String::from_utf16_lossy(&title[..usize::try_from(length).unwrap_or(0)]);
+                let exe = crate::processes::exe_path(pid).map(|p| p.display().to_string()).unwrap_or_default();
+                println!("  {window:#x} class {:?} title {title:?} pid {pid} {exe}", class_name(window));
+                println!("    frame {:?}", frame_rect(window));
+            }
+        }
+    }
 }
