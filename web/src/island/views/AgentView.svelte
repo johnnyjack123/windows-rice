@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AgentDecision } from '$backend/contract';
+  import type { AgentDecision, AgentRequest } from '$backend/contract';
   import { i18n } from '$i18n/i18n.svelte';
   import { motionSettings } from '$motion/spring';
   import { timeToken } from '$motion/time';
@@ -11,7 +11,17 @@
   const { backend, ui } = useIsland();
   const a = $derived(i18n.m.agents);
   const farewell = $derived(ui.agentFarewell);
-  const shown = $derived(farewell?.request ?? backend.agents.pending[0] ?? null);
+  /** The request that can be answered right now. */
+  const current = $derived(farewell?.request ?? backend.agents.pending[0] ?? null);
+  /** The last one stays on show (with its decision) while the island fades it out, so nothing pops away. */
+  let last = $state<{ request: AgentRequest; decision: AgentDecision | null } | null>(null);
+  $effect.pre(() => {
+    if (current) {
+      last = { request: current, decision: farewell?.decision ?? null };
+    }
+  });
+  const shown = $derived(current ?? last?.request ?? null);
+  const decided = $derived(current ? (farewell?.decision ?? null) : (last?.decision ?? null));
   const more = $derived(backend.agents.pending.filter((r) => r.id !== shown?.id).length);
 
   /** Hops for attention first, then waits patiently. */
@@ -21,7 +31,7 @@
   let farewellTimer: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
-    const id = shown?.id;
+    const id = current?.id;
     patient = false;
     armed = false;
     if (!id) {
@@ -44,7 +54,7 @@
   });
 
   function decide(decision: AgentDecision): void {
-    const request = shown;
+    const request = current;
     if (!request || !armed || farewell) {
       return;
     }
@@ -73,14 +83,14 @@
     </div>
   </div>
   <div class="agent-detail" title={shown.detail}>{shown.detail}</div>
-  <div class="live-actions agent-actions" class:is-decided={farewell !== null}>
-    <button class="btn btn--tonal has-state" title={a.terminalHint} disabled={farewell !== null} onclick={() => decide('terminal')}>
+  <div class="live-actions agent-actions" class:is-decided={decided !== null}>
+    <button class="btn btn--tonal has-state" title={a.terminalHint} disabled={decided !== null} onclick={() => decide('terminal')}>
       <Icon name="terminal" />{a.terminal}
     </button>
-    <button class="btn btn--tonal has-state" class:is-chosen={farewell?.decision === 'deny'} disabled={farewell !== null} onclick={() => decide('deny')}>
+    <button class="btn btn--tonal has-state" class:is-chosen={decided === 'deny'} disabled={decided !== null} onclick={() => decide('deny')}>
       <Icon name="block" />{a.deny}
     </button>
-    <button class="btn btn--filled has-state" class:is-chosen={farewell?.decision === 'allow'} disabled={farewell !== null} onclick={() => decide('allow')}>
+    <button class="btn btn--filled has-state" class:is-chosen={decided === 'allow'} disabled={decided !== null} onclick={() => decide('allow')}>
       <Icon name="check" />{a.allow}
     </button>
   </div>

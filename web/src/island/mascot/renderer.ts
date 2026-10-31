@@ -5,7 +5,7 @@
  * context. Frames run only while a mascot animates; an idle context is
  * released after a few seconds.
  */
-import { hexToRgb, resolveColor } from '$design/color';
+import { hexToRgb, toHex } from '$design/color';
 import { motionSettings } from '$motion/spring';
 import { chain, lookAt, perspective, rotateX, rotateY, rotateZ, scale, translate, type Mat4 } from './mat4';
 import { buildVoxels, CENTER, EYE_Y, GROUND, PART, PART_COUNT, SHOULDER } from './model';
@@ -14,8 +14,11 @@ import { pose, type MascotMood, type Pose } from './motion';
 /** Width / height of every mascot canvas (the camera frames this). */
 export const MASCOT_ASPECT = 1.5;
 
-/** Releases the GPU context this long after the last frame (ms). */
-const RELEASE_AFTER = 8000;
+/**
+ * Releases the GPU context this long after the last frame (ms): long enough
+ * that a burst of requests reuses it, short enough that it is gone at rest.
+ */
+const RELEASE_AFTER = 90_000;
 
 /**
  * Camera: slightly above, so the top and the shadow read. It frames about
@@ -193,34 +196,50 @@ interface Programs {
   u: Record<string, WebGLUniformLocation | null>;
 }
 
-function compile(gl: WebGL2RenderingContext, vs: string, fs: string): WebGLProgram | null {
-  const program = gl.createProgram();
-  for (const [type, source] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]] as const) {
-    const shader = gl.createShader(type);
-    if (!shader) {
-      return null;
-    }
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.warn('[mascot]', gl.getShaderInfoLog(shader));
-      return null;
-    }
-    gl.attachShader(program, shader);
-  }
-  gl.linkProgram(program);
-  return gl.getProgramParameter(program, gl.LINK_STATUS) ? program : null;
+/** Shaders handed to the driver, possibly still compiling. */
+interface Compiling {
+  gl: WebGL2RenderingContext;
+  voxel: WebGLProgram;
+  shadow: WebGLProgram;
+  /** `KHR_parallel_shader_compile`: lets us ask instead of wait. */
+  parallel: { COMPLETION_STATUS_KHR: number } | null;
 }
 
-function createPrograms(canvas: HTMLCanvasElement): Programs | null {
+/** Starts compiling and linking without waiting for the driver. */
+function startPrograms(canvas: HTMLCanvasElement): Compiling | null {
   const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true, powerPreference: 'low-power' });
   if (!gl) {
     return null;
   }
-  const voxel = compile(gl, VOXEL_VS, VOXEL_FS);
-  const shadow = compile(gl, SHADOW_VS, SHADOW_FS);
-  if (!voxel || !shadow) {
-    return null;
+  const parallel = gl.getExtension('KHR_parallel_shader_compile') as { COMPLETION_STATUS_KHR: number } | null;
+  const program = (vs: string, fs: string): WebGLProgram => {
+    const p = gl.createProgram();
+    for (const [type, source] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]] as const) {
+      const shader = gl.createShader(type)!;
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      gl.attachShader(p, shader);
+    }
+    gl.linkProgram(p);
+    return p;
+  };
+  return { gl, voxel: program(VOXEL_VS, VOXEL_FS), shadow: program(SHADOW_VS, SHADOW_FS), parallel };
+}
+
+/** Whether the driver finished (always "yes" without the extension: then the first query waits). */
+function compiled(c: Compiling): boolean {
+  const done = (p: WebGLProgram): boolean => !c.parallel || Boolean(c.gl.getProgramParameter(p, c.parallel.COMPLETION_STATUS_KHR));
+  return done(c.voxel) && done(c.shadow);
+}
+
+/** Checks the compiled programs and uploads the model. */
+function finishPrograms({ gl, voxel, shadow }: Compiling): Programs | null {
+  for (const p of [voxel, shadow]) {
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      const logs = gl.getAttachedShaders(p)?.map((s) => gl.getShaderInfoLog(s)) ?? [];
+      console.warn('[mascot]', gl.getProgramInfoLog(p), ...logs);
+      return null;
+    }
   }
 
   const voxels = buildVoxels();
@@ -329,19 +348,25 @@ class Slot implements MascotHandle {
       this.canvas.width = width;
       this.canvas.height = height;
     }
-    const host = this.canvas.parentElement ?? this.canvas;
+    // One probe element for all tokens: a single style recalculation.
+    const probe = document.createElement('span');
+    probe.style.display = 'none';
+    (this.canvas.parentElement ?? document.body).append(probe);
+    const style = getComputedStyle(probe);
     const rgb = (token: string, fallback: Rgb): Rgb => {
-      const hex = resolveColor(host, `var(${token})`);
+      probe.style.color = `var(${token})`;
+      const hex = toHex(style.color);
       const channels = hex ? hexToRgb(hex) : null;
       return channels ? (channels.map((c) => c / 255) as Rgb) : fallback;
     };
-    const alpha = parseFloat(getComputedStyle(host).getPropertyValue('--mascot-shadow-opacity'));
+    const alpha = parseFloat(style.getPropertyValue('--mascot-shadow-opacity'));
     this.colors = {
       body: rgb('--mascot-body', this.colors.body),
       eye: rgb('--mascot-eye', this.colors.eye),
       shadow: rgb('--mascot-shadow', this.colors.shadow),
       shadowAlpha: Number.isFinite(alpha) ? alpha : this.colors.shadowAlpha,
     };
+    probe.remove();
     this.dirty = true;
     this.stage.request();
   }
@@ -382,6 +407,7 @@ class Slot implements MascotHandle {
 class Stage {
   private readonly slots = new Set<Slot>();
   private programs: Programs | null = null;
+  private compiling: Compiling | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private frame = 0;
   private last = 0;
@@ -411,7 +437,7 @@ class Stage {
     const dt = this.last ? Math.min(now - this.last, 100) / 1000 : 0;
     this.last = now;
     let animating = false;
-    let drew = false;
+    let waiting = false;
     for (const slot of this.slots) {
       const moving = slot.moving;
       if (moving) {
@@ -420,51 +446,72 @@ class Stage {
         slot.follow(dt * motionSettings.timeScale);
       }
       if (slot.needsFrame) {
-        slot.dirty = false;
-        this.draw(slot);
-        drew = true;
+        const result = this.draw(slot);
+        slot.dirty &&= result !== 'drawn';
+        waiting ||= result === 'compiling';
       }
       animating ||= moving;
     }
-    if (animating) {
+    if (animating || waiting) {
       this.request();
     } else {
       this.last = 0;
-      if (drew || this.programs) {
+      if (this.programs || this.compiling) {
         this.releaseTimer = setTimeout(() => this.release(), RELEASE_AFTER);
       }
     }
   };
 
-  private context(): Programs | null {
-    if (this.programs?.gl.isContextLost()) {
+  /**
+   * The context, once the driver has compiled the shaders. Compiling runs in
+   * the background where the driver allows it (KHR_parallel_shader_compile),
+   * so a mascot appearing never stalls the island's animation; it shows up a
+   * few frames later instead.
+   */
+  private context(): Programs | 'compiling' | null {
+    if ((this.programs ?? this.compiling)?.gl.isContextLost()) {
       this.release();
     }
-    if (!this.programs) {
+    if (this.programs) {
+      return this.programs;
+    }
+    if (this.failed) {
+      return null;
+    }
+    if (!this.compiling) {
       const canvas = document.createElement('canvas');
-      this.programs = createPrograms(canvas);
-      if (!this.programs) {
-        // No WebGL2: mascots stay empty rather than retrying every frame.
-        this.failed = true;
-        return null;
-      }
+      this.compiling = startPrograms(canvas);
       this.canvas = canvas;
+    }
+    if (this.compiling && !compiled(this.compiling)) {
+      return 'compiling';
+    }
+    this.programs = this.compiling ? finishPrograms(this.compiling) : null;
+    this.compiling = null;
+    if (!this.programs) {
+      // No WebGL2 or broken shaders: mascots stay empty rather than retrying every frame.
+      this.failed = true;
+      this.canvas = null;
     }
     return this.programs;
   }
 
   /** Frees the GPU memory; the next frame creates a new context. */
   private release(): void {
-    this.programs?.gl.getExtension('WEBGL_lose_context')?.loseContext();
+    (this.programs ?? this.compiling)?.gl.getExtension('WEBGL_lose_context')?.loseContext();
     this.programs = null;
+    this.compiling = null;
     this.canvas = null;
   }
 
-  private draw(slot: Slot): void {
+  private draw(slot: Slot): 'drawn' | 'compiling' | 'failed' {
     const p = this.context();
     const canvas = this.canvas;
+    if (p === 'compiling') {
+      return p;
+    }
     if (!p || !canvas || !slot.ctx) {
-      return;
+      return 'failed';
     }
     const { gl, u } = p;
     const { width, height } = slot.canvas;
@@ -508,6 +555,7 @@ class Stage {
     // WebGL draws from the bottom left of its (possibly larger) canvas.
     slot.ctx.clearRect(0, 0, width, height);
     slot.ctx.drawImage(canvas, 0, canvas.height - height, width, height, 0, 0, width, height);
+    return 'drawn';
   }
 }
 
