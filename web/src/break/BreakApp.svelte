@@ -6,6 +6,7 @@
   import { provideEngine, type ThemeEngine } from '$design/engine.svelte';
   import { fmt, i18n } from '$i18n/i18n.svelte';
   import Icon from '$ui/Icon.svelte';
+  import { timeToken } from '$motion/time';
 
   interface Props {
     backend: Backend;
@@ -52,11 +53,6 @@
 
   let holdTimer: ReturnType<typeof setTimeout> | undefined;
 
-  function token(name: string, fallback: number): number {
-    const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
-    return Number.isFinite(value) ? value : fallback;
-  }
-
   function finish(): void {
     holding = false;
     leaving = true;
@@ -68,7 +64,7 @@
       return;
     }
     holding = true;
-    holdTimer = setTimeout(finish, token('--break-hold', 1600));
+    holdTimer = setTimeout(finish, timeToken(document.documentElement, '--break-hold', 1600));
   }
 
   function holdEnd(): void {
@@ -102,8 +98,8 @@
         leaving = true;
       }
     });
-    // Breathing guide: the caption follows the CSS animation's halves.
-    const breath = setInterval(() => (inhale = !inhale), token('--break-breath', 8000) / 2);
+    // Breathing guide: the caption follows the CSS animation's halves ("8s" → 4 s each).
+    const breath = setInterval(() => (inhale = !inhale), timeToken(document.documentElement, '--break-breath', 8000) / 2);
     requestAnimationFrame(() => (entered = true));
     return () => {
       off();
