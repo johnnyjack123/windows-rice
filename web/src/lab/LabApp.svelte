@@ -89,6 +89,8 @@
     { key: 'e', label: () => l.event, run: () => mock?.debug.addSoonEvent() },
     { key: 't', label: () => l.timer, run: () => ctx?.timers.start(5 * 60_000, '') },
     { key: 'c', label: () => l.charging, run: () => mock?.debug.toggleCharging() },
+    { key: 'k', label: () => l.agentRequest, run: () => mock?.debug.agentRequest() },
+    { key: 'j', label: () => l.agentStatus, run: () => mock?.debug.agentStatus() },
     {
       key: 'a',
       label: () => l.alarm,

@@ -88,6 +88,7 @@ Lab-Tab (wie später zwischen den beiden Fenstern).
 | `E` | Termin in Kürze | `T` | 5-Minuten-Timer (zeigt das Abspalten) |
 | `C` | Laden | `A` | Wecker klingelt |
 | `P` | Pomodoro starten / nächste Phase | `S` | Zeitlupe (1× → 0,5× → 0,2×) |
+| `K` | Coding-Agent fragt um Erlaubnis | `J` | Coding-Agent fertig / wartet |
 | `R` | Reduzierte Bewegung | `H` | Lab-Leiste ausblenden |
 
 Außerdem: **Mausrad** über der Island ändert die Lautstärke, **Überfahren** der Musik-Island öffnet den Player.

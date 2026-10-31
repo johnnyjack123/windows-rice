@@ -231,8 +231,9 @@ Die Theme-Engine erzeugt daraus CSS-Kurven (`--ease-spring-*`) und Dauern (`--du
    Brücke ist ein berechneter Vektorpfad (Metaball) bzw. beim Liquid Glass die weiche Vereinigung im Shader. Beim
    Zurückziehen bildet sie sich neu. Schließt das Kontrollzentrum, wird die Island **erst** wieder eine Pille, **dann**
    spaltet sich die Bubble ab.
-9. **Keine Endlosschleifen** außer echtem Fortschritt, laufender Wiedergabe (Equalizer), klingelndem Wecker und dem
-   Pausen-Vollbild (Atemkreis, Ambiente; §16).
+9. **Keine Endlosschleifen** außer echtem Fortschritt, laufender Wiedergabe (Equalizer), klingelndem Wecker, dem
+   Pausen-Vollbild (Atemkreis, Ambiente; §16) und dem Maskottchen eines Coding-Agents, solange seine Frage sichtbar
+   ist (erst Hüpfen und Winken, nach `--agent-patience` ruhiges Umschauen).
 10. **Reduzierte Bewegung** (Windows oder Lab): Federn kritisch gedämpft ≤ 0,3 s, keine Unschärfe, Skalierung,
     Staffelung oder Wackeln. Überblendungen bleiben.
 
@@ -314,6 +315,8 @@ Bedeutung nie nur über Farbe.
 | `timer:expanded`, `stopwatch:expanded`, `pomodoro:expanded` | 304 × Inhalt | Schnellaktionen: Ring + Restzeit, darunter +1 Min/Pause/Abbrechen bzw. Runde/Pause bzw. Pause/Überspringen/Beenden |
 | `pomodoroPhase` | 304 × Inhalt | Ankündigung eines automatischen Phasenwechsels („Zeit für eine Pause · 5 Min“) |
 | `charging` | ≥ 264 × 34 | „Wird geladen“, Prozent, Akku |
+| `agent` | 392 × Inhalt | Voxel-Maskottchen (WebGL), Agent · Projekt (+n weitere), was er tun will, Befehl/Pfad in Mono (2 Zeilen), „Im Terminal“/„Ablehnen“/„Erlauben“; nach der Entscheidung reagiert das Maskottchen (Sprung mit Drehung bzw. Kopfschütteln) |
+| `agentStatus` | Inhalt × 34 | Kleines Maskottchen, „Claude Code ist fertig“ bzw. „wartet auf dich“, Projekt |
 | `alarm` / `timerDone` / `pomodoroDone` | 392 × Inhalt | Wackelnde Glocke, Uhrzeit bzw. Name, Schlummern/+1 Min und Ausschalten/Stopp; beim Pomodoro „Pause starten“/„Fokus starten“ und Beenden |
 | `panel` | 800 × 556 | Kontrollzentrum |
 
@@ -324,7 +327,9 @@ Bedeutung nie nur über Farbe.
 | Wecker klingelt | 110 | bis Schlummern/Aus | Timer |
 | Timer abgelaufen | 105 | bis Stopp | Timer |
 | Pomodoro-Phase vorbei (ohne Autostart) | 104 | bis Start/Beenden | Timer |
+| Coding-Agent fragt | 102 | bis zur Antwort (hier oder im Terminal) | – |
 | Mitteilung | 100 | 4,8 s (pausiert bei Hover) | Mitteilungen |
+| Coding-Agent fertig/wartet | 99 | 4,2 s | – |
 | Pomodoro-Phasenwechsel | 95 | 5,2 s | Timer |
 | OSD | 90 | 1,7 s nach letzter Änderung | – |
 | Laden | 80 | 3,2 s | – |

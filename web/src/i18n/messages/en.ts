@@ -65,6 +65,27 @@ export const en: Messages = {
     pomodoro: (phase: string) => `Pomodoro · ${phase}`,
   },
 
+  agents: {
+    names: { claude: 'Claude Code', opencode: 'OpenCode', pi: 'Pi' },
+    asks: {
+      command: 'Wants to run a command',
+      edit: 'Wants to edit a file',
+      write: 'Wants to write a file',
+      read: 'Wants to read files',
+      fetch: 'Wants to fetch from the web',
+      mcp: 'Wants to use a tool',
+      other: 'Asks for permission',
+    },
+    request: (agent: string, project: string) => `${agent} asks in ${project}`,
+    more: (n: number) => `+${n} more`,
+    allow: 'Allow',
+    deny: 'Deny',
+    terminal: 'In terminal',
+    terminalHint: 'Decide in the terminal',
+    done: (agent: string) => `${agent} is done`,
+    waiting: (agent: string) => `${agent} is waiting for you`,
+  },
+
   header: {
     editTiles: 'Edit tiles',
     settings: 'Settings',
@@ -346,6 +367,7 @@ export const en: Messages = {
       panel: 'Control centre',
       calendar: 'Calendar & tasks',
       timers: 'Timers & alarms',
+      agents: 'Coding agents',
       language: 'Language',
       about: 'About rice',
     },
@@ -484,6 +506,17 @@ export const en: Messages = {
       volume: 'Sound volume',
       pomodoro: 'Pomodoro',
     },
+    agents: {
+      intro: 'When a coding agent asks for permission, the question appears in the island. Decide there – or in the terminal as usual.',
+      title: 'Agents',
+      claudeHint: "Adds a hook to Claude Code's settings (settings.json). The previous file is backed up as settings.json.rice-backup first.",
+      notFound: 'Not found – Claude Code has not been used on this computer yet.',
+      later: 'OpenCode and Pi follow in a later version.',
+      safety: 'Safety',
+      safetyRules: "rice never allows anything on its own. If rice is not running, you don't answer or something goes wrong, the agent asks in the terminal as usual. New questions ignore clicks for half a second, so you cannot agree by accident.",
+      errorInvalid: "Claude Code's settings.json is not valid JSON. rice changes it only once it is repaired.",
+      errorGeneric: "Claude Code's settings could not be changed.",
+    },
     language: {
       label: 'Interface language',
       auto: 'Like Windows',
@@ -543,11 +576,13 @@ export const en: Messages = {
     breakFullscreen: 'Pomodoro break in full screen',
     breakPreview: 'View the break screen',
     breakFrame: 'Break window',
+    agentRequest: 'Agent asks for permission',
+    agentStatus: 'Agent done / waiting',
     hideLab: 'Hide lab',
     collapse: 'Collapse lab',
     tempoToast: (t: string) => `Speed ${t}×`,
     opens: (target: string) => `Opens ${target}`,
-    shortcuts: 'Shortcuts: 1–5 theme · D scheme · N V B M . E T C A P · Space · S speed · R · H',
+    shortcuts: 'Shortcuts: 1–5 theme · D scheme · N V B M . E T C A P K J · Space · S speed · R · H',
   },
 
   gallery: {

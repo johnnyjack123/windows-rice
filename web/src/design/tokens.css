@@ -68,6 +68,11 @@
   --app-icon-l: 0.62;
   --app-icon-c: 0.15;
   --app-icon-fg: #fff;
+  /* The coding-agent mascot keeps Claude Code's own colours in every theme. */
+  --mascot-body: #d97757;
+  --mascot-eye: #1f1e1d;
+  --mascot-shadow: #000;
+  --mascot-shadow-opacity: 0.3;
 
   /* ── Type · families ────────────────────────────────────────────────── */
   --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
@@ -89,6 +94,7 @@
   --type-island-clock: 600 calc(13.5px * var(--text-scale))/1 var(--font-numeric);
   --type-metric: 600 calc(22px * var(--text-scale))/1 var(--font-numeric);
   --type-badge: 700 calc(10px * var(--text-scale))/1 var(--font-ui);
+  --type-code: 400 calc(12px * var(--text-scale))/1.4 var(--font-mono); /* commands and paths */
 
   --tracking-display: -0.025em;
   --tracking-headline: -0.01em;
@@ -159,6 +165,8 @@
   --osd-width: 264px;
   --art-size: 56px;
   --app-icon-size: 36px;
+  --mascot-width: 84px;                        /* coding-agent mascot asking (canvas 3 : 2) */
+  --mascot-width-compact: 39px;                /* … in the compact island */
   --check-size: 20px;
   --progress-height: 4px;
   --spark-height: 28px;
@@ -209,6 +217,8 @@
   --stagger: 18ms;
   --eq-timing: ease-in-out;
   --eq-duration: 400ms;                        /* one bar swing; a loop, so the UI tempo setting leaves it alone */
+  --agent-arm-delay: 500ms;                    /* a new permission request ignores clicks this long */
+  --agent-patience: 5200ms;                    /* the mascot hops for attention, then waits calmly */
 
   /* Generated at runtime from --spring-* (fallbacks only). */
   --ease-spring-content: var(--ease-enter);

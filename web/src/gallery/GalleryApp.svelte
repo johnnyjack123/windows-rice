@@ -22,6 +22,7 @@
   import Switch from '$ui/Switch.svelte';
   import Tabs from '$ui/Tabs.svelte';
   import Tile from '$ui/Tile.svelte';
+  import Mascot from '$island/mascot/Mascot.svelte';
 
   interface Props {
     backend: Backend;
@@ -80,6 +81,12 @@
               <Equalizer playing />
             </div>
           </div>
+          <div class="g-island">
+            <div class="view view--agentStatus" data-compact>
+              <Mascot still class="mascot--compact" />
+              <span class="agent-status"><span>{m.agents.done(m.agents.names.claude)}</span><span class="agent-status__project">rice</span></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -98,6 +105,25 @@
               </div>
             </div>
           </div>
+          {#each [null, 'allow'] as decided (decided)}
+            <div class="g-island g-island--live">
+              <div class="view view--live view--agent">
+                <div class="agent-head">
+                  <Mascot still class="mascot--live" />
+                  <div class="truncate">
+                    <div class="nv-meta"><span class="truncate">{m.agents.names.claude} · rice</span><span>{m.agents.more(1)}</span></div>
+                    <div class="live-title truncate">{m.agents.asks.command}</div>
+                  </div>
+                </div>
+                <div class="agent-detail">pnpm verify &amp;&amp; cargo clippy --workspace --all-targets -- -D warnings &amp;&amp; cargo test --workspace</div>
+                <div class="live-actions agent-actions" class:is-decided={decided !== null}>
+                  <button class="btn btn--tonal has-state" disabled={decided !== null}><Icon name="terminal" />{m.agents.terminal}</button>
+                  <button class="btn btn--tonal has-state" disabled={decided !== null}><Icon name="block" />{m.agents.deny}</button>
+                  <button class="btn btn--filled has-state" class:is-chosen={decided !== null} disabled={decided !== null}><Icon name="check" />{m.agents.allow}</button>
+                </div>
+              </div>
+            </div>
+          {/each}
           <div class="g-island"><div class="view view--osd"><span class="osd-icon"><Icon name="volume_down" /></span><div class="osd-bar"><div class="osd__fill" style:--v={0.48}></div></div><span class="osd-value num">48</span></div></div>
           <div class="g-island g-island--live">
             <div class="view view--live view--timer-expanded">

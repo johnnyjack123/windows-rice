@@ -4,6 +4,7 @@
   import { i18n } from '$i18n/i18n.svelte';
   import Icon from '$ui/Icon.svelte';
   import AboutPage from './pages/AboutPage.svelte';
+  import AgentsPage from './pages/AgentsPage.svelte';
   import AppearancePage from './pages/AppearancePage.svelte';
   import CalendarPage from './pages/CalendarPage.svelte';
   import IslandPage from './pages/IslandPage.svelte';
@@ -23,13 +24,14 @@
   // svelte-ignore state_referenced_locally
   provideEngine(props.engine);
 
-  type PageId = 'appearance' | 'island' | 'panel' | 'calendar' | 'timers' | 'language' | 'about';
+  type PageId = 'appearance' | 'island' | 'panel' | 'calendar' | 'timers' | 'agents' | 'language' | 'about';
   const PAGES: Array<{ id: PageId; icon: string }> = [
     { id: 'appearance', icon: 'palette' },
     { id: 'island', icon: 'pill' },
     { id: 'panel', icon: 'dashboard' },
     { id: 'calendar', icon: 'calendar_month' },
     { id: 'timers', icon: 'alarm' },
+    { id: 'agents', icon: 'terminal' },
     { id: 'language', icon: 'translate' },
     { id: 'about', icon: 'info' },
   ];
@@ -86,6 +88,8 @@
         <CalendarPage />
       {:else if page === 'timers'}
         <TimersPage />
+      {:else if page === 'agents'}
+        <AgentsPage />
       {:else if page === 'language'}
         <LanguagePage />
       {:else}

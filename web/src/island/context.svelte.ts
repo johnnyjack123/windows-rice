@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte';
-import type { AppNotification, CalendarEvent } from '$backend/contract';
+import type { AgentDecision, AgentRequest, AgentStatus, AppNotification, CalendarEvent } from '$backend/contract';
 import type { Backend } from '$backend/index';
 import type { ThemeEngine } from '$design/engine.svelte';
 import type { ActivityRegistry } from './activities.svelte';
@@ -12,6 +12,10 @@ export class IslandUiState {
   notification = $state<AppNotification | null>(null);
   osd = $state<{ kind: 'volume' | 'brightness'; value: number; muted: boolean }>({ kind: 'volume', value: 0.5, muted: false });
   event = $state<CalendarEvent | null>(null);
+  /** Last "done" / "waiting" report of a coding agent. */
+  agentStatus = $state<AgentStatus | null>(null);
+  /** An answered request that stays a moment for the mascot's reaction. */
+  agentFarewell = $state<{ request: AgentRequest; decision: AgentDecision } | null>(null);
 }
 
 /** Panel navigation state. */

@@ -67,6 +67,27 @@ export const de = {
     pomodoro: (phase: string) => `Pomodoro · ${phase}`,
   },
 
+  agents: {
+    names: { claude: 'Claude Code', opencode: 'OpenCode', pi: 'Pi' },
+    asks: {
+      command: 'Möchte einen Befehl ausführen',
+      edit: 'Möchte eine Datei ändern',
+      write: 'Möchte eine Datei schreiben',
+      read: 'Möchte Dateien lesen',
+      fetch: 'Möchte etwas im Netz abrufen',
+      mcp: 'Möchte ein Werkzeug benutzen',
+      other: 'Bittet um Erlaubnis',
+    },
+    request: (agent: string, project: string) => `${agent} fragt in ${project}`,
+    more: (n: number) => `+${n} weitere`,
+    allow: 'Erlauben',
+    deny: 'Ablehnen',
+    terminal: 'Im Terminal',
+    terminalHint: 'Im Terminal entscheiden',
+    done: (agent: string) => `${agent} ist fertig`,
+    waiting: (agent: string) => `${agent} wartet auf dich`,
+  },
+
   header: {
     editTiles: 'Kacheln bearbeiten',
     settings: 'Einstellungen',
@@ -348,6 +369,7 @@ export const de = {
       panel: 'Kontrollzentrum',
       calendar: 'Kalender & Aufgaben',
       timers: 'Timer & Wecker',
+      agents: 'Coding-Agents',
       language: 'Sprache',
       about: 'Über rice',
     },
@@ -486,6 +508,17 @@ export const de = {
       volume: 'Lautstärke des Signals',
       pomodoro: 'Pomodoro',
     },
+    agents: {
+      intro: 'Fragt ein Coding-Agent um Erlaubnis, erscheint die Frage in der Island. Du entscheidest dort – oder wie gewohnt im Terminal.',
+      title: 'Agents',
+      claudeHint: 'Trägt einen Hook in die Einstellungen von Claude Code ein (settings.json). Die bisherige Datei wird vorher als settings.json.rice-backup gesichert.',
+      notFound: 'Nicht gefunden – Claude Code wurde auf diesem Rechner noch nicht benutzt.',
+      later: 'OpenCode und Pi folgen in einer späteren Version.',
+      safety: 'Sicherheit',
+      safetyRules: 'rice erlaubt nie etwas von selbst. Läuft rice nicht, antwortest du nicht oder geht etwas schief, fragt der Agent wie gewohnt im Terminal. Neue Fragen nehmen in der ersten halben Sekunde keinen Klick an, damit du nicht versehentlich zustimmst.',
+      errorInvalid: 'Die settings.json von Claude Code ist kein gültiges JSON. rice ändert sie erst, wenn sie repariert ist.',
+      errorGeneric: 'Die Einstellungen von Claude Code konnten nicht geändert werden.',
+    },
     language: {
       label: 'Sprache der Oberfläche',
       auto: 'Wie Windows',
@@ -545,11 +578,13 @@ export const de = {
     breakFullscreen: 'Pomodoro-Pause im Vollbild',
     breakPreview: 'Pausen-Vollbild ansehen',
     breakFrame: 'Pausenfenster',
+    agentRequest: 'Agent fragt um Erlaubnis',
+    agentStatus: 'Agent fertig / wartet',
     hideLab: 'Lab ausblenden',
     collapse: 'Lab einklappen',
     tempoToast: (t: string) => `Tempo ${t}×`,
     opens: (target: string) => `Öffnet ${target}`,
-    shortcuts: 'Tastenkürzel: 1–5 Theme · D Schema · N V B M . E T C A P · Leertaste · S Tempo · R · H',
+    shortcuts: 'Tastenkürzel: 1–5 Theme · D Schema · N V B M . E T C A P K J · Leertaste · S Tempo · R · H',
   },
 
   gallery: {
