@@ -46,7 +46,7 @@ pub fn exchange(name: &str, message: &PipeMessage) -> Option<PipeAnswer> {
     line.push(b'\n');
     pipe.write_all(&line).ok()?;
     match message {
-        PipeMessage::Status { .. } => {
+        PipeMessage::Status { .. } | PipeMessage::Settled { .. } => {
             // Returns once rice has read the message (FlushFileBuffers on a pipe).
             let _ = pipe.sync_all();
             None

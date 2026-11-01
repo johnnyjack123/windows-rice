@@ -2,11 +2,11 @@
 //! "Coding-Agents"). Hook processes (`rice.exe --agent-hook claude`, see
 //! `agent_hook.rs`) connect to a named pipe only this user can open. A
 //! permission request waits until the user decides, the hook goes away
-//! (answered in the terminal, timed out) or [`GIVE_UP`] passes; rice never
-//! allows anything on its own.
+//! (cancelled, timed out), the agent reports the call as done (answered in
+//! the terminal) or [`GIVE_UP`] passes; rice never allows anything on its own.
 
 use crate::state::{AppState, Locked};
-use rice_core::agents::{self, Decision, MAX_MESSAGE, PROTOCOL, PipeAnswer, PipeMessage};
+use rice_core::agents::{self, Call, Decision, MAX_MESSAGE, PROTOCOL, PipeAnswer, PipeMessage};
 use rice_core::contract::{AgentId, AgentIntegration, AgentRequest, AgentStatus, events};
 use rice_core::time::now_iso;
 use rice_core::{BackendError, BackendResult};
@@ -35,6 +35,8 @@ pub struct Agents {
 
 struct Pending {
     request: AgentRequest,
+    session: String,
+    subagent: Option<String>,
     answer: oneshot::Sender<Decision>,
 }
 
@@ -44,10 +46,44 @@ impl Agents {
         let index = pending.iter().position(|p| p.request.id == id)?;
         Some(pending.remove(index))
     }
+
+    /// Withdraws requests the agent's own prompt has answered: one per call
+    /// of `calls` (oldest first), or every request of the main agent when it
+    /// finished or waits for input (`calls` = `None`).
+    fn settle(&self, session: &str, subagent: Option<&str>, calls: Option<&[Call]>) {
+        let settled: Vec<Pending> = {
+            let mut pending = self.pending.locked();
+            let of_agent = |p: &Pending| p.session == session && p.subagent.as_deref() == subagent;
+            match calls {
+                None => {
+                    let (settled, waiting) = std::mem::take(&mut *pending).into_iter().partition(of_agent);
+                    *pending = waiting;
+                    settled
+                }
+                Some(calls) => calls
+                    .iter()
+                    .filter_map(|call| {
+                        let index = pending
+                            .iter()
+                            .position(|p| of_agent(p) && p.request.tool == call.tool && p.request.detail == call.detail)?;
+                        Some(pending.remove(index))
+                    })
+                    .collect(),
+            }
+        };
+        // The waiting tasks emit `agents://resolved`; their hooks print nothing.
+        for request in settled {
+            let _ = request.answer.send(Decision::Terminal);
+        }
+    }
 }
 
-/// Opens the pipe for hook processes.
+/// Opens the pipe for hook processes and brings the hooks of an older rice
+/// up to date.
 pub fn start(app: &AppHandle) {
+    if let Err(error) = update_claude_hooks() {
+        log::info!("agents: Claude Code hooks not updated ({})", error.message);
+    }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(error) = serve(&app).await {
@@ -93,14 +129,21 @@ async fn converse(app: &AppHandle, pipe: NamedPipeServer) -> io::Result<()> {
     (&mut reader).take(MAX_MESSAGE).read_until(b'\n', &mut line).await?;
     let message: PipeMessage = serde_json::from_slice(&line).map_err(io::Error::other)?;
     match message {
-        PipeMessage::Status { v, agent, cwd, state, message, .. } => {
+        PipeMessage::Status { v, agent, session, cwd, state, message } => {
             if let Some(agent) = known(v, &agent) {
+                app.state::<AppState>().agents.settle(&session, None, None);
                 let status = AgentStatus { agent, project: agents::project_name(&cwd), state, message, time: now_iso() };
                 let _ = app.emit(events::AGENTS_STATUS, status);
             }
             Ok(())
         }
-        PipeMessage::Permission { v, agent, cwd, tool, input, .. } => {
+        PipeMessage::Settled { v, agent, session, subagent, calls } => {
+            if known(v, &agent).is_some() {
+                app.state::<AppState>().agents.settle(&session, subagent.as_deref(), Some(&calls));
+            }
+            Ok(())
+        }
+        PipeMessage::Permission { v, agent, session, subagent, cwd, tool, input } => {
             let decision = match known(v, &agent) {
                 Some(agent) => {
                     let (kind, detail) = agents::describe(&tool, &input);
@@ -114,7 +157,7 @@ async fn converse(app: &AppHandle, pipe: NamedPipeServer) -> io::Result<()> {
                         summary: agents::summary(&input),
                         time: now_iso(),
                     };
-                    ask(app, request, reader).await
+                    ask(app, request, session, subagent, reader).await
                 }
                 None => Decision::Terminal,
             };
@@ -132,18 +175,25 @@ fn known(version: u32, agent: &str) -> Option<AgentId> {
     (version == PROTOCOL).then(|| serde_json::from_value(json!(agent)).ok()).flatten()
 }
 
-/// Shows `request` and waits for the user, the hook leaving, or [`GIVE_UP`].
-async fn ask(app: &AppHandle, mut request: AgentRequest, mut reader: BufReader<ReadHalf<NamedPipeServer>>) -> Decision {
+/// Shows `request` and waits for the user, the agent ([`Agents::settle`]),
+/// the hook leaving, or [`GIVE_UP`].
+async fn ask(
+    app: &AppHandle,
+    mut request: AgentRequest,
+    session: String,
+    subagent: Option<String>,
+    mut reader: BufReader<ReadHalf<NamedPipeServer>>,
+) -> Decision {
     let state = app.state::<AppState>();
     let id = format!("a{}", state.agents.next_id.fetch_add(1, Ordering::Relaxed) + 1);
     request.id.clone_from(&id);
     let (sender, answer) = oneshot::channel();
-    state.agents.pending.locked().push(Pending { request: request.clone(), answer: sender });
+    state.agents.pending.locked().push(Pending { request: request.clone(), session, subagent, answer: sender });
     let _ = app.emit(events::AGENTS_REQUEST, request);
     let mut rest = [0u8; 64];
     let decision = tokio::select! {
         decision = answer => decision.unwrap_or(Decision::Terminal),
-        // End of input: the hook was answered in the terminal, cancelled or killed.
+        // End of input: the turn was cancelled (Esc, "No") or the hook timed out.
         () = async { while matches!(reader.read(&mut rest).await, Ok(n) if n > 0) {} } => Decision::Terminal,
         () = tokio::time::sleep(GIVE_UP) => Decision::Terminal,
     };
@@ -192,6 +242,20 @@ pub fn disconnect(id: AgentId) -> BackendResult<AgentIntegration> {
         }
         AgentId::OpenCode | AgentId::Pi => Err(BackendError::not_supported(format!("{id:?} is not supported yet"))),
     }
+}
+
+/// Replaces this rice's hooks from an older version with the current set
+/// (new hook events take effect in Claude Code sessions started afterwards).
+fn update_claude_hooks() -> BackendResult<()> {
+    let exe = std::env::current_exe().map_err(BackendError::internal)?;
+    let exe = exe.to_string_lossy();
+    edit_settings(&claude_settings()?, |settings| {
+        if !agents::claude_outdated(settings, &exe) {
+            return Ok(false);
+        }
+        log::info!("agents: updating rice's hooks in Claude Code's settings");
+        agents::claude_connect(settings, &exe).map(|()| true)
+    })
 }
 
 /// For the uninstaller (`rice.exe --disconnect-agents`): removes every hook.
@@ -253,6 +317,7 @@ fn edit_settings(path: &Path, change: impl FnOnce(&mut Value) -> Result<bool, St
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rice_core::contract::ToolKind;
 
     #[test]
     fn edits_settings_with_a_backup() {
@@ -291,6 +356,7 @@ mod tests {
             v: PROTOCOL,
             agent: "claude".into(),
             session: "s".into(),
+            subagent: None,
             cwd: r"C:\rice".into(),
             tool: "Bash".into(),
             input: json!({ "command": "ls" }),
@@ -315,6 +381,50 @@ mod tests {
         });
         // Nobody serves the name any more: the hook gives up at once.
         assert_eq!(crate::agent_hook::exchange(&name, &message), None);
+    }
+
+    #[test]
+    fn withdraws_requests_answered_in_the_terminal() {
+        let queue = Agents::default();
+        let wait = |id: &str, subagent: Option<&str>, tool: &str, detail: &str| {
+            let (answer, decision) = oneshot::channel();
+            let request = AgentRequest {
+                id: id.into(),
+                agent: AgentId::Claude,
+                project: "rice".into(),
+                tool: tool.into(),
+                kind: ToolKind::Other,
+                detail: detail.into(),
+                summary: None,
+                time: String::new(),
+            };
+            queue.pending.locked().push(Pending { request, session: "s".into(), subagent: subagent.map(Into::into), answer });
+            decision
+        };
+        let ids = || queue.pending.locked().iter().map(|p| p.request.id.clone()).collect::<Vec<_>>();
+        let call = |tool: &str, detail: &str| Call { tool: tool.into(), detail: detail.into() };
+        let mut ls = wait("a1", None, "Bash", "ls");
+        let mut ls_again = wait("a2", None, "Bash", "ls");
+        let mut sub = wait("a3", Some("x"), "Bash", "ls");
+        let mut edit = wait("a4", None, "Edit", "a.rs");
+
+        // One request per finished call, oldest first, only of the same agent.
+        queue.settle("s", None, Some(&[call("Bash", "ls")]));
+        assert_eq!(ls.try_recv(), Ok(Decision::Terminal));
+        assert!(ls_again.try_recv().is_err() && sub.try_recv().is_err());
+        assert_eq!(ids(), ["a2", "a3", "a4"]);
+        // Another session, or a call nobody waits for, changes nothing.
+        queue.settle("t", None, None);
+        queue.settle("s", None, Some(&[call("Write", "a.rs")]));
+        assert_eq!(ids(), ["a2", "a3", "a4"]);
+        // The main agent finished: all its requests go, the subagent's stays.
+        queue.settle("s", None, None);
+        assert_eq!(ls_again.try_recv(), Ok(Decision::Terminal));
+        assert_eq!(edit.try_recv(), Ok(Decision::Terminal));
+        assert_eq!(ids(), ["a3"]);
+        queue.settle("s", Some("x"), Some(&[call("Bash", "ls")]));
+        assert_eq!(sub.try_recv(), Ok(Decision::Terminal));
+        assert!(ids().is_empty());
     }
 
     #[test]

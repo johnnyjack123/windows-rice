@@ -19,13 +19,25 @@ const SUMMARY_MAX: usize = 160;
 const MESSAGE_MAX: usize = 300;
 
 /// One message from a hook process to rice, one JSON line per connection.
+/// `subagent` names the subagent a call comes from (`None`: the main agent).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PipeMessage {
     /// The agent waits for the user's decision; rice answers with a [`PipeAnswer`].
-    Permission { v: u32, agent: String, session: String, cwd: String, tool: String, input: Value },
-    /// Fire and forget: the agent finished or waits for input.
+    Permission { v: u32, agent: String, session: String, subagent: Option<String>, cwd: String, tool: String, input: Value },
+    /// Fire and forget: the main agent finished or waits for input, so none
+    /// of its requests waits any more.
     Status { v: u32, agent: String, session: String, cwd: String, state: AgentStatusState, message: Option<String> },
+    /// Fire and forget: these calls have their results. A request still
+    /// shown for one of them was answered in the agent's own prompt.
+    Settled { v: u32, agent: String, session: String, subagent: Option<String>, calls: Vec<Call> },
+}
+
+/// A tool call as the island shows it: tool and [`describe`]d detail.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Call {
+    pub tool: String,
+    pub detail: String,
 }
 
 /// How the user decided in the island.
@@ -94,14 +106,32 @@ pub fn clip(text: &str, max: usize) -> String {
 pub fn claude_message(payload: &Value) -> Option<PipeMessage> {
     let text = |name: &str| payload[name].as_str().unwrap_or_default().to_owned();
     let (agent, session, cwd) = ("claude".to_owned(), text("session_id"), text("cwd"));
+    let subagent = payload["agent_id"].as_str().map(str::to_owned);
     match payload["hook_event_name"].as_str()? {
         "PermissionRequest" => Some(PipeMessage::Permission {
             v: PROTOCOL,
             agent,
             session,
+            subagent,
             cwd,
             tool: payload["tool_name"].as_str()?.to_owned(),
             input: payload["tool_input"].clone(),
+        }),
+        // Claude Code lets a permission hook run on when the user answers in
+        // the terminal; only the finished calls tell rice.
+        "PostToolBatch" => Some(PipeMessage::Settled {
+            v: PROTOCOL,
+            agent,
+            session,
+            subagent,
+            calls: payload["tool_calls"]
+                .as_array()?
+                .iter()
+                .filter_map(|call| {
+                    let tool = call["tool_name"].as_str()?;
+                    Some(Call { tool: tool.to_owned(), detail: describe(tool, &call["tool_input"]).1 })
+                })
+                .collect(),
         }),
         "Stop" => Some(PipeMessage::Status {
             v: PROTOCOL,
@@ -135,20 +165,51 @@ pub fn claude_answer(decision: Decision) -> Option<Value> {
 }
 
 /// Hook events rice registers in Claude Code: (event, matcher, timeout in s).
-/// A permission may wait for the user; the others only report.
-const CLAUDE_HOOKS: [(&str, Option<&str>, u64); 3] =
-    [("PermissionRequest", Some("*"), 600), ("Stop", None, 10), ("Notification", Some("idle_prompt"), 10)];
+/// A permission may wait for the user; the others only report and run in
+/// the background (`async`), so Claude Code never waits for them.
+const CLAUDE_HOOKS: [(&str, Option<&str>, u64); 4] = [
+    ("PermissionRequest", Some("*"), 600),
+    ("PostToolBatch", None, 10),
+    ("Stop", None, 10),
+    ("Notification", Some("idle_prompt"), 10),
+];
 
 /// Whether a hook handler is one of rice's.
 fn is_ours(handler: &Value) -> bool {
     handler["args"].as_array().is_some_and(|args| args.first().and_then(Value::as_str) == Some(HOOK_FLAG))
 }
 
+/// rice's handlers in Claude Code's settings, each as `[event, matcher, handler]`, sorted.
+fn our_hooks(settings: &Value) -> Vec<Value> {
+    let mut found: Vec<Value> = settings["hooks"]
+        .as_object()
+        .into_iter()
+        .flatten()
+        .flat_map(|(event, groups)| {
+            groups.as_array().into_iter().flatten().flat_map(move |group| {
+                let handlers = group["hooks"].as_array().into_iter().flatten().filter(|h| is_ours(h));
+                handlers.map(move |handler| json!([event, group.get("matcher"), handler]))
+            })
+        })
+        .collect();
+    found.sort_by_cached_key(Value::to_string);
+    found
+}
+
 /// Whether Claude Code's settings contain rice's hooks.
 pub fn claude_connected(settings: &Value) -> bool {
-    settings["hooks"].as_object().is_some_and(|hooks| {
-        hooks.values().filter_map(Value::as_array).flatten().filter_map(|group| group["hooks"].as_array()).flatten().any(is_ours)
-    })
+    !our_hooks(settings).is_empty()
+}
+
+/// Whether the settings hold this rice's hooks (`exe`) from an older version;
+/// hooks of another rice.exe are none of its business.
+pub fn claude_outdated(settings: &Value, exe: &str) -> bool {
+    let found = our_hooks(settings);
+    let mut current = json!({});
+    if found.is_empty() || !found.iter().all(|hook| hook[2]["command"] == exe) || claude_connect(&mut current, exe).is_err() {
+        return false;
+    }
+    found != our_hooks(&current)
 }
 
 /// Adds rice's hooks (exec form: `exe --agent-hook claude`, no shell), after
@@ -159,7 +220,10 @@ pub fn claude_connect(settings: &mut Value, exe: &str) -> Result<(), String> {
     let hooks = root.entry("hooks").or_insert_with(|| json!({})).as_object_mut().ok_or("\"hooks\" is not an object")?;
     for (event, matcher, timeout) in CLAUDE_HOOKS {
         let groups = hooks.entry(event).or_insert_with(|| json!([])).as_array_mut().ok_or(format!("\"hooks.{event}\" is not a list"))?;
-        let handler = json!({ "type": "command", "command": exe, "args": [HOOK_FLAG, "claude"], "timeout": timeout });
+        let mut handler = json!({ "type": "command", "command": exe, "args": [HOOK_FLAG, "claude"], "timeout": timeout });
+        if event != "PermissionRequest" {
+            handler["async"] = json!(true);
+        }
         let mut group = json!({ "hooks": [handler] });
         if let Some(matcher) = matcher {
             group["matcher"] = json!(matcher);
@@ -238,10 +302,31 @@ mod tests {
         assert_eq!(
             claude_message(&permission),
             Some(PipeMessage::Permission {
-                v: PROTOCOL, agent: "claude".into(), session: "s1".into(), cwd: r"C:\rice".into(), tool: "Bash".into(),
-                input: json!({ "command": "ls" }),
+                v: PROTOCOL, agent: "claude".into(), session: "s1".into(), subagent: None, cwd: r"C:\rice".into(),
+                tool: "Bash".into(), input: json!({ "command": "ls" }),
             })
         );
+        let batch = json!({
+            "hook_event_name": "PostToolBatch", "session_id": "s1", "cwd": r"C:\rice", "agent_id": "a7",
+            "tool_calls": [
+                { "tool_name": "Bash", "tool_input": { "command": " ls " }, "tool_use_id": "t1", "tool_response": "x" },
+                { "tool_name": "Edit", "tool_input": { "file_path": "a.rs" }, "tool_use_id": "t2" },
+                { "tool_input": {} }
+            ]
+        });
+        assert_eq!(
+            claude_message(&batch),
+            Some(PipeMessage::Settled {
+                v: PROTOCOL, agent: "claude".into(), session: "s1".into(), subagent: Some("a7".into()),
+                calls: vec![Call { tool: "Bash".into(), detail: "ls".into() }, Call { tool: "Edit".into(), detail: "a.rs".into() }],
+            })
+        );
+        // Older messages without `subagent` still parse.
+        let old: PipeMessage = serde_json::from_str(
+            r#"{"type":"permission","v":1,"agent":"claude","session":"s","cwd":"","tool":"Bash","input":{}}"#,
+        )
+        .unwrap();
+        assert!(matches!(old, PipeMessage::Permission { subagent: None, .. }));
         let stop = json!({ "hook_event_name": "Stop", "session_id": "s1", "cwd": "C:\\rice", "last_assistant_message": "Fertig." });
         assert!(matches!(claude_message(&stop), Some(PipeMessage::Status { state: AgentStatusState::Done, message: Some(m), .. }) if m == "Fertig."));
         let idle = json!({ "hook_event_name": "Notification", "notification_type": "idle_prompt", "message": "waiting" });
@@ -279,7 +364,10 @@ mod tests {
         assert_eq!(permission["matcher"], "*");
         assert_eq!(permission["hooks"][0]["args"], json!(["--agent-hook", "claude"]));
         assert_eq!(permission["hooks"][0]["command"], r"C:\rice\rice.exe");
+        assert_eq!(permission["hooks"][0].get("async"), None);
         assert_eq!(settings["hooks"]["Stop"][0].get("matcher"), None);
+        assert_eq!(settings["hooks"]["PostToolBatch"][0]["hooks"][0]["async"], true);
+        assert!(!claude_outdated(&settings, r"C:\rice\rice.exe"));
         // Connecting again (e.g. from a new install path) replaces, never duplicates.
         claude_connect(&mut settings, r"D:\rice.exe").unwrap();
         assert_eq!(settings["hooks"]["PermissionRequest"].as_array().unwrap().len(), 1);
@@ -300,5 +388,24 @@ mod tests {
 
         assert!(claude_connect(&mut json!([1, 2]), "rice.exe").is_err());
         assert!(claude_connect(&mut json!({ "hooks": [] }), "rice.exe").is_err());
+    }
+
+    #[test]
+    fn notices_hooks_of_an_older_rice() {
+        let exe = r"C:\rice\rice.exe";
+        let mut settings = json!({});
+        claude_connect(&mut settings, exe).unwrap();
+        // Hooks of the first version: no PostToolBatch, nothing async.
+        let mut old = settings.clone();
+        old["hooks"].as_object_mut().unwrap().remove("PostToolBatch");
+        old["hooks"]["Stop"][0]["hooks"][0].as_object_mut().unwrap().remove("async");
+        assert!(claude_outdated(&old, exe));
+        // Another install keeps its hooks; nothing connected is nothing to update.
+        assert!(!claude_outdated(&old, r"D:\other\rice.exe"));
+        assert!(!claude_outdated(&json!({ "model": "opus" }), exe));
+        // A user's hook added to rice's group does not count as rice's.
+        let mut shared = settings.clone();
+        shared["hooks"]["Stop"][0]["hooks"].as_array_mut().unwrap().push(json!({ "type": "command", "command": "beep" }));
+        assert!(!claude_outdated(&shared, exe));
     }
 }

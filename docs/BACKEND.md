@@ -312,10 +312,25 @@ spricht über eine Named Pipe mit der laufenden Instanz.
 | → `agents://resolved` | Anfrage erledigt – hier, im Terminal, durch Zeitablauf oder weil der Agent aufgegeben hat. |
 | → `agents://status` | `done` (Hook `Stop`, mit dem Anfang der letzten Antwort) oder `waiting` (`Notification` mit `idle_prompt`). |
 
-**Hooks in Claude Code:** `PermissionRequest` (Matcher `*`, Timeout 600 s), `Stop` und `Notification` (`idle_prompt`,
-je 10 s). `PermissionRequest` feuert nur, wenn Claude Code sonst selbst fragen würde. Antwort auf stdout:
+**Hooks in Claude Code:** `PermissionRequest` (Matcher `*`, Timeout 600 s), dazu `PostToolBatch`, `Stop` und
+`Notification` (`idle_prompt`) – diese drei melden nur und laufen im Hintergrund (`"async": true`, 10 s).
+`PermissionRequest` feuert nur, wenn Claude Code sonst selbst fragen würde. Antwort auf stdout:
 `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}` bzw. `"deny"` mit
 `message`; **keine Ausgabe** heißt „im Terminal fragen“.
+
+**Im Terminal beantwortet:** Claude Code zeigt seinen eigenen Dialog parallel zum Hook und lässt den Hook-Prozess
+weiterlaufen, wenn der Nutzer dort antwortet – beendet wird er nur, wenn der Turn abbricht (Esc, „No“ ohne
+Begründung). Deshalb zieht rice eine Anfrage auch zurück, sobald
+- `PostToolBatch` den Aufruf als erledigt meldet (gleiche Sitzung, gleicher Subagent `agent_id`, gleiches Werkzeug und
+  gleiches Detail; je Aufruf die älteste passende Anfrage) – also nach dem Lauf des Werkzeugs bzw. nach einer
+  Ablehnung mit Begründung, oder
+- der Hauptagent fertig ist oder auf Eingabe wartet (`Stop`, `idle_prompt`): dann alle Anfragen dieser Sitzung ohne
+  Subagent.
+
+Der wartende Hook bekommt `terminal` und endet ohne Ausgabe. Findet rice beim Start eigene Hooks einer älteren Version
+(gleiche `rice.exe`, andere Einträge), ersetzt es sie wie `agents_connect` (mit Sicherung); Hooks einer anderen
+Installation bleiben unberührt. Claude Code liest Hooks beim Sitzungsstart, neue Hooks gelten also erst in neuen
+Sitzungen.
 
 **Sicherheitsregeln (verbindlich)**
 
@@ -327,9 +342,10 @@ je 10 s). `PermissionRequest` feuert nur, wenn Claude Code sonst selbst fragen w
   SYSTEM, entfernte Clients abgelehnt, erste Instanz exklusiv (`first_pipe_instance`).
 - Der Hook schickt Werkzeug-Eingaben (können Geheimnisse enthalten) nur an einen Server, dessen Programm **dieselbe
   `rice.exe`** ist (`GetNamedPipeServerProcessId`), und verbindet mit `SECURITY_IDENTIFICATION` (keine Impersonation).
-- Protokoll: eine JSON-Zeile je Verbindung (`{"type":"permission"|"status","v":1,…}`, höchstens 1 MiB), Antwort
-  `{"decision":"allow"|"deny"|"terminal"}`. Schließt der Hook die Pipe (im Terminal beantwortet, abgebrochen), zieht rice
-  die Anfrage zurück.
+- Protokoll: eine JSON-Zeile je Verbindung (`{"type":"permission"|"status"|"settled","v":1,…}`, höchstens 1 MiB),
+  Antwort nur auf `permission`: `{"decision":"allow"|"deny"|"terminal"}`. `settled` nennt erledigte Aufrufe nur als
+  Werkzeug und Detail, ohne Eingaben und Ergebnisse. Schließt der Hook die Pipe (abgebrochen, Zeitablauf), zieht rice
+  die Anfrage zurück. Ein Rückzug ist nie eine Erlaubnis.
 - Die Island nimmt in den ersten 500 ms einer neuen Anfrage keine Klicks an (`--agent-arm-delay`).
 - Der Deinstaller entfernt die Hooks (`rice.exe --disconnect-agents`).
 
