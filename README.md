@@ -104,7 +104,7 @@ Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Li
 (Fokus überspringen) – die Pause legt sich über die Seite. Direkt ansehen: <http://127.0.0.1:1420/break.html?preview>
 (auch `?preview=long`, `?preview=over`).
 
-## Die fünf Standard-Themes
+## Die Standard-Themes
 
 | | Theme | Charakter |
 |---|---|---|
@@ -113,6 +113,14 @@ Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Li
 | 3 | **Liquid Glass** | Echtes Glas per WebGL: Lichtbrechung und Farbsaum am Rand, Milchglas, Randlicht folgt der Maus, Pillen verschmelzen flüssig |
 | 4 | **Terminal** | Monospace, Haarlinien, Bernstein; ohne Federn, Inhalte „rendern“ sich ein |
 | 5 | **Paper** | Editorial: warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot |
+| 6 | **LCARS** | Raumschiff-Konsole im TNG-Stil: Ellbogen-Rahmen, Farbblöcke statt Linien, Pille mit Endkappen, schmale Versalien |
+| 7 | **Workbench 1.3** | Amiga-Desktop: Topaz-Pixelschrift, vier Farben, weiße Titelleiste mit Tiefen-Gadget, Komplement-Hervorhebung |
+| 8 | **Cyberpunk 2077** | HUD mit abgeschrägten Ecken, Koralle und Cyan, einmaliger Glitch beim Einblenden; hell als gelbes Poster |
+
+**Schriften:** Antonio (LCARS) und Rajdhani (Cyberpunk) stehen unter der SIL Open Font License. Topaz (Workbench) ist
+eine Nachbildung von dMG/TrueSchool unter GPL mit Font-Ausnahme, das Original-Design © Amiga Inc.; Herkunft und
+Lizenztext liegen in `web/src/design/fonts/topaz-a500.LICENSE.txt`. Die Theme-Namen beziehen sich auf Marken ihrer
+jeweiligen Inhaber (Paramount, Amiga, CD PROJEKT) und beschreiben nur den Stil.
 
 Jedes Theme lässt sich im **Theme-Editor** anpassen (Farben, Schriften, Radien, Tempo, Easing, Federung …) und als
 eigenes Theme speichern. Eigene Themes von Hand: [`docs/THEMING.md`](docs/THEMING.md).

@@ -1,0 +1,507 @@
+/* =============================================================================
+   Theme · LCARS
+   The starship console of the 24th century (TNG era): black glass, colour
+   blocks instead of lines, swept "elbow" frames, pill buttons with black
+   capitals and tall condensed type. Orange marks what is active or now; the
+   cool blues and lilacs are the resting colours. The compact island is a
+   black pill between two coloured end caps. Snappy, bounce-free motion;
+   content sweeps in from the left. Dark only.
+   ========================================================================== */
+
+[data-theme="lcars"] {
+  color-scheme: dark;
+
+  /* 1. Inputs */
+  --base-bg: #000;
+  --base-fg: #ffcc99;
+  --accent: #ff9900;
+  --mix-container: 0%;
+  --mix-container-high: 10%;
+  --mix-container-highest: 18%;
+  --mix-muted: 66%;
+  --mix-subtle: 58%;
+  --mix-border: 14%;
+  --mix-border-strong: 28%;
+
+  /* 2. Primitives: the TNG palette and the frame geometry */
+  --_ink: #000;
+  --_lilac: #cc99cc;
+  --_periwinkle: #9999ff;
+  --_blue: #9999cc;
+  --_sky: #99ccff;
+  --_peach: #ffcc99;
+  --_tangerine: #ff9966;
+  --_gold: #ffcc66;
+  --_dim: color-mix(in srgb, var(--_blue) 26%, var(--base-bg));
+  --_gap: 4px;                                 /* black gap between blocks */
+  --_cap: calc(var(--island-height) / 2);      /* island end caps */
+  --_row-cap: 10px;                            /* colour cap in front of list rows */
+  --_rail: 52px;                               /* sidebar of the control-centre frame */
+  --_bar: 12px;                                /* horizontal bars of the frame */
+  --_inner: 18px;                              /* inner radius of an elbow */
+  --_side: 10px;                               /* rail → content */
+  --_end: 48px;                                /* block at the end of the lower bar */
+  --_caps:
+    linear-gradient(var(--accent), var(--accent)) left / var(--_cap) 100% no-repeat,
+    linear-gradient(var(--_lilac), var(--_lilac)) right / var(--_cap) 100% no-repeat;
+
+  /* 3. Roles */
+  --color-on-accent: var(--_ink);
+  --color-accent-container: var(--_lilac);
+  --color-on-accent-container: var(--_ink);
+  --color-accent-text: var(--accent);
+  --color-focus: var(--_sky);
+  --color-positive: #99dd77;
+  --color-on-positive: var(--_ink);
+  --color-negative: #ee5555;
+  --color-on-negative: var(--_ink);
+  --color-warning: var(--_gold);
+
+  --data-l: 0.8;
+  --data-c: 0.11;
+  --app-icon-l: 0.8;
+  --app-icon-c: 0.1;
+  --app-icon-fg: var(--_ink);
+
+  /* 4. Type: tall condensed capitals (Antonio stands in for Swiss 911) */
+  --font-ui: "Antonio Variable", "Antonio", "Bahnschrift Condensed", "Arial Narrow", sans-serif;
+  --font-display: var(--font-ui);
+  --font-numeric: var(--font-ui);
+  --type-display: 500 calc(56px * var(--text-scale))/0.9 var(--font-numeric);
+  --type-timer: 400 calc(54px * var(--text-scale))/1 var(--font-numeric);
+  --type-page: 600 calc(36px * var(--text-scale))/1.05 var(--font-display);
+  --type-break: 400 calc(clamp(104px, 17vh, 210px) * var(--text-scale))/1 var(--font-numeric);
+  --type-headline: 600 calc(24px * var(--text-scale))/1.1 var(--font-display);
+  --type-title: 500 calc(16px * var(--text-scale))/1.2 var(--font-ui);
+  --type-body: 400 calc(15px * var(--text-scale))/1.35 var(--font-ui);
+  --type-label: 600 calc(14px * var(--text-scale))/1.2 var(--font-ui);
+  --type-caption: 400 calc(13.5px * var(--text-scale))/1.3 var(--font-ui);
+  --type-island: 500 calc(16px * var(--text-scale))/1 var(--font-ui);
+  --type-island-clock: 600 calc(18px * var(--text-scale))/1 var(--font-numeric);
+  --type-metric: 500 calc(30px * var(--text-scale))/1 var(--font-numeric);
+  --type-badge: 700 calc(11px * var(--text-scale))/1 var(--font-ui);
+  --tracking-display: 0em;
+  --tracking-headline: 0.04em;
+  --tracking-label: 0.08em;
+  --label-transform: uppercase;
+
+  /* 5. Shape: pills everywhere; large tiles are a cap plus a block whose
+     right end rounds off when the tile is on (shape as state). */
+  --radius-island: var(--radius-full);
+  --radius-live: 28px;
+  --radius-panel: 32px;
+  --panel-padding: calc(var(--space-unit) * 3.5);
+  --radius-control: var(--radius-full);
+  --radius-check: var(--radius-full);
+  --radius-tile: 0;
+  --radius-tile-on: 0 var(--radius-full) var(--radius-full) 0;
+  --radius-tile-pressed: 0 var(--radius-full) var(--radius-full) 0;
+  --radius-tile-small: var(--radius-full);
+  --radius-tile-icon: var(--radius-full) 0 0 var(--radius-full);
+  --radius-art: 4px;
+  --radius-art-island: var(--radius-full);
+  --radius-window: 20px;
+
+  --panel-height: 576px;
+  --panel-column: 312px;
+  --tile-height: 56px;
+  --tile-small-height: 44px;
+  --tile-icon-size: 46px;
+  --control-height: 30px;
+  --row-height: 42px;
+  --slider-height: 32px;
+  --switch-width: 46px;
+  --switch-height: 24px;
+  --switch-thumb: 16px;
+
+  /* 6. Separation: colour blocks, no lines or shadows inside the panel */
+  --elevation-island: none;
+  --elevation-card: none;
+  --elevation-tile: none;
+  --elevation-raised: none;
+
+  /* Components */
+  --tile-bg: var(--_blue);
+  --tile-fg: var(--_ink);
+  --tile-fg-muted: color-mix(in srgb, var(--_ink) 72%, transparent);
+  --tile-icon-bg: var(--_blue);
+  --tile-icon-fg: var(--_ink);
+  --tile-bg-on: var(--accent);
+  --tile-fg-on: var(--_ink);
+  --tile-fg-muted-on: color-mix(in srgb, var(--_ink) 72%, transparent);
+  --tile-icon-bg-on: var(--accent);
+  --tile-icon-fg-on: var(--_ink);
+  --tile-small-bg-on: var(--accent);
+  --tile-small-fg-on: var(--_ink);
+
+  --slider-track: var(--_dim);
+  --slider-fill: var(--_sky);
+  --slider-icon: var(--_ink);
+  --switch-track: var(--_dim);
+  --switch-thumb-color: var(--_blue);
+  --switch-track-on: var(--accent);
+  --switch-thumb-color-on: var(--_ink);
+  --tabs-bg: transparent;
+  --tabs-indicator: var(--accent);
+  --tabs-fg-active: var(--_ink);
+  --progress-track: var(--_dim);
+  --progress-fill: var(--accent);
+  --media-bg: transparent;
+  --eq-color: var(--accent);
+
+  --icon-family: "Material Symbols Rounded";
+  --icon-weight: 500;
+
+  /* 7. Motion: quick and exact, nothing bounces */
+  --island-goo: 0;
+  --spring-island: 0.34 0;
+  --spring-bubble: 0.36 0;
+  --spring-content: 0.24 0;
+  --spring-control: 0.2 0;
+  --dur-instant: 60ms;
+  --dur-fast: 120ms;
+  --dur-medium: 180ms;
+  --dur-slow: 300ms;
+  --content-blur: 0px;
+  --enter-scale: 1;
+  --enter-offset: 0px;
+  --enter-delay-grow: 50ms;
+  --enter-delay-shrink: 110ms;
+  --stagger: 26ms;
+}
+
+/* Scoped overrides stop at nested previews of other themes (gallery, theme cards). */
+@scope ([data-theme="lcars"]) to ([data-theme]:not([data-theme="lcars"])) {
+  /* ── Content sweeps in from the left, like a console redrawing ─────────── */
+  :scope .view {
+    clip-path: inset(0 100% 0 0);
+    transition:
+      opacity var(--dur-fast) var(--ease-exit),
+      clip-path var(--dur-fast) var(--ease-exit),
+      visibility 0s linear var(--dur-fast);
+  }
+  :scope .view.is-active {
+    clip-path: inset(0 0 0 0);
+    transition:
+      opacity var(--dur-medium) var(--ease-standard) var(--enter-delay, 0ms),
+      clip-path var(--dur-slow) var(--ease-enter) var(--enter-delay, 0ms),
+      visibility 0s linear 0s;
+  }
+
+  /* ── Island: a black pill between two coloured end caps ─────────────────── */
+  :scope .island__bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--_caps);
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-standard);
+  }
+  /* The control centre draws its own frame. */
+  :scope .island.is-expanded .island__bg::before {
+    opacity: 0;
+  }
+  :scope :is(.island__clip, .g-island) > .view:not(.view--panel) {
+    padding-inline: calc(var(--_cap) + var(--space-2-5));
+  }
+  :scope :is(.g-island, .theme-card__pill, .preview-island) {
+    background: var(--_caps), var(--color-island);
+  }
+  :scope .theme-card__pill {
+    padding-inline: calc(var(--_cap) + var(--space-2));
+  }
+  :scope .preview-island__content {
+    padding-inline: calc(var(--_cap) + var(--space-2-5));
+  }
+  :scope .island__bubble {
+    box-shadow: inset 0 0 0 3px var(--_lilac);
+  }
+  :scope .island-clock {
+    color: var(--accent);
+  }
+
+  /* ── Control centre: two elbow frames, the classic TNG split screen ─────── */
+  :scope .view--panel {
+    row-gap: calc(var(--_bar) * 2 + var(--_gap) + var(--space-2) * 2);
+    padding-left: calc(var(--panel-padding) + var(--_rail) + var(--_side));
+  }
+  :scope .p-body {
+    position: relative;
+  }
+  :scope :is(.p-header, .p-body)::before {
+    content: "";
+    position: absolute;
+    left: calc(-1 * (var(--_rail) + var(--_side)));
+    pointer-events: none;
+  }
+  /* Upper frame: the rail sweeps into a bar under the header … */
+  :scope .p-header::before {
+    top: 0;
+    right: calc(72px + 24px + var(--_gap) * 2);
+    bottom: calc(-1 * (var(--space-2) + var(--_bar)));
+    border-left: var(--_rail) solid var(--_lilac);
+    border-bottom: var(--_bar) solid var(--_lilac);
+    border-bottom-left-radius: calc(var(--_rail) + var(--_inner)) calc(var(--_bar) + var(--_inner));
+  }
+  /* … that ends in two blocks, the last one rounded. */
+  :scope .p-header::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: calc(-1 * (var(--space-2) + var(--_bar)));
+    width: calc(72px + 24px + var(--_gap));
+    height: var(--_bar);
+    border-radius: 0 var(--radius-full) var(--radius-full) 0;
+    background:
+      linear-gradient(var(--_tangerine), var(--_tangerine)) left / 72px 100% no-repeat,
+      linear-gradient(var(--_peach), var(--_peach)) right / 24px 100% no-repeat;
+    pointer-events: none;
+  }
+  /* Lower frame: a bar over the body sweeping down into the sidebar … */
+  :scope .p-body::before {
+    top: calc(-1 * (var(--space-2) + var(--_bar)));
+    right: calc(var(--_end) + var(--_gap));
+    bottom: 0;
+    border-left: var(--_rail) solid var(--_periwinkle);
+    border-top: var(--_bar) solid var(--_periwinkle);
+    border-top-left-radius: calc(var(--_rail) + var(--_inner)) calc(var(--_bar) + var(--_inner));
+  }
+  /* … whose rail is cut into numbered blocks; an orange block ends the bar. */
+  :scope .p-body::after {
+    --_y: 92px;
+    --_a: 48px;
+    --_b: 28px;
+    content: "47-1138" / "";
+    position: absolute;
+    top: calc(-1 * (var(--space-2) + var(--_bar)));
+    right: 0;
+    bottom: 0;
+    left: calc(-1 * (var(--_rail) + var(--_side)));
+    display: grid;
+    grid-template-columns: calc(var(--_rail) - var(--space-1-5));
+    align-content: end;
+    padding-bottom: var(--space-1-5);
+    color: var(--_ink);
+    font: var(--type-badge);
+    letter-spacing: var(--tracking-label);
+    text-align: right;
+    background:
+      linear-gradient(var(--_tangerine), var(--_tangerine)) left 0 top calc(var(--_y) + var(--_gap)) / var(--_rail) var(--_a) no-repeat,
+      linear-gradient(var(--_gold), var(--_gold)) left 0 top calc(var(--_y) + var(--_a) + var(--_gap) * 2) / var(--_rail) var(--_b) no-repeat,
+      linear-gradient(var(--_blue), var(--_blue)) left 0 top calc(var(--_y) + var(--_a) + var(--_b) + var(--_gap) * 3) / var(--_rail) 100% no-repeat,
+      linear-gradient(var(--_ink), var(--_ink)) left 0 top var(--_y) / var(--_rail) 100% no-repeat,
+      linear-gradient(var(--accent), var(--accent)) right 0 top 0 / var(--_end) var(--_bar) no-repeat;
+    pointer-events: none;
+  }
+
+  :scope .p-clock {
+    color: var(--accent);
+  }
+  :scope .p-right {
+    background: transparent;
+  }
+  :scope .power-menu {
+    box-shadow: inset 0 0 0 2px var(--_lilac), var(--elevation-panel);
+  }
+  :scope .detail-title {
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  /* ── Tiles: an end cap and a block, black capitals bottom-right ─────────── */
+  :scope .tile {
+    --tile-bg: var(--_off, var(--_blue));
+    --tile-icon-bg: var(--_off, var(--_blue));
+  }
+  :scope [data-tile="wifi"],
+  :scope [data-tile="saver"] {
+    --_off: var(--_sky);
+  }
+  :scope [data-tile="bluetooth"],
+  :scope [data-tile="mic"] {
+    --_off: var(--_periwinkle);
+  }
+  :scope [data-tile="dnd"],
+  :scope [data-tile="airplane"] {
+    --_off: var(--_lilac);
+  }
+  :scope .tile:not(.tile--small) {
+    column-gap: var(--_gap);
+    background: transparent;
+  }
+  :scope .tile__toggle {
+    align-self: stretch;
+    height: auto;
+    margin-left: 0;
+  }
+  :scope .tile__main {
+    align-items: end;
+    padding: 0 var(--space-3) var(--space-1-5);
+    background: var(--tile-bg);
+    text-align: right;
+    transition: background-color var(--dur-medium) var(--ease-standard);
+  }
+  :scope .tile.is-on .tile__main {
+    background: var(--tile-bg-on);
+  }
+  :scope .tile__label {
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-label);
+  }
+
+  /* ── Tabs and segmented controls: one bar cut into blocks ───────────────── */
+  :scope :is(.tab, .seg__btn) {
+    border-radius: 0;
+    background: var(--_blue);
+    color: var(--_ink);
+  }
+  :scope :is(.tab, .seg__btn):first-child {
+    border-radius: var(--radius-full) 0 0 var(--radius-full);
+  }
+  :scope :is(.tab, .seg__btn):last-child {
+    border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  }
+  :scope :is(.tab, .seg__btn).is-active {
+    background: var(--accent);
+    color: var(--_ink);
+    box-shadow: none;
+  }
+  :scope .tab__badge {
+    background: var(--_ink);
+    color: var(--_peach);
+  }
+  :scope .seg {
+    gap: var(--_gap);
+    padding: 0;
+    background: transparent;
+  }
+
+  /* ── Buttons and chips are coloured pills with black capitals ───────────── */
+  :scope .btn--tonal {
+    background: var(--_lilac);
+    color: var(--_ink);
+  }
+  :scope .chip {
+    background: var(--_blue);
+    color: var(--_ink);
+    box-shadow: none;
+  }
+  :scope :is(.chip.is-selected, .chip--accent, .day-chip[aria-pressed="true"]) {
+    background: var(--accent);
+    color: var(--_ink);
+  }
+  :scope .day-chip {
+    background: var(--_dim);
+    box-shadow: none;
+  }
+
+  /* ── Lists: every entry hangs off a coloured cap ────────────────────────── */
+  :scope :is(.notif, .timer-card, .alarm-row, .meter, .media, .settings-card) {
+    border-left: var(--_row-cap) solid var(--_row, var(--_lilac));
+    border-radius: var(--_row-cap) 0 0 var(--_row-cap);
+    background: transparent;
+  }
+  :scope .timer-card {
+    --_row: var(--accent);
+  }
+  :scope .alarm-row {
+    --_row: var(--_sky);
+  }
+  :scope .alarm-row.is-off {
+    --_row: var(--_dim);
+  }
+  :scope .meter {
+    --_row: var(--_periwinkle);
+  }
+  :scope .media {
+    --_row: var(--_sky);
+  }
+  :scope .event-row {
+    background: transparent;
+  }
+  :scope .event-row__bar {
+    width: var(--_row-cap);
+  }
+  :scope .timer-ring {
+    background:
+      radial-gradient(closest-side, var(--color-surface) 78%, transparent 80%),
+      conic-gradient(var(--color-accent) calc(var(--p) * 1turn), var(--_dim) 0);
+  }
+  :scope .day.is-selected {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--_blue);
+  }
+
+  /* ── Settings window ────────────────────────────────────────────────────── */
+  :scope .settings-nav__item[aria-current="page"] {
+    border-radius: var(--radius-full);
+    background: var(--accent);
+    color: var(--_ink);
+  }
+  :scope .settings-title {
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  /* ── Break screen: a full-screen double frame, the clock in the top bar ─── */
+  :scope .break {
+    --_m: 24px;
+    --_rail: 96px;
+    --_bar: 20px;
+    --break-bg: var(--base-bg);
+    --break-orb-display: none;
+    --break-ring: var(--accent);
+    --break-ring-track: var(--_dim);
+    --break-ring-width: 2.6;
+    --break-breath-fill: color-mix(in srgb, var(--_lilac) 10%, transparent);
+    padding-bottom: calc(var(--_m) + var(--_bar) + var(--space-8));
+  }
+  :scope .break::before,
+  :scope .break::after {
+    content: "";
+    position: absolute;
+    left: var(--_m);
+    right: var(--_m);
+    height: calc(50% - var(--_m) - var(--_gap));
+    pointer-events: none;
+  }
+  :scope .break::before {
+    top: var(--_m);
+    border-left: var(--_rail) solid var(--_lilac);
+    border-top: var(--_bar) solid var(--_lilac);
+    border-top-left-radius: calc(var(--_rail) + var(--_inner) * 2) calc(var(--_bar) + var(--_inner) * 2);
+  }
+  :scope .break::after {
+    bottom: var(--_m);
+    border-left: var(--_rail) solid var(--_periwinkle);
+    border-bottom: var(--_bar) solid var(--_periwinkle);
+    border-bottom-left-radius: calc(var(--_rail) + var(--_inner) * 2) calc(var(--_bar) + var(--_inner) * 2);
+  }
+  /* The clock sits in a black gap of the top bar, like a screen title. */
+  :scope .break__top {
+    justify-self: end;
+    margin: calc(var(--_m) - var(--space-8) - var(--space-1)) var(--space-10) 0 0;
+    padding: 0 var(--space-3);
+    background: var(--break-bg);
+    color: var(--accent);
+    font: var(--type-headline);
+    line-height: calc(var(--_bar) + var(--space-2));
+  }
+  :scope .break__ring circle {
+    stroke-linecap: butt;
+  }
+  :scope .break__time {
+    color: var(--accent);
+  }
+  :scope .break__hold {
+    background: var(--_lilac);
+    color: var(--_ink);
+  }
+  :scope .break__hold-fill {
+    background: var(--accent);
+  }
+}
+
+:root[data-motion="reduced"][data-theme="lcars"] .view {
+  clip-path: none;
+}

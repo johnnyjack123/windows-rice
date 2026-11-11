@@ -175,7 +175,7 @@ Typen siehe `contract.ts`. „→“ = Event, das nach dem Command (oder bei ext
 | `config_get` | Liefert das **gespeicherte** JSON-Objekt aus `%APPDATA%\rice\config.json` (oder `{}`). Keine Defaults einfügen — die stehen im Frontend (`web/src/backend/settings.ts`). |
 | `config_set { patch }` | Tiefes Mergen: Objekte schlüsselweise, Arrays und Primitive ersetzen, `null` löscht den Schlüssel (identisch zu `applyPatch()` in `settings.ts`). Atomar schreiben (temp + rename). Rückgabe: neues gespeichertes Objekt. → `config://changed` (gesamtes Objekt). Externe Dateiänderungen (Watcher) ebenfalls → `config://changed`. |
 | `theme_list_user` | Alle Ordner unter `themes/` mit gültigem `theme.toml` + `theme.css` → `UserTheme[]`. |
-| `theme_save_user { id, manifest, css }` | `id` muss `^[a-z0-9-]{1,48}$` sein und darf kein eingebautes Theme sein (`obsidian`, `monet`, `glass`, `terminal`, `paper`) → sonst `invalid_args`. Ordner anlegen/überschreiben, `theme.toml` (Manifest) + `theme.css` schreiben. → `theme://user-changed` (komplette Liste). |
+| `theme_save_user { id, manifest, css }` | `id` muss `^[a-z0-9-]{1,48}$` sein und darf kein eingebautes Theme sein (`obsidian`, `monet`, `glass`, `terminal`, `paper`, `lcars`, `workbench`, `cyberpunk`) → sonst `invalid_args`. Ordner anlegen/überschreiben, `theme.toml` (Manifest) + `theme.css` schreiben. → `theme://user-changed` (komplette Liste). |
 | `theme_delete_user { id }` | Ordner löschen. → `theme://user-changed`. Der Ordner wird zusätzlich überwacht (Hot Reload beim Bearbeiten von `theme.css`). |
 
 `theme.toml`:

@@ -52,6 +52,12 @@ Dieses Dokument verhindert, dass das Design über Monate „zufällig“ wird. E
 | Alles in Boxen mit Schatten | Weißraum und Ausrichtung gruppieren; Karten nur, wo Inhalte wirklich zusammengehören |
 | Animation als Effekt („alles wackelt“) | Animation erklärt Zustandswechsel; Federn mit Maß |
 
+**Begründete Ausnahmen – Zitat-Themes.** LCARS, Workbench 1.3 und Cyberpunk 2077 zitieren einen bekannten Stil und
+dürfen dessen Merkmale tragen, auch wenn sie oben unter „Vermeiden“ stehen: Cyberpunk leuchtet (Neon an Linien, Uhr und
+aktiven Flächen) und glitcht einmal beim Einblenden; LCARS trägt dekorative Zahlencodes im Rahmen; Workbench hat nur eine
+Schriftgröße und vier Farben, Hierarchie entsteht über Farbe und Fläche. Die übrigen Regeln (Kontrast, Fokus,
+Trefferflächen, keine Endlosschleifen, reduzierte Bewegung) gelten unverändert.
+
 **Details, die Qualität ausmachen:** tabellarische Ziffern für alles, was sich ändert · negatives Tracking bei großen
 Schriftgraden · 0,5-px-Haarlinien statt 1 px auf dunklen Flächen · Icons optisch zentriert in ihren Kreisen ·
 Inhalte, die sich beim Morphen nicht neu umbrechen · Fokusringe, die zum Theme passen.
@@ -170,6 +176,8 @@ zwei Zeilen · Deutsch ist ~30 % länger als Englisch, beide Sprachen testen · 
 | Fläche | Obsidian, Monet | `--elevation-card: none`, Container unterscheiden sich farblich |
 | Haarlinie | Terminal | `--elevation-card: inset 0 0 0 1px var(--color-border)` |
 | Regel (Linie) | Paper | Fläche = Papier, Linien über gekapselte Overrides |
+| Farbblock | LCARS | Schwarz mit farbigen Blöcken, Kappen und Ellbogen; keine Linien, keine Schatten |
+| Rahmen | Workbench 1.3 | `--elevation-card: inset 0 0 0 2px` im weißen Stift, Titelleisten als weiße Flächen |
 | Schatten | Panel in allen Themes | `--elevation-panel` |
 
 **Material** (`--island-material`): `solid` oder `glass`. Glas bekommt vorgerenderte Wallpaper-Ebenen aus der Laufzeit;
@@ -406,6 +414,9 @@ Ein eigenes Fenster je Monitor (`break.html`, siehe BACKEND §3.3). Es soll zum 
   (`--break-drift`). Reduzierte Bewegung: beides steht still.
 - **Themes** färben es über `--break-*`: Obsidian echtes Schwarz mit weißem Ring, Monet Seed-Farben und ein Atemkreis,
   der seine Form wandelt, Liquid Glass das echte Wallpaper mattiert mit Glas-Zifferblatt, Terminal Scanlines, ASCII-Balken
-  und Cursor, Paper Papierkorn, Tuschering und kursiver Tipp.
+  und Cursor, Paper Papierkorn, Tuschering und kursiver Tipp, LCARS einen bildschirmfüllenden Doppel-Ellbogen mit der
+  Uhr in der oberen Leiste, Workbench den blauen Screen mit weißer Titelleiste und einem „Gummiband“-Rahmen als
+  Atemhilfe, Cyberpunk Neon-Dunst, Scanlines, einen getickten HUD-Ring und einen Glitch auf dem Countdown (hell: gelb,
+  ohne Leuchten).
 - **Vorschau:** `break.html?preview` (auch `?preview=long`, `?preview=over`).
 

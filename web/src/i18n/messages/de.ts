@@ -358,6 +358,9 @@ export const de = {
     glass: 'Lichtbrechendes Glas über dem Wallpaper, Glanzkante folgt dem Mauszeiger, gelartige Bewegung.',
     terminal: 'Monospace, Haarlinien, Bernstein. Dicht und präzise, ohne Federn.',
     paper: 'Editorial. Warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot, ruhige Bewegung.',
+    lcars: 'Raumschiff-Konsole im TNG-Stil. Ellbogen-Rahmen, Farbblöcke, schmale Versalien, flinke Bewegung.',
+    workbench: 'Der Amiga-Desktop von 1988. Topaz-Pixelschrift, vier Farben, Komplement-Hervorhebung, kaum Animation.',
+    cyberpunk: 'Night-City-HUD. Abgeschrägte Ecken, Neon in Koralle und Cyan, Glitch beim Einblenden; hell als gelbes Poster.',
     customTagline: 'Eigenes Theme',
   },
 

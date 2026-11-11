@@ -8,6 +8,7 @@ import { flushSync, mount, tick, unmount } from 'svelte';
 import { createBackend } from '$backend/index';
 import { ThemeEngine } from '$design/engine.svelte';
 import { CONTROLS, PILL } from '$design/editor';
+import { BUILTIN_THEMES } from '$design/themes/registry';
 import type { IslandContext } from '$island/context.svelte';
 import IslandApp from '$island/IslandApp.svelte';
 import BreakApp from '$break/BreakApp.svelte';
@@ -191,7 +192,9 @@ describe('other windows', () => {
 
     const gallery = mount(GalleryApp, { target: document.body, props: { backend, engine } });
     await settle();
-    expect(document.querySelectorAll('.g-col').length).toBe(7);
+    // One column per theme and scheme.
+    const columns = BUILTIN_THEMES.reduce((n, t) => n + t.schemes.length, 0);
+    expect(document.querySelectorAll('.g-col').length).toBe(columns);
     unmount(gallery);
 
     // Break window: shows the countdown, then the "back to work" face.
