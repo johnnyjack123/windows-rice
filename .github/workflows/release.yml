@@ -1,0 +1,108 @@
+# Builds the Windows installers for x64 and ARM64.
+# Pull requests only check that both targets build (the installers are kept as
+# workflow artifacts); every push to main publishes them as a GitHub release.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  # Superseded pull request builds are pointless; releases from main always finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}
+    # Both targets build on the x64 image: it ships the MSVC ARM64 tools and the
+    # Windows SDK, so ARM64 is cross-compiled. The identity package is
+    # architecture-neutral and serves both installers.
+    runs-on: windows-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+          - arch: arm64
+            target: aarch64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12.10.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+          rustup default stable
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # scripts/identity-package.ps1 (run by `pnpm release`) creates a throw-away
+      # self-signed "CN=rice" certificate on the runner to sign the identity
+      # package; its private key cannot be exported and dies with the runner.
+      # The installer trusts only the public part, as with local builds.
+      - name: Build installer
+        run: pnpm release --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rice-${{ matrix.arch }}
+          path: target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: rice-*
+          path: installers
+          merge-multiple: true
+
+      # The app version alone would collide on every push, so each release is
+      # tagged with the run number: v0.1.0-build.42.
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version src-tauri/tauri.conf.json)
+          tag="v${version}-build.${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" installers/*.exe \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "rice ${version} (build ${GITHUB_RUN_NUMBER})" \
+            --generate-notes \
+            --latest

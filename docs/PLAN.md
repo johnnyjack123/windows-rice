@@ -399,6 +399,7 @@ Größen: S ≈ wenige Abende, M ≈ ein bis zwei Wochenenden, L ≈ mehrere Woc
 | 14.10. | Alle fünf Konzepte bleiben als Standard-Themes; eigene Themes jederzeit möglich |
 | 11.11. | Drei Retro-/Fiktions-Themes dazu: LCARS, Workbench 1.3 (mit Topaz, GPL mit Font-Ausnahme), Cyberpunk 2077 (dunkel + gelbes helles Schema) |
 | 12.11. | Viertes Zitat-Theme: Enterprise NX-01 (Prä-LCARS, abgeschrägte Rahmen, Saira) |
+| 12.11. | Repo öffentlich unter MIT; Git-Historie auf die GitHub-noreply-Adresse umgeschrieben. GitHub Actions baut bei jedem Push auf `main` die Installer für x64 und ARM64 (ARM64 cross-kompiliert) und veröffentlicht sie als Release `v<version>-build.<n>`; Pull Requests bauen nur zur Probe. Signiert wird pro Build mit einem Wegwerf-Zertifikat `CN=rice` |
 | 14.10. | Theme-Editor mit Standardwerten pro Theme: Hintergrund, Text, Akzent, Schriften, Textgröße, Island-/Panel-/Kachel-Rundung, Dichte, Tempo, Federung, Easing, Weichzeichnen, flüssiges Abspalten, Icon-Stil/-Stärke |
 | 14.10. | Alle UI-Texte über Kataloge, Deutsch und Englisch von Anfang an |
 | 14.10. | Island versteckt sich, wenn ein Fenster die Island-Zone überlappt; Maus oben mittig an die Kante → kommt zurück; kurzlebige Ereignisse blenden kurz ein |
