@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Windows desktop rice: dynamic island, control centre and more (Tauri 2 + Svelte 5)",
+  "license": "MIT",
+  "repository": "github:johnnyjack123/windows-rice",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

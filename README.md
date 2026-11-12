@@ -8,6 +8,15 @@ Taskleiste, App-Launcher und weitere Module dazu. Stack: Tauri 2 + Rust + Svelte
 > Mock-Backend. Das Rust-Backend entsteht schrittweise nach [`docs/BACKEND.md`](docs/BACKEND.md) (Stand: §7); Plan und
 > Roadmap [`docs/PLAN.md`](docs/PLAN.md).
 
+## Herunterladen
+
+Bei jedem Commit auf `main` baut GitHub Actions die Installer neu: unter
+[Releases](https://github.com/johnnyjack123/windows-rice/releases) liegt `rice_<version>_arm64-setup.exe` (Windows auf
+ARM, z. B. Snapdragon) und `rice_<version>_x64-setup.exe` (Intel/AMD). Der Installer ist nicht von einer
+Zertifizierungsstelle signiert: SmartScreen warnt deshalb beim ersten Start („Weitere Informationen“ → „Trotzdem
+ausführen“), und die Installation fragt einmal per Benutzerkontensteuerung, ob sie das selbstsignierte Zertifikat
+des Identitätspakets vertrauen darf (nötig für das Lesen von Mitteilungen).
+
 ## Starten
 
 ### Als Desktop-App (Tauri)
@@ -121,7 +130,9 @@ Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Li
 **Schriften:** Antonio (LCARS), Saira (NX-01) und Rajdhani (Cyberpunk) stehen unter der SIL Open Font License. Topaz (Workbench) ist
 eine Nachbildung von dMG/TrueSchool unter GPL mit Font-Ausnahme, das Original-Design © Amiga Inc.; Herkunft und
 Lizenztext liegen in `web/src/design/fonts/topaz-a500.LICENSE.txt`. Die Theme-Namen beziehen sich auf Marken ihrer
-jeweiligen Inhaber (Paramount, Amiga, CD PROJEKT) und beschreiben nur den Stil.
+jeweiligen Inhaber (Paramount, Amiga, CD PROJEKT) und beschreiben nur den Stil; das Maskottchen der Coding-Agent-Brücke
+stellt die Figur von Claude Code dar (Anthropic). rice ist ein nicht-kommerzielles Hobbyprojekt ohne Verbindung zu
+diesen Unternehmen. Alle Fremd-Lizenzen: [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 Jedes Theme lässt sich im **Theme-Editor** anpassen (Farben, Schriften, Radien, Tempo, Easing, Federung …) und als
 eigenes Theme speichern. Eigene Themes von Hand: [`docs/THEMING.md`](docs/THEMING.md).
@@ -167,4 +178,9 @@ crates/
   rice-core/            Vertragstypen und Logik ohne Windows-Abhängigkeit
   rice-services/        Konfiguration, Themes, Bildkodierung
   rice-win/             Windows-API-Wrapper
+.github/workflows/      Release-Build (ARM64 + x64) bei jedem Push auf main, Probe-Build bei Pull Requests
 ```
+
+## Lizenz
+
+[MIT](LICENSE). Mitgelieferte Schriften und Icons haben eigene Lizenzen: [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
