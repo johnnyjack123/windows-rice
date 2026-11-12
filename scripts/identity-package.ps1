@@ -17,6 +17,12 @@
   Needs the Windows SDK (MakeAppx, SignTool).
 #>
 $ErrorActionPreference = 'Stop'
+# Started from PowerShell 7 (a pwsh terminal, GitHub Actions), Windows PowerShell inherits
+# its PSModulePath, loads the PowerShell 7 security module and has no Cert: drive.
+if ($PSVersionTable.PSEdition -eq 'Desktop') {
+  $env:PSModulePath = [Environment]::GetEnvironmentVariable('PSModulePath', 'Machine')
+}
+Import-Module Microsoft.PowerShell.Security
 $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root 'target\identity'
 $stage = Join-Path $out 'stage'
