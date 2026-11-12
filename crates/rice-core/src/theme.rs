@@ -5,7 +5,8 @@ use crate::error::{BackendError, BackendResult};
 use serde::{Deserialize, Serialize};
 
 /// Themes shipped with the app; user themes may not reuse their ids.
-pub const BUILTIN_THEMES: [&str; 8] = ["obsidian", "monet", "glass", "terminal", "paper", "lcars", "workbench", "cyberpunk"];
+pub const BUILTIN_THEMES: [&str; 9] =
+    ["obsidian", "monet", "glass", "terminal", "paper", "lcars", "nx01", "workbench", "cyberpunk"];
 
 /// Whether `id` matches `^[a-z0-9-]{1,48}$`.
 pub fn is_valid_theme_id(id: &str) -> bool {

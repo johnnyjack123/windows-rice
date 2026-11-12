@@ -16,7 +16,7 @@
 | Sprachen | Keine UI-Texte im Code: typisierte Kataloge **Deutsch + Englisch** (`web/src/i18n`), Test prüft Vollständigkeit |
 | Prozessmodell | **Ein** Host-Prozess (`rice-shell`), jedes Modul (Island, später Taskleiste, Launcher) ist ein eigenes Fenster |
 | Erweiterbarkeit | Rust: Services hinter einem gemeinsamen Trait. Frontend: drei Registries – **Aktivitäten**, **Panel-Bereiche**, **Kacheln** |
-| Themes | Acht Standard-Themes (Obsidian, Monet, Liquid Glass, Terminal, Paper, LCARS, Workbench 1.3, Cyberpunk 2077) + eigene Themes aus `%APPDATA%\rice\themes` (Hot Reload). **Theme-Editor**: jedes Theme bringt Standardwerte mit, der Nutzer passt Farben, Schrift, Form und Bewegung an |
+| Themes | Neun Standard-Themes (Obsidian, Monet, Liquid Glass, Terminal, Paper, LCARS, Enterprise NX-01, Workbench 1.3, Cyberpunk 2077) + eigene Themes aus `%APPDATA%\rice\themes` (Hot Reload). **Theme-Editor**: jedes Theme bringt Standardwerte mit, der Nutzer passt Farben, Schrift, Form und Bewegung an |
 | Kalender/Aufgaben | **CalDAV** (VEVENT + VTODO) gegen **Nextcloud**, lokaler Cache. Das ist gleichzeitig unser „Task-Store“ |
 | Arbeitsteilung | Frontend fertig (dieser Stand). Rust-Backend baut ein separater Agent nach [`BACKEND.md`](BACKEND.md); Vertrag: `web/src/backend/contract.ts` |
 | Größtes Risiko | Benachrichtigungen lesen (braucht Paket-Identität) und Bluetooth-Audio verbinden (keine offizielle API) – Fallback ist jeweils „In Windows-Einstellungen öffnen“ |
@@ -398,6 +398,7 @@ Größen: S ≈ wenige Abende, M ≈ ein bis zwei Wochenenden, L ≈ mehrere Woc
 | 13.10. | Stack Tauri 2 + Rust + Svelte 5; Design-Tokens als CSS Custom Properties |
 | 14.10. | Alle fünf Konzepte bleiben als Standard-Themes; eigene Themes jederzeit möglich |
 | 11.11. | Drei Retro-/Fiktions-Themes dazu: LCARS, Workbench 1.3 (mit Topaz, GPL mit Font-Ausnahme), Cyberpunk 2077 (dunkel + gelbes helles Schema) |
+| 12.11. | Viertes Zitat-Theme: Enterprise NX-01 (Prä-LCARS, abgeschrägte Rahmen, Saira) |
 | 14.10. | Theme-Editor mit Standardwerten pro Theme: Hintergrund, Text, Akzent, Schriften, Textgröße, Island-/Panel-/Kachel-Rundung, Dichte, Tempo, Federung, Easing, Weichzeichnen, flüssiges Abspalten, Icon-Stil/-Stärke |
 | 14.10. | Alle UI-Texte über Kataloge, Deutsch und Englisch von Anfang an |
 | 14.10. | Island versteckt sich, wenn ein Fenster die Island-Zone überlappt; Maus oben mittig an die Kante → kommt zurück; kurzlebige Ereignisse blenden kurz ein |

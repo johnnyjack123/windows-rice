@@ -359,6 +359,7 @@ export const de = {
     terminal: 'Monospace, Haarlinien, Bernstein. Dicht und präzise, ohne Federn.',
     paper: 'Editorial. Warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot, ruhige Bewegung.',
     lcars: 'Raumschiff-Konsole im TNG-Stil. Ellbogen-Rahmen, Farbblöcke, schmale Versalien, flinke Bewegung.',
+    nx01: 'Die Konsolen von Archers Enterprise, Vorläufer von LCARS. Stahlblaue Rahmen mit abgeschrägten Ecken, Bernstein, breite Schrift.',
     workbench: 'Der Amiga-Desktop von 1988. Topaz-Pixelschrift, vier Farben, Komplement-Hervorhebung, kaum Animation.',
     cyberpunk: 'Night-City-HUD. Abgeschrägte Ecken, Neon in Koralle und Cyan, Glitch beim Einblenden; hell als gelbes Poster.',
     customTagline: 'Eigenes Theme',

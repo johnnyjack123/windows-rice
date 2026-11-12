@@ -7,6 +7,7 @@ import paper from './paper.css?raw';
 import lcars from './lcars.css?raw';
 import workbench from './workbench.css?raw';
 import cyberpunk from './cyberpunk.css?raw';
+import nx01 from './nx01.css?raw';
 
 /** Metadata of a theme (built-in or from the themes folder). */
 export interface ThemeMeta {
@@ -27,6 +28,7 @@ export const BUILTIN_THEMES: ThemeMeta[] = [
   { id: 'terminal', name: 'Terminal', author: 'rice', schemes: ['dark'], builtIn: true, css: terminal },
   { id: 'paper', name: 'Paper', author: 'rice', schemes: ['light'], builtIn: true, css: paper },
   { id: 'lcars', name: 'LCARS', author: 'rice', schemes: ['dark'], builtIn: true, css: lcars },
+  { id: 'nx01', name: 'Enterprise NX-01', author: 'rice', schemes: ['dark'], builtIn: true, css: nx01 },
   { id: 'workbench', name: 'Workbench 1.3', author: 'rice', schemes: ['dark'], builtIn: true, css: workbench },
   { id: 'cyberpunk', name: 'Cyberpunk 2077', author: 'rice', schemes: ['dark', 'light'], builtIn: true, css: cyberpunk },
 ];

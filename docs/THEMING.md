@@ -158,7 +158,7 @@ Obsidian). Dafür gilt:
 - Weitreichende Overrides (Layout, Deko) in einen Donut-Scope legen, damit sie nicht in verschachtelte Vorschauen
   anderer Themes (Galerie-Spalten, Theme-Karten) durchschlagen:
   `@scope ([data-theme="id"]) to ([data-theme]:not([data-theme="id"])) { :scope .tile { … } }` – `:scope` hat dieselbe
-  Spezifität wie das Attribut. So machen es LCARS, Workbench 1.3 und Cyberpunk 2077.
+  Spezifität wie das Attribut. So machen es LCARS, Enterprise NX-01, Workbench 1.3 und Cyberpunk 2077.
 - Wenn ein Override in zwei Themes nötig wird, ist es ein fehlendes Token → in `tokens.css` aufnehmen.
 
 **Techniken aus den Standard-Themes**
@@ -167,7 +167,7 @@ Obsidian). Dafür gilt:
 |---|---|---|
 | Rahmen ums Kontrollzentrum | Pseudo-Elemente an `.p-header`/`.p-body`, Platz über `padding-left` der `.view--panel` und `--panel-column` | LCARS: Ellbogen = Element mit dickem `border-left` + `border-top` und elliptischem Eckradius (die Innenkurve entsteht automatisch) |
 | Deko an der Pille | `.island__bg::before` (wird mit der Form beschnitten) oder `.view[data-compact]::after` (wird mitgemessen) | LCARS: Endkappen; Workbench: Tiefen-Gadget |
-| Abgeschrägte Ecken | `corner-shape: bevel` bzw. pro Ecke (`square square bevel bevel`); Radien werden zur Fasenbreite, Rahmen und Schatten folgen | Cyberpunk; ohne Unterstützung bleiben kleine Rundungen |
+| Abgeschrägte Ecken | `corner-shape: bevel` bzw. pro Ecke (`square square bevel bevel`); Radien werden zur Fasenbreite, Rahmen und Schatten folgen | Cyberpunk; NX-01 auch an den Ellbogen (aus der runden wird eine schräge Kurve); ohne Unterstützung bleiben kleine Rundungen |
 | Farbwechsel je Fläche | Rollen lokal neu setzen (`--color-text`, `--color-focus` …) auf dem Element mit der anderen Fläche | Workbench: weiße Titelleisten und Requester mit blauer Schrift |
 | Einmaliger Effekt beim Einblenden | `animation` auf `.view.is-active` (Name wechseln bei `.is-bumped`), bei reduzierter Bewegung `none` | Cyberpunk: Glitch |
 | Text als Deko | nur Zeichen/Codes ohne Sprache, mit leerem Alternativtext: `content: "47-1138" / ""` | LCARS-Rahmen, Cyberpunk `//` |
@@ -229,13 +229,14 @@ based_on = "obsidian"     # optional: Theme, aus dem es abgeleitet wurde
 ```
 
 - Die Ordner-ID (`^[a-z0-9-]{1,48}$`) ist auch die Theme-ID; die Standard-IDs (`obsidian`, `monet`, `glass`,
-  `terminal`, `paper`, `lcars`, `workbench`, `cyberpunk`) sind reserviert.
+  `terminal`, `paper`, `lcars`, `nx01`, `workbench`, `cyberpunk`) sind reserviert.
 - Das Backend überwacht den Ordner. Beim Speichern von `theme.css` wird das Theme ohne Neustart ersetzt (**Hot Reload**)
   – ideal zum Live-Ricen. Einstellungen → Über rice → „Theme-Ordner öffnen“.
 - „Als eigenes Theme speichern“ schreibt genau so ein Paket: das Basis-Theme mit neuem Selektor plus einem Block mit den
   Editor-Werten.
 - **Schriften:** Ein Theme kann jede installierte Windows-Schrift über `--font-ui` / `--font-display` nutzen. Mitgeliefert
-  sind Roboto Flex, Instrument Sans/Serif, JetBrains Mono, Antonio, Rajdhani und Topaz (im Editor auswählbar).
+  sind Roboto Flex, Instrument Sans/Serif, JetBrains Mono, Antonio, Saira, Rajdhani und Topaz (im Editor auswählbar).
+  Saira hat eine Breitenachse: In den Rollen genügt `expanded`, `semi-expanded` usw. im `font`-Kurzschreibwert.
   Topaz ist eine Pixelschrift: scharf nur bei 16 px und Vielfachen, nur ein Schnitt – dazu `font-synthesis: none`, sonst
   verschmiert der künstliche Fettdruck die Pixel.
 

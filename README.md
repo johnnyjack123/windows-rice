@@ -114,10 +114,11 @@ Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Li
 | 4 | **Terminal** | Monospace, Haarlinien, Bernstein; ohne Federn, Inhalte „rendern“ sich ein |
 | 5 | **Paper** | Editorial: warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot |
 | 6 | **LCARS** | Raumschiff-Konsole im TNG-Stil: Ellbogen-Rahmen, Farbblöcke statt Linien, Pille mit Endkappen, schmale Versalien |
-| 7 | **Workbench 1.3** | Amiga-Desktop: Topaz-Pixelschrift, vier Farben, weiße Titelleiste mit Tiefen-Gadget, Komplement-Hervorhebung |
-| 8 | **Cyberpunk 2077** | HUD mit abgeschrägten Ecken, Koralle und Cyan, einmaliger Glitch beim Einblenden; hell als gelbes Poster |
+| 7 | **Enterprise NX-01** | Prä-LCARS der NX-01: stahlblaue Rahmen mit abgeschrägten Ecken, Haarlinien, segmentierte Balken, Bernstein, breite Schrift |
+| 8 | **Workbench 1.3** | Amiga-Desktop: Topaz-Pixelschrift, vier Farben, weiße Titelleiste mit Tiefen-Gadget, Komplement-Hervorhebung |
+| 9 | **Cyberpunk 2077** | HUD mit abgeschrägten Ecken, Koralle und Cyan, einmaliger Glitch beim Einblenden; hell als gelbes Poster |
 
-**Schriften:** Antonio (LCARS) und Rajdhani (Cyberpunk) stehen unter der SIL Open Font License. Topaz (Workbench) ist
+**Schriften:** Antonio (LCARS), Saira (NX-01) und Rajdhani (Cyberpunk) stehen unter der SIL Open Font License. Topaz (Workbench) ist
 eine Nachbildung von dMG/TrueSchool unter GPL mit Font-Ausnahme, das Original-Design © Amiga Inc.; Herkunft und
 Lizenztext liegen in `web/src/design/fonts/topaz-a500.LICENSE.txt`. Die Theme-Namen beziehen sich auf Marken ihrer
 jeweiligen Inhaber (Paramount, Amiga, CD PROJEKT) und beschreiben nur den Stil.

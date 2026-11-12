@@ -1,0 +1,472 @@
+/* =============================================================================
+   Theme · Enterprise NX-01
+   The 22nd-century consoles of Archer's Enterprise, the forerunner of LCARS:
+   the same frame-and-block grammar, but harder and more technical – steel
+   blue frames with cut instead of rounded corners on a deep navy screen,
+   hairline-outlined data blocks, segmented bar graphs, amber for what is
+   active and an extended, squarish type (Saira standing in for Eurostile).
+   Content is drawn in with a downward scan. Dark only.
+   ========================================================================== */
+
+[data-theme="nx01"] {
+  color-scheme: dark;
+
+  /* 1. Inputs */
+  --base-bg: #070b14;
+  --base-fg: #dfe8f4;
+  --accent: #f2a541;
+  --mix-container: 5%;
+  --mix-container-high: 8%;
+  --mix-container-highest: 14%;
+  --mix-muted: 66%;
+  --mix-subtle: 56%;
+  --mix-border: 16%;
+  --mix-border-strong: 30%;
+
+  /* 2. Primitives: hull steel, ice-blue readouts, frame geometry */
+  --_steel: #4d6d94;
+  --_steel-light: #7d9cc4;
+  --_slate: #2a3b55;
+  --_ice: #9cc7f0;
+  --_line: color-mix(in srgb, var(--_ice) 30%, transparent);
+  --_gap: 3px;                                 /* gap between frame blocks */
+  --_cap: 12px;                                /* island end caps */
+  --_rail: 44px;                               /* sidebar of the control-centre frame */
+  --_bar: 10px;                                /* horizontal bars of the frame */
+  --_inner: 14px;                              /* inner cut of an elbow */
+  --_side: 10px;                               /* rail → content */
+  --_end: 56px;                                /* block at the end of the lower bar */
+  --_caps:
+    linear-gradient(var(--_steel), var(--_steel)) left / var(--_cap) 100% no-repeat,
+    linear-gradient(var(--_steel), var(--_steel)) right / var(--_cap) 100% no-repeat;
+
+  /* 3. Roles */
+  --color-on-accent: var(--base-bg);
+  --color-accent-container: color-mix(in srgb, var(--accent) 16%, var(--base-bg));
+  --color-on-accent-container: var(--accent);
+  --color-accent-text: var(--accent);
+  --color-focus: var(--_ice);
+  --color-positive: #7ee0a0;
+  --color-on-positive: var(--base-bg);
+  --color-negative: #ff5a4e;
+  --color-on-negative: var(--base-bg);
+  --color-warning: #ffd166;
+
+  --data-l: 0.78;
+  --data-c: 0.1;
+  --app-icon-l: 0.78;
+  --app-icon-c: 0.08;
+  --app-icon-fg: var(--base-bg);
+
+  /* 4. Type: one variable family, extended for titles, labels and numbers */
+  --font-ui: "Saira Variable", "Saira", "Bahnschrift", "Segoe UI", sans-serif;
+  --font-display: var(--font-ui);
+  --font-numeric: var(--font-ui);
+  --type-display: expanded 300 calc(44px * var(--text-scale))/0.95 var(--font-numeric);
+  --type-timer: expanded 300 calc(40px * var(--text-scale))/1 var(--font-numeric);
+  --type-page: expanded 500 calc(28px * var(--text-scale))/1.1 var(--font-display);
+  --type-break: expanded 200 calc(clamp(80px, 13vh, 168px) * var(--text-scale))/1 var(--font-numeric);
+  --type-headline: expanded 600 calc(17px * var(--text-scale))/1.2 var(--font-display);
+  --type-title: 500 calc(14px * var(--text-scale))/1.25 var(--font-ui);
+  --type-body: 400 calc(13.5px * var(--text-scale))/1.4 var(--font-ui);
+  --type-label: expanded 600 calc(10.5px * var(--text-scale))/1.2 var(--font-ui);
+  --type-caption: 400 calc(12px * var(--text-scale))/1.3 var(--font-ui);
+  --type-island: 500 calc(13.5px * var(--text-scale))/1 var(--font-ui);
+  --type-island-clock: expanded 500 calc(13px * var(--text-scale))/1 var(--font-numeric);
+  --type-metric: expanded 400 calc(22px * var(--text-scale))/1 var(--font-numeric);
+  --type-badge: expanded 700 calc(9.5px * var(--text-scale))/1 var(--font-ui);
+  --tracking-display: 0.02em;
+  --tracking-headline: 0.08em;
+  --tracking-label: 0.14em;
+  --label-transform: uppercase;
+
+  /* 5. Shape: every radius is a cut corner (corner-shape: bevel below) */
+  --radius-island: 9px;
+  --radius-live: 14px;
+  --radius-panel: 18px;
+  --panel-padding: calc(var(--space-unit) * 3.5);
+  --radius-card: 10px;
+  --radius-row: 6px;
+  --radius-control: 6px;
+  --radius-check: 3px;
+  --radius-tile: 8px;
+  --radius-tile-small: 8px;
+  --radius-tile-icon: 6px;
+  --radius-art: 6px;
+  --radius-art-island: 4px;
+  --radius-window: 10px;
+
+  --panel-height: 576px;
+  --panel-column: 320px;
+  --tile-height: 58px;
+  --tile-icon-size: 44px;
+  --control-height: 30px;
+  --slider-height: 30px;
+  --switch-width: 42px;
+  --switch-height: 22px;
+  --switch-thumb: 16px;
+
+  /* 6. Separation: steel blocks for the frame, ice hairlines around data */
+  --elevation-island: 0 0 0 1px var(--_line);
+  --elevation-panel: 0 0 0 1px var(--_line), 0 28px 70px -20px rgb(0 0 0 / 0.75);
+  --elevation-card: inset 0 0 0 1px var(--_line);
+  --elevation-tile: inset 0 0 0 1px var(--_line);
+  --elevation-raised: none;
+
+  /* Components */
+  --tile-bg: var(--color-surface-container-high);
+  --tile-icon-bg: var(--_steel);
+  --tile-icon-fg: var(--base-fg);
+  --tile-bg-on: color-mix(in srgb, var(--accent) 12%, var(--base-bg));
+  --tile-fg-on: var(--base-fg);
+  --tile-fg-muted-on: var(--color-text-muted);
+  --tile-icon-bg-on: var(--accent);
+  --tile-icon-fg-on: var(--base-bg);
+  --tile-border-on: var(--accent);
+  --tile-small-bg-on: var(--accent);
+  --tile-small-fg-on: var(--base-bg);
+
+  --slider-track: var(--color-surface-container-high);
+  --slider-fill: var(--_steel-light);
+  --slider-icon: var(--base-bg);
+  --switch-track: var(--_slate);
+  --switch-thumb-color: var(--_ice);
+  --switch-track-on: var(--accent);
+  --switch-thumb-color-on: var(--base-bg);
+  --tabs-bg: transparent;
+  --tabs-indicator: var(--accent);
+  --tabs-fg-active: var(--base-bg);
+  --progress-track: var(--_slate);
+  --progress-fill: var(--_ice);
+  --media-bg: var(--color-surface-container);
+  --eq-color: var(--_ice);
+
+  --icon-family: "Material Symbols Sharp";
+  --icon-weight: 400;
+
+  /* 7. Motion: mechanical and exact, the faintest settle */
+  --island-goo: 0;
+  --spring-island: 0.42 0.04;
+  --spring-bubble: 0.44 0.06;
+  --spring-content: 0.3 0;
+  --spring-control: 0.24 0.04;
+  --dur-instant: 70ms;
+  --dur-fast: 130ms;
+  --dur-medium: 210ms;
+  --dur-slow: 360ms;
+  --content-blur: 0px;
+  --enter-scale: 1;
+  --enter-offset: 0px;
+  --stagger: 22ms;
+}
+
+/* Scoped overrides stop at nested previews of other themes (gallery, theme cards). */
+@scope ([data-theme="nx01"]) to ([data-theme]:not([data-theme="nx01"])) {
+  /* ── Content is drawn in with a downward scan ───────────────────────────── */
+  :scope .view {
+    clip-path: inset(0 0 100% 0);
+    transition:
+      opacity var(--dur-fast) var(--ease-exit),
+      clip-path var(--dur-fast) var(--ease-exit),
+      visibility 0s linear var(--dur-fast);
+  }
+  :scope .view.is-active {
+    clip-path: inset(0 0 0 0);
+    transition:
+      opacity var(--dur-medium) var(--ease-standard) var(--enter-delay, 0ms),
+      clip-path var(--dur-slow) var(--ease-enter) var(--enter-delay, 0ms),
+      visibility 0s linear 0s;
+  }
+
+  /* ── Cut corners everywhere ─────────────────────────────────────────────── */
+  :scope :is(.island__shadow, .island__bg, .island__clip, .island__bubble, .bubble-content, .g-island, .theme-card__pill, .preview-island),
+  :scope :is(.p-right, .media, .page--detail, .power-menu, .settings-card, .theme-card, .editor__preview, .preview-panel, .g-card),
+  :scope :is(.tile, .tile__toggle, .btn, .chip, .tab, .seg, .seg__btn, .field, .select, .stepper, .time-input, .color-input, .row),
+  :scope :is(.notif, .event-row, .timer-card, .alarm-row, .meter, .banner, .day-chip, .day__num, .qa-btn, .agent-detail),
+  :scope :is(.slider, .slider__track, .slider__fill, .switch, .icon-btn, .check, .app-icon, .art, .tab__badge, .island-count),
+  :scope :is(.settings-nav__item, .break__hold, .break__breath),
+  :scope .switch::after,
+  :scope .p-header::before,
+  :scope .p-header::after,
+  :scope .p-body::before {
+    corner-shape: bevel;
+  }
+  /* Layers that copy their parent's radius copy its shape too. */
+  :scope .has-state::before,
+  :scope .tile__main {
+    corner-shape: inherit;
+  }
+
+  /* ── Island: a navy capsule between two steel end caps ──────────────────── */
+  :scope .island__bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--_caps);
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-standard);
+  }
+  /* The control centre draws its own frame. */
+  :scope .island.is-expanded .island__bg::before {
+    opacity: 0;
+  }
+  :scope :is(.island__clip, .g-island) > .view:not(.view--panel) {
+    padding-inline: calc(var(--_cap) + var(--space-2-5));
+  }
+  :scope :is(.g-island, .theme-card__pill, .preview-island) {
+    background: var(--_caps), var(--color-island);
+  }
+  :scope .theme-card__pill {
+    padding-inline: calc(var(--_cap) + var(--space-2));
+  }
+  :scope .preview-island__content {
+    padding-inline: calc(var(--_cap) + var(--space-2-5));
+  }
+  :scope .island__bubble {
+    box-shadow: inset 0 0 0 1px var(--_line);
+  }
+
+  /* ── Control centre: two angular frames, steel with amber detail ────────── */
+  :scope .view--panel {
+    row-gap: calc(var(--_bar) * 2 + var(--_gap) + var(--space-2) * 2);
+    padding-left: calc(var(--panel-padding) + var(--_rail) + var(--_side));
+  }
+  :scope .p-body {
+    position: relative;
+  }
+  :scope .p-header::before,
+  :scope .p-body::before {
+    content: "";
+    position: absolute;
+    left: calc(-1 * (var(--_rail) + var(--_side)));
+    pointer-events: none;
+  }
+  /* Upper frame: the rail turns into a bar under the header … */
+  :scope .p-header::before {
+    top: 0;
+    right: calc(56px + 20px + var(--_gap) * 2);
+    bottom: calc(-1 * (var(--space-2) + var(--_bar)));
+    border-left: var(--_rail) solid var(--_steel);
+    border-bottom: var(--_bar) solid var(--_steel);
+    border-bottom-left-radius: calc(var(--_rail) + var(--_inner)) calc(var(--_bar) + var(--_inner));
+  }
+  /* … that ends in an amber and an ice block, the last one cut. */
+  :scope .p-header::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    bottom: calc(-1 * (var(--space-2) + var(--_bar)));
+    width: calc(56px + 20px + var(--_gap));
+    height: var(--_bar);
+    border-radius: 0 var(--_bar) var(--_bar) 0;
+    background:
+      linear-gradient(var(--accent), var(--accent)) left / 56px 100% no-repeat,
+      linear-gradient(var(--_ice), var(--_ice)) right / 20px 100% no-repeat;
+    pointer-events: none;
+  }
+  /* Lower frame: a bar over the body turning down into the sidebar … */
+  :scope .p-body::before {
+    top: calc(-1 * (var(--space-2) + var(--_bar)));
+    right: calc(var(--_end) + var(--_gap));
+    bottom: 0;
+    border-left: var(--_rail) solid var(--_steel);
+    border-top: var(--_bar) solid var(--_steel);
+    border-top-left-radius: calc(var(--_rail) + var(--_inner)) calc(var(--_bar) + var(--_inner));
+  }
+  /* … whose rail is cut into blocks with the registry at the bottom. */
+  :scope .p-body::after {
+    --_y: 84px;
+    --_a: 22px;
+    --_b: 40px;
+    content: "NX-01" / "";
+    position: absolute;
+    top: calc(-1 * (var(--space-2) + var(--_bar)));
+    right: 0;
+    bottom: 0;
+    left: calc(-1 * (var(--_rail) + var(--_side)));
+    display: grid;
+    grid-template-columns: calc(var(--_rail) - var(--space-1-5));
+    align-content: end;
+    padding-bottom: var(--space-1-5);
+    color: var(--base-bg);
+    font: var(--type-badge);
+    letter-spacing: 0.06em;
+    text-align: right;
+    background:
+      linear-gradient(var(--accent), var(--accent)) left 0 top calc(var(--_y) + var(--_gap)) / var(--_rail) var(--_a) no-repeat,
+      linear-gradient(var(--_ice), var(--_ice)) left 0 top calc(var(--_y) + var(--_a) + var(--_gap) * 2) / var(--_rail) var(--_b) no-repeat,
+      linear-gradient(var(--_steel-light), var(--_steel-light)) left 0 top calc(var(--_y) + var(--_a) + var(--_b) + var(--_gap) * 3) / var(--_rail) 100% no-repeat,
+      linear-gradient(var(--base-bg), var(--base-bg)) left 0 top var(--_y) / var(--_rail) 100% no-repeat,
+      linear-gradient(var(--_ice), var(--_ice)) right 0 top 0 / var(--_end) var(--_bar) no-repeat;
+    pointer-events: none;
+  }
+  :scope .p-date {
+    color: var(--accent);
+  }
+  :scope .p-right {
+    background: transparent;
+  }
+  :scope .detail-title {
+    color: var(--_ice);
+    text-transform: uppercase;
+  }
+
+  /* ── Tiles: a steel switch tab beside an outlined readout ───────────────── */
+  :scope .tile:not(.tile--small) {
+    column-gap: var(--_gap);
+    background: transparent;
+    box-shadow: none;
+  }
+  :scope .tile__toggle {
+    align-self: stretch;
+    height: auto;
+    margin-left: 0;
+  }
+  :scope .tile__main {
+    background: var(--tile-bg);
+    box-shadow: var(--elevation-tile);
+    transition:
+      background-color var(--dur-medium) var(--ease-standard),
+      box-shadow var(--dur-medium) var(--ease-standard);
+  }
+  :scope .tile.is-on .tile__main {
+    background: var(--tile-bg-on);
+    box-shadow: inset 0 0 0 1px var(--tile-border-on);
+  }
+  :scope .tile__label {
+    font-stretch: semi-expanded;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Tabs and segmented controls: separate cut blocks ───────────────────── */
+  :scope :is(.tab, .seg__btn) {
+    background: var(--_slate);
+    color: var(--_ice);
+  }
+  :scope :is(.tab, .seg__btn).is-active {
+    background: var(--accent);
+    color: var(--base-bg);
+    box-shadow: none;
+  }
+  :scope .tab__badge {
+    background: var(--base-bg);
+    color: var(--accent);
+  }
+  :scope .seg {
+    gap: var(--_gap);
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* ── Buttons and chips ──────────────────────────────────────────────────── */
+  :scope .btn--tonal {
+    background: var(--_slate);
+    color: var(--_ice);
+    box-shadow: inset 0 0 0 1px var(--_line);
+  }
+  :scope .chip {
+    color: var(--_ice);
+    box-shadow: inset 0 0 0 1px var(--_line);
+  }
+
+  /* ── Readouts: outlined rows with a steel tab, segmented bar graphs ─────── */
+  :scope :is(.notif, .timer-card, .alarm-row, .meter) {
+    box-shadow: inset 0 0 0 1px var(--_line), inset 3px 0 0 var(--_row, var(--_steel-light));
+  }
+  :scope .timer-card {
+    --_row: var(--accent);
+  }
+  :scope .alarm-row {
+    --_row: var(--_ice);
+  }
+  :scope .alarm-row.is-off {
+    --_row: var(--_slate);
+  }
+  :scope :is(.progress__fill, .meter__fill, .osd__fill) {
+    background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 7px);
+  }
+  :scope .day.is-selected {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--_line);
+  }
+  :scope .settings-nav__item[aria-current="page"] {
+    background: var(--_slate);
+    color: var(--base-fg);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  :scope .settings-title {
+    color: var(--_ice);
+    text-transform: uppercase;
+  }
+
+  /* ── Break screen: an angular double frame, the clock in the top bar ────── */
+  :scope .break {
+    --_m: 24px;
+    --_rail: 84px;
+    --_bar: 16px;
+    --break-bg: var(--base-bg);
+    --break-orb-display: none;
+    --break-ring: var(--_ice);
+    --break-ring-track: var(--_slate);
+    --break-ring-width: 1.6;
+    --break-breath-radius: 30%;
+    --break-breath-fill: color-mix(in srgb, var(--_ice) 5%, transparent);
+    padding-bottom: calc(var(--_m) + var(--_bar) + var(--space-8));
+  }
+  :scope .break::before,
+  :scope .break::after {
+    content: "";
+    position: absolute;
+    left: var(--_m);
+    right: var(--_m);
+    height: calc(50% - var(--_m) - var(--_gap));
+    corner-shape: bevel;
+    pointer-events: none;
+  }
+  :scope .break::before {
+    top: var(--_m);
+    border-left: var(--_rail) solid var(--_steel);
+    border-top: var(--_bar) solid var(--_steel);
+    border-top-left-radius: calc(var(--_rail) + var(--_inner) * 2) calc(var(--_bar) + var(--_inner) * 2);
+  }
+  :scope .break::after {
+    bottom: var(--_m);
+    border-left: var(--_rail) solid var(--_steel);
+    border-bottom: var(--_bar) solid var(--_steel);
+    border-bottom-left-radius: calc(var(--_rail) + var(--_inner) * 2) calc(var(--_bar) + var(--_inner) * 2);
+  }
+  /* The clock sits in a gap of the top bar. */
+  :scope .break__top {
+    justify-self: end;
+    margin: calc(var(--_m) - var(--space-8) - var(--space-1)) var(--space-10) 0 0;
+    padding: 0 var(--space-3);
+    background: var(--break-bg);
+    color: var(--accent);
+    font: var(--type-headline);
+    line-height: calc(var(--_bar) + var(--space-2));
+  }
+  :scope .break__ring circle {
+    stroke-linecap: butt;
+  }
+  :scope .break__track {
+    stroke-dasharray: 0.006 0.004;
+  }
+  :scope .break__breath {
+    box-shadow: inset 0 0 0 1px var(--_line);
+  }
+  :scope .break__hold {
+    border-radius: var(--radius-control);
+    background: var(--_slate);
+    color: var(--_ice);
+    box-shadow: inset 0 0 0 1px var(--_line);
+  }
+  :scope .break__hold-fill {
+    background: color-mix(in srgb, var(--accent) 45%, transparent);
+  }
+}
+
+:root[data-motion="reduced"][data-theme="nx01"] .view {
+  clip-path: none;
+}

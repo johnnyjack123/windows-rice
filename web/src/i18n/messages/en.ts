@@ -357,6 +357,7 @@ export const en: Messages = {
     terminal: 'Monospace, hairlines, amber. Dense and precise, no springs.',
     paper: 'Editorial. Warm paper, serif numerals, ink and vermilion, calm motion.',
     lcars: 'A starship console, TNG style. Elbow frames, colour blocks, condensed capitals, snappy motion.',
+    nx01: "The consoles of Archer's Enterprise, the forerunner of LCARS. Steel-blue frames with cut corners, amber, extended type.",
     workbench: 'The Amiga desktop of 1988. Topaz pixel font, four colours, complement highlights, hardly any animation.',
     cyberpunk: 'A Night City HUD. Cut corners, coral and cyan neon, a glitch on entry; the light scheme is a yellow poster.',
     customTagline: 'Custom theme',
