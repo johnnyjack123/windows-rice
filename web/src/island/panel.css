@@ -39,6 +39,9 @@
 /* ── Header ─────────────────────────────────────────────────────────────── */
 .p-header {
   position: relative;
+  /* Above the body: its columns are stacking contexts of their own (stagger
+     translate), so the power menu would otherwise slide under them. */
+  z-index: 1;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -99,6 +102,18 @@
 .power-menu .row {
   min-height: var(--control-height);
   grid-template-columns: auto minmax(0, 1fr);
+}
+/* An update is waiting: the dot of the island's unread marker. */
+.p-power.has-update::after {
+  content: "";
+  position: absolute;
+  top: var(--space-1-5);
+  right: var(--space-1-5);
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  pointer-events: none;
 }
 
 /* ── Body ───────────────────────────────────────────────────────────────── */
@@ -408,7 +423,8 @@
   background: var(--color-surface-container-high);
   box-shadow: var(--elevation-tile);
   touch-action: pan-y;
-  cursor: grab;
+  /* A tap opens the app; a swipe dismisses. */
+  cursor: pointer;
   transition:
     translate var(--dur-spring-control) var(--ease-spring-control),
     opacity var(--dur-fast) var(--ease-standard);
@@ -430,6 +446,8 @@
   color: var(--color-text-muted);
 }
 .notif__title {
+  display: block;
+  width: 100%;
   margin-top: var(--space-half);
   font: var(--type-title);
 }

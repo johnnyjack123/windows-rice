@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Every rice window: core APIs and backend events. App commands need no extra grant (no app manifest in build.rs).",
+  "windows": ["island", "settings", "break-*"],
+  "permissions": ["core:default", "core:event:default"]
+}

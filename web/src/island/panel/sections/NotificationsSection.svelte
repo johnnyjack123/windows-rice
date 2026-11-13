@@ -9,9 +9,11 @@
   import Icon from '$ui/Icon.svelte';
   import { useIsland } from '../../context.svelte';
 
-  const { backend } = useIsland();
+  const { backend, controller } = useIsland();
   const store = backend.notifications;
   const n = $derived(i18n.m.notifications);
+  /** Pointer travel (px) below which a press counts as a tap, not a swipe. */
+  const TAP_SLOP = 4;
 
   /** Ids currently animating out (still rendered until the collapse ends). */
   let removing = $state<string[]>([]);
@@ -38,6 +40,17 @@
     }, 420 / motionSettings.timeScale);
   }
 
+  /** Opens the sending app and closes the panel so the app is in view; stays put if Windows cannot start it. */
+  function open(item: AppNotification): void {
+    if (removing.includes(item.id)) {
+      return;
+    }
+    store.open(item.id).then(
+      () => controller.collapse(),
+      () => {},
+    );
+  }
+
   function clearAll(): void {
     store.items.forEach((item, i) => setTimeout(() => dismiss(item), (i * 45) / motionSettings.timeScale));
   }
@@ -59,14 +72,15 @@
       return;
     }
     drag.dx = e.clientX - drag.x;
-    if (Math.abs(drag.dx) > 4) {
+    if (Math.abs(drag.dx) > TAP_SLOP) {
       drag.card.classList.add('is-dragging');
     }
     drag.card.style.translate = `${drag.dx}px 0`;
     drag.card.style.opacity = String(1 - Math.min(0.7, Math.abs(drag.dx) / 320));
   }
 
-  function up(): void {
+  /** Ends a press: a long swipe dismisses, a tap opens the app (a cancelled press does neither). */
+  function up(e: PointerEvent): void {
     if (!drag) {
       return;
     }
@@ -77,6 +91,9 @@
     } else {
       card.style.translate = '';
       card.style.opacity = '';
+      if (e.type === 'pointerup' && Math.abs(dx) <= TAP_SLOP) {
+        open(item);
+      }
     }
     drag = null;
   }
@@ -101,7 +118,7 @@
       {#each list as item (item.id)}
         <li class="notif-wrap" class:is-removing={removing.includes(item.id)} class:is-new={!firstIds.has(item.id)} data-nid={item.id}>
           <div class="notif-clip">
-            <!-- Swiping is a pointer shortcut; keyboard users dismiss via the close button. -->
+            <!-- Tapping and swiping are pointer shortcuts; keyboard users open via the title and dismiss via the close button. -->
             <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
             <article
               class="notif"
@@ -117,7 +134,7 @@
                   <span class="truncate">{item.appName}</span>
                   <span>{fmt.ago(new Date(item.time), new Date(clock.now))}</span>
                 </div>
-                <div class="notif__title">{item.title}</div>
+                <button type="button" class="notif__title" onclick={() => open(item)}>{item.title}</button>
                 <div class="notif__body">{item.body}</div>
               </div>
               <button class="icon-btn has-state notif__close" aria-label={n.dismiss} onclick={() => dismiss(item)}>

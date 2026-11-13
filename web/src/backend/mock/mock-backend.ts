@@ -4,7 +4,7 @@
  * reviewed without Windows APIs. The lab drives it through `debug`.
  */
 import type {
-  AppNotification, Appearance, ArgsOf, AudioState, BackendError, BluetoothState, BreakOverlay, CalendarAccount,
+  AgentIntegration, AgentRequest, AppNotification, Appearance, ArgsOf, AudioState, AutostartState, BackendError, BluetoothState, BreakOverlay, CalendarAccount,
   CalendarEvent, CommandName, DisplayState, EventName, Events, MediaState, NetworkState,
   NotificationsState, Occlusion, PowerState, ProcessInfo, Rect, ResultOf, StoredSettings,
   SystemSample, Task, UserTheme, WallpaperInfo, WifiNetwork,
@@ -13,7 +13,7 @@ import { Emitter, type InvokeArgs, type Transport } from '../transport';
 import { applyPatch } from '../settings';
 import { WALLPAPERS } from './art';
 import {
-  CALENDARS, DEVICES, eventsOfDay, INITIAL_NOTIFICATIONS, initialTasks, NETWORKS, NOTIFICATION_POOL,
+  AGENT_REQUESTS, AGENT_STATUS, CALENDARS, DEVICES, eventsOfDay, INITIAL_NOTIFICATIONS, initialTasks, NETWORKS, NOTIFICATION_POOL,
   PROCESSES, SYSTEM_FONTS, TRACKS, dayStart,
 } from './data';
 
@@ -87,8 +87,10 @@ export class MockBackend implements Transport {
       { id: 'hdmi', name: 'LG UltraGear (HDMI)', kind: 'hdmi' },
     ],
   };
+  private autostart: AutostartState = { enabled: true, supported: true };
   private display: DisplayState = { brightness: 0.7, nightLight: false };
-  private power: PowerState = { battery: 0.82, charging: false, energySaver: false, energySaverSupported: true };
+  // An update is waiting, so the power menu shows its "Update and …" entries in the browser too.
+  private power: PowerState = { battery: 0.82, charging: false, energySaver: false, energySaverSupported: true, updatePending: true };
   private network: NetworkState = {
     wifi: { available: true, enabled: true, connected: NETWORKS[0]!, permission: 'granted' },
     airplane: false,
@@ -102,6 +104,12 @@ export class MockBackend implements Transport {
     })),
   };
   private pool = 0;
+  private agentRequests: AgentRequest[] = [];
+  private agentIntegrations: AgentIntegration[] = [{ id: 'claude', available: true, connected: false }];
+  private agentPool = 0;
+  private statusPool = 0;
+  /** The page stands in for the screen: pointer moves are the cursor. */
+  private cursorListener: ((e: PointerEvent) => void) | null = null;
   private tasks: Task[] = initialTasks();
   private extraEvents: CalendarEvent[] = [];
   private processes: ProcessInfo[] = PROCESSES.map((p) => ({ ...p }));
@@ -179,6 +187,16 @@ export class MockBackend implements Transport {
 
   private readonly handlers: Handlers = {
     app_info: () => ({ version: '0.1.0', themesDir: '%APPDATA%\\rice\\themes', configDir: '%APPDATA%\\rice' }),
+    app_autostart_get: () => this.autostart,
+    app_autostart_set: async ({ enabled }) => {
+      await sleep(150);
+      this.autostart = { ...this.autostart, enabled };
+      return this.autostart;
+    },
+    app_quit: () => {
+      // A browser tab cannot quit the app; only log the request.
+      console.info('[mock] app_quit');
+    },
 
     config_get: () => this.settings,
     config_set: ({ patch }) => {
@@ -216,6 +234,15 @@ export class MockBackend implements Transport {
     },
     island_set_expanded: () => undefined,
     island_occlusion: () => this.occlusion,
+    island_track_cursor: ({ enabled }) => {
+      if (enabled && !this.cursorListener) {
+        this.cursorListener = (e) => this.emit('island://cursor', { x: e.clientX, y: e.clientY });
+        window.addEventListener('pointermove', this.cursorListener, { passive: true });
+      } else if (!enabled && this.cursorListener) {
+        window.removeEventListener('pointermove', this.cursorListener);
+        this.cursorListener = null;
+      }
+    },
 
     window_open_settings: ({ page }) => {
       window.open(`settings.html${page ? `#${page}` : ''}`, 'rice-settings', 'width=1120,height=780');
@@ -382,6 +409,13 @@ export class MockBackend implements Transport {
       this.notifications = { ...this.notifications, items: this.notifications.items.filter((n) => n.id !== id) };
       this.emit('notifications://removed', { id });
     },
+    notifications_open: ({ id }) => {
+      const item = this.notifications.items.find((n) => n.id === id) ?? fail('not_found', `no notification ${id}`);
+      // The browser cannot start apps; it only logs which one Windows would open.
+      console.info(`[mock] open ${item.appName}`);
+      this.notifications = { ...this.notifications, items: this.notifications.items.filter((n) => n.id !== id) };
+      this.emit('notifications://removed', { id });
+    },
     notifications_clear: () => {
       const ids = this.notifications.items.map((n) => n.id);
       this.notifications = { ...this.notifications, items: [] };
@@ -389,6 +423,17 @@ export class MockBackend implements Transport {
         this.emit('notifications://removed', { id });
       }
     },
+
+    agents_pending: () => this.agentRequests,
+    agents_respond: ({ id, decision }) => {
+      const request = this.agentRequests.find((r) => r.id === id) ?? fail('not_found', `no request ${id}`);
+      console.info(`[mock] ${decision}: ${request.tool} ${request.detail}`);
+      this.agentRequests = this.agentRequests.filter((r) => r.id !== id);
+      this.emit('agents://resolved', { id });
+    },
+    agents_list: () => this.agentIntegrations,
+    agents_connect: async ({ id }) => this.setAgentConnected(id, true),
+    agents_disconnect: async ({ id }) => this.setAgentConnected(id, false),
 
     calendar_accounts: () => this.accounts,
     calendar_add_account: async ({ name, url, user, password }) => {
@@ -493,8 +538,30 @@ export class MockBackend implements Transport {
 
   // ── Lab hooks ───────────────────────────────────────────────────────────
 
+  private async setAgentConnected(id: AgentIntegration['id'], connected: boolean): Promise<AgentIntegration> {
+    await sleep(250);
+    const integration = this.agentIntegrations.find((i) => i.id === id) ?? fail('not_found', `unknown agent ${id}`);
+    const next = { ...integration, connected };
+    this.agentIntegrations = this.agentIntegrations.map((i) => (i.id === id ? next : i));
+    return next;
+  }
+
   /** Simulated system events, triggered from the lab. */
   readonly debug = {
+    /** A coding agent asks for permission. */
+    agentRequest: (): void => {
+      const template = AGENT_REQUESTS[this.agentPool % AGENT_REQUESTS.length]!;
+      this.agentPool += 1;
+      const request: AgentRequest = { ...template, id: `a${Date.now()}`, time: new Date().toISOString() };
+      this.agentRequests = [...this.agentRequests, request];
+      this.emit('agents://request', request);
+    },
+    /** A coding agent finished or waits for input. */
+    agentStatus: (): void => {
+      const template = AGENT_STATUS[this.statusPool % AGENT_STATUS.length]!;
+      this.statusPool += 1;
+      this.emit('agents://status', { ...template, time: new Date().toISOString() });
+    },
     pushNotification: (): void => {
       const template = NOTIFICATION_POOL[this.pool % NOTIFICATION_POOL.length]!;
       this.pool += 1;

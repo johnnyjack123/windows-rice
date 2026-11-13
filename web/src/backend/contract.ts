@@ -52,6 +52,13 @@ export interface AppInfo {
   configDir: string;
 }
 
+/** Starting with Windows. */
+export interface AutostartState {
+  enabled: boolean;
+  /** Only the installed app can start with Windows; development builds report `false`. */
+  supported: boolean;
+}
+
 /** Colour scheme preference. */
 export type SchemePreference = 'auto' | 'dark' | 'light';
 
@@ -294,7 +301,12 @@ export interface PowerState {
   charging: boolean;
   energySaver: boolean;
   energySaverSupported: boolean;
+  /** Windows Update waits for a restart to finish installing (the power menu offers "Update and …"). */
+  updatePending: boolean;
 }
+
+/** Session actions of the power menu; `update_*` install pending updates first. */
+export type PowerAction = 'lock' | 'sleep' | 'signout' | 'restart' | 'shutdown' | 'update_restart' | 'update_shutdown';
 
 // ── Network ──────────────────────────────────────────────────────────────
 
@@ -376,6 +388,51 @@ export interface NotificationsState {
   items: AppNotification[];
 }
 
+// ── Coding agents (Claude Code, OpenCode, Pi) ────────────────────────────
+
+/** A coding agent rice can be hooked into. */
+export type AgentId = 'claude' | 'opencode' | 'pi';
+
+/** What a tool call the agent asks about does. */
+export type ToolKind = 'command' | 'edit' | 'write' | 'read' | 'fetch' | 'mcp' | 'other';
+
+/** A coding agent waits for the user's permission (answered with `agents_respond`). */
+export interface AgentRequest {
+  id: string;
+  agent: AgentId;
+  /** Last folder of the agent's working directory. */
+  project: string;
+  /** Tool name as the agent calls it ("Bash", "Edit", "mcp__…"). */
+  tool: string;
+  kind: ToolKind;
+  /** Command, path or URL; may be long (truncate in the UI). */
+  detail: string;
+  /** The agent's own description of the call ("Run the tests"), if it gave one. */
+  summary: string | null;
+  time: Iso;
+}
+
+/** How the user decides; `terminal` leaves it to the agent's own prompt. */
+export type AgentDecision = 'allow' | 'deny' | 'terminal';
+
+/** An agent finished or waits for input (shown briefly, no answer needed). */
+export interface AgentStatus {
+  agent: AgentId;
+  project: string;
+  state: 'done' | 'waiting';
+  /** Start of the agent's last answer, if any. */
+  message: string | null;
+  time: Iso;
+}
+
+/** A coding agent and whether rice is hooked into it. */
+export interface AgentIntegration {
+  id: AgentId;
+  /** The agent's configuration was found on this machine. */
+  available: boolean;
+  connected: boolean;
+}
+
 // ── Calendar & tasks (CalDAV, Nextcloud) ─────────────────────────────────
 
 /** A calendar collection (events, tasks or both). */
@@ -451,6 +508,10 @@ export interface ProcessInfo {
 /** Every command: `args` (void = no input) and `result`. */
 export interface Commands {
   app_info: { args: void; result: AppInfo };
+  app_autostart_get: { args: void; result: AutostartState };
+  app_autostart_set: { args: { enabled: boolean }; result: AutostartState };
+  /** Quits rice: windows close, Windows' notification banners come back. */
+  app_quit: { args: void; result: void };
 
   config_get: { args: void; result: StoredSettings };
   config_set: { args: { patch: SettingsPatch }; result: StoredSettings };
@@ -468,6 +529,8 @@ export interface Commands {
   island_set_hit_regions: { args: { rects: Rect[] }; result: void };
   island_set_expanded: { args: { expanded: boolean }; result: void };
   island_occlusion: { args: void; result: Occlusion };
+  /** While on, `island://cursor` reports the cursor (a mascot follows it). Off again after a page reload. */
+  island_track_cursor: { args: { enabled: boolean }; result: void };
 
   window_open_settings: { args: { page?: string }; result: void };
 
@@ -497,7 +560,7 @@ export interface Commands {
 
   power_get: { args: void; result: PowerState };
   power_set_energy_saver: { args: { enabled: boolean }; result: void };
-  power_action: { args: { action: 'lock' | 'sleep' | 'signout' | 'restart' | 'shutdown' }; result: void };
+  power_action: { args: { action: PowerAction }; result: void };
 
   network_get: { args: void; result: NetworkState };
   network_scan: { args: void; result: WifiNetwork[] };
@@ -515,7 +578,21 @@ export interface Commands {
   notifications_get: { args: void; result: NotificationsState };
   notifications_request_access: { args: void; result: NotificationPermission };
   notifications_dismiss: { args: { id: string }; result: void };
+  /**
+   * Opens the app that sent the notification and removes the notification (like a click on the Windows banner).
+   * Windows cannot replay the notification's own target (e.g. a chat); `not_supported` if the app cannot be started.
+   */
+  notifications_open: { args: { id: string }; result: void };
   notifications_clear: { args: void; result: void };
+
+  /** Requests still waiting (e.g. after a reload), oldest first. */
+  agents_pending: { args: void; result: AgentRequest[] };
+  /** Answers a request; `not_found` if the agent stopped waiting meanwhile. → `agents://resolved`. */
+  agents_respond: { args: { id: string; decision: AgentDecision }; result: void };
+  agents_list: { args: void; result: AgentIntegration[] };
+  /** Registers rice's hook in the agent's configuration (with a backup of the file). */
+  agents_connect: { args: { id: AgentId }; result: AgentIntegration };
+  agents_disconnect: { args: { id: AgentId }; result: AgentIntegration };
 
   calendar_accounts: { args: void; result: CalendarAccount[] };
   calendar_add_account: { args: { name: string; url: string; user: string; password: string }; result: CalendarAccount };
@@ -545,6 +622,8 @@ export interface Events {
   'island://occlusion': Occlusion;
   /** Cursor pushes against the top edge in the island zone (true) or left it (false). */
   'island://edge': { active: boolean };
+  /** Cursor moved (CSS px relative to the island window, anywhere on screen); ≤ 30 per second, only while tracked. */
+  'island://cursor': { x: number; y: number };
   /** The expanded island lost focus (click elsewhere). */
   'island://focus-lost': null;
   /** Global hotkey pressed. */
@@ -566,6 +645,11 @@ export interface Events {
   'notifications://posted': AppNotification;
   'notifications://removed': { id: string };
   'notifications://state': NotificationsState;
+
+  'agents://request': AgentRequest;
+  /** A request was answered here, in the terminal, or the agent stopped waiting. */
+  'agents://resolved': { id: string };
+  'agents://status': AgentStatus;
 
   'calendar://accounts': CalendarAccount[];
   /** Events or tasks changed after a sync; the UI refetches its range. */

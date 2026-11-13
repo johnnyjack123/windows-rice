@@ -392,11 +392,13 @@ export class IslandController {
       s.setSpring(bubble);
     }
     const size = parseFloat(cs.getPropertyValue('--island-height')) || 34;
+    // 0 is a valid radius (square islands), so only a missing value falls back to a pill.
+    const radius = parseFloat(cs.getPropertyValue('--radius-island'));
     this.tokens = {
       top: parseFloat(cs.getPropertyValue('--island-top')) || 10,
       bubbleSize: size,
       bubbleGap: parseFloat(cs.getPropertyValue('--island-bubble-gap')) || 8,
-      bubbleRadius: Math.min(parseFloat(cs.getPropertyValue('--radius-island')) || 999, size / 2),
+      bubbleRadius: Math.min(Number.isFinite(radius) ? radius : 999, size / 2),
       splitPull: parseFloat(cs.getPropertyValue('--island-split-pull')) || 18,
       goo: cs.getPropertyValue('--island-goo').trim() === '1' && !motionSettings.reduced,
       glass: cs.getPropertyValue('--island-material').trim() === 'glass',

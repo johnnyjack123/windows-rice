@@ -5,7 +5,7 @@ import { ThemeEngine } from '$design/engine.svelte';
 /** Stores every island-like window needs. */
 export const ISLAND_STORES: StoreKey[] = [
   'settings', 'system', 'themes', 'media', 'audio', 'display', 'power',
-  'network', 'bluetooth', 'notifications', 'calendar', 'tasks',
+  'network', 'bluetooth', 'notifications', 'calendar', 'tasks', 'agents',
 ];
 
 /**

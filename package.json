@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Windows desktop rice: dynamic island, control centre and more (Tauri 2 + Svelte 5)",
+  "license": "MIT",
+  "repository": "github:johnnyjack123/windows-rice",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -11,17 +13,23 @@
     "check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
     "test": "vitest run",
     "icons": "node scripts/fetch-icons.mjs",
+    "tauri": "tauri",
+    "release": "tauri build --config src-tauri/tauri.release.conf.json",
     "verify": "pnpm check && pnpm test && pnpm build"
   },
   "dependencies": {
+    "@fontsource-variable/antonio": "5.3.0",
     "@fontsource-variable/instrument-sans": "5.3.0",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
     "@fontsource-variable/roboto-flex": "5.3.0",
+    "@fontsource-variable/saira": "5.3.0",
     "@fontsource/instrument-serif": "5.3.0",
+    "@fontsource/rajdhani": "5.3.0",
     "@tauri-apps/api": "2.12.3"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@tauri-apps/cli": "2.12.3",
     "@tsconfig/svelte": "5.0.8",
     "@types/node": "^24.19.2",
     "jsdom": "30.1.2",

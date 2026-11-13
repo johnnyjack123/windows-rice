@@ -618,6 +618,77 @@
   font: var(--type-metric);
 }
 
+/* ── Coding agents (permission request, status) ─────────────────────────── */
+.mascot {
+  display: block;
+  flex: none;
+  aspect-ratio: 3 / 2;
+}
+.mascot--live {
+  width: var(--mascot-width);
+}
+.mascot--compact {
+  width: var(--mascot-width-compact);
+}
+.agent-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+.agent-text {
+  min-width: 0;
+}
+/* The agent's description ("Run the tests"): up to two lines. */
+.agent-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: var(--space-half);
+  font: var(--type-title);
+}
+/* Commands and paths: monospaced, at most two lines, never wider than the island. */
+.agent-detail {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding: var(--space-2) var(--space-3);
+  border-radius: max(var(--radius-min), calc(var(--radius-live) - var(--space-4)));
+  background: color-mix(in srgb, var(--color-on-island) 8%, transparent);
+  color: var(--color-on-island-muted);
+  font: var(--type-code);
+}
+.agent-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.agent-actions .btn {
+  min-width: 0;
+  padding-inline: var(--space-2);
+}
+/* After a decision the chosen button stays, the others fade (§12: disabled). */
+.agent-actions.is-decided .is-chosen {
+  opacity: 1;
+}
+.view.view--agentStatus {
+  padding-left: var(--space-2);
+}
+.agent-status {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+.agent-status__project {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-on-island-muted);
+  font-weight: 500;
+}
+
 /* Hidden views (inactive previews, the closed panel) do not keep animating. */
 .view:not(.is-active) :is(.eq i, .ring-icon) {
   animation-play-state: paused;

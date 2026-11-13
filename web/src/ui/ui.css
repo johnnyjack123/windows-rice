@@ -858,7 +858,7 @@
   border-radius: 2px;
   background: currentColor;
   scale: 1 0.3;
-  animation: eq calc(var(--dur-slow) * var(--k, 1)) var(--eq-timing) infinite alternate;
+  animation: eq calc(var(--eq-duration) * var(--k, 1)) var(--eq-timing) infinite alternate;
   animation-play-state: paused;
 }
 .eq i:nth-child(1) { --k: 1.05; }

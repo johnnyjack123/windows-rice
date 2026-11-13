@@ -4,13 +4,71 @@ Ein Windows-Desktop-Rice: eine **Dynamic Island**, die per Klick zum Kontrollzen
 Kalender, Aufgaben, Timer, Systemmonitor, Schnelleinstellungen mit WLAN-/Bluetooth-Untermenüs). Später kommen
 Taskleiste, App-Launcher und weitere Module dazu. Stack: Tauri 2 + Rust + Svelte 5.
 
-> **Status: Phase 1 – Frontend fertig, Rust-Backend als Nächstes.** Das komplette Frontend läuft im Browser gegen ein
-> Mock-Backend. Den Auftrag für das Backend beschreibt [`docs/BACKEND.md`](docs/BACKEND.md), Plan und Roadmap
-> [`docs/PLAN.md`](docs/PLAN.md).
+> **Status: Phase 1 – Frontend fertig, Rust-Backend im Aufbau.** Das komplette Frontend läuft im Browser gegen ein
+> Mock-Backend. Das Rust-Backend entsteht schrittweise nach [`docs/BACKEND.md`](docs/BACKEND.md) (Stand: §7); Plan und
+> Roadmap [`docs/PLAN.md`](docs/PLAN.md).
+
+## Herunterladen
+
+Bei jedem Commit auf `main` baut GitHub Actions die Installer neu: unter
+[Releases](https://github.com/johnnyjack123/windows-rice/releases) liegt `rice_<version>_arm64-setup.exe` (Windows auf
+ARM, z. B. Snapdragon) und `rice_<version>_x64-setup.exe` (Intel/AMD). Der Installer ist nicht von einer
+Zertifizierungsstelle signiert: SmartScreen warnt deshalb beim ersten Start („Weitere Informationen“ → „Trotzdem
+ausführen“), und die Installation fragt einmal per Benutzerkontensteuerung, ob sie das selbstsignierte Zertifikat
+des Identitätspakets vertrauen darf (nötig für das Lesen von Mitteilungen).
 
 ## Starten
 
-Voraussetzungen: Node 22+ und pnpm.
+### Als Desktop-App (Tauri)
+
+Voraussetzungen: Node 22+, pnpm, Rust (stable, MSVC), Visual Studio Build Tools mit C++-Workload, WebView2-Runtime.
+
+```powershell
+pnpm install
+pnpm tauri dev
+```
+
+Startet Vite und die App. Die Island erscheint oben mittig auf dem Hauptbildschirm; Einstellungen und Daten liegen in
+`%APPDATA%\rice`. Läuft `pnpm dev` schon, bricht `pnpm tauri dev` mit „Port 1420 is already in use“ ab – dann den
+laufenden Server beenden oder nur das Backend starten: `cargo run -p rice`.
+
+#### Mitteilungen (Paket-Identität)
+
+Mitteilungen anderer Apps darf rice nur mit Paket-Identität lesen. Dafür gibt es ein *Sparse Package*, das nichts
+installiert, sondern nur `target\debug\rice.exe` eine Identität gibt („rice (dev)“, getrennt von der installierten
+Version). Einmalig (Entwicklermodus muss an sein: Einstellungen → System → Für Entwickler):
+
+```powershell
+cargo build -p rice
+powershell -ExecutionPolicy Bypass -File scripts\sparse-package.ps1
+```
+
+Danach rice wie gewohnt starten und im Kontrollzentrum unter „Mitteilungen“ auf „Zugriff erlauben“ klicken. Ob alles
+passt, zeigt `target\debug\rice.exe --check-notifications` (Paket-Identität, Zugriff, Events; ohne Fenster). Entfernen:
+`scripts\sparse-package.ps1 -Remove`. Solange rice läuft, sind die Windows-Banner aus (Einstellung
+„Windows-Mitteilungsbanner ausblenden“); sie kommen beim Beenden zurück, nach einem Absturz beim nächsten Start – oder
+sofort mit `target\debug\rice.exe --restore-banners`.
+
+### Installer bauen und installieren
+
+```powershell
+pnpm release
+```
+
+Baut Frontend, signiertes Identitätspaket und `rice.exe` (Release) und erzeugt
+`target\release\bundle\nsis\rice_<Version>_<Arch>-setup.exe`. Voraussetzung zusätzlich: Windows SDK (MakeAppx,
+SignTool). Beim ersten Mal legt das Skript das Signierzertifikat „rice package signing“ in deinem persönlichen
+Zertifikatspeicher an (privater Schlüssel nicht exportierbar).
+
+Der Installer braucht keinen Entwicklermodus und installiert pro Benutzer nach `%LOCALAPPDATA%\rice`. Für die
+Mitteilungen fragt Windows einmal nach Adminrechten (UAC): rechnerweit vertraut wird dabei nur dem rice-Zertifikat, sonst
+nichts. Lehnst du ab, läuft rice ohne Mitteilungen. Danach registriert er die Paket-Identität und schaltet „Mit Windows
+starten“ ein. SmartScreen warnt beim ersten Start („Weitere Informationen“ → „Trotzdem ausführen“), weil der Installer
+nicht mit einem gekauften Zertifikat signiert ist. Beenden: Einstellungen → Über rice → „rice beenden“. Deinstallieren
+über Windows-Einstellungen → Apps; das holt auch die Windows-Banner zurück und entfernt Paket, Zertifikat (noch einmal
+UAC) und Autostart.
+
+### Im Browser (Mock-Backend)
 
 ```powershell
 pnpm install
@@ -39,6 +97,7 @@ Lab-Tab (wie später zwischen den beiden Fenstern).
 | `E` | Termin in Kürze | `T` | 5-Minuten-Timer (zeigt das Abspalten) |
 | `C` | Laden | `A` | Wecker klingelt |
 | `P` | Pomodoro starten / nächste Phase | `S` | Zeitlupe (1× → 0,5× → 0,2×) |
+| `K` | Coding-Agent fragt um Erlaubnis | `J` | Coding-Agent fertig / wartet |
 | `R` | Reduzierte Bewegung | `H` | Lab-Leiste ausblenden |
 
 Außerdem: **Mausrad** über der Island ändert die Lautstärke, **Überfahren** der Musik-Island öffnet den Player.
@@ -54,7 +113,7 @@ Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Li
 (Fokus überspringen) – die Pause legt sich über die Seite. Direkt ansehen: <http://127.0.0.1:1420/break.html?preview>
 (auch `?preview=long`, `?preview=over`).
 
-## Die fünf Standard-Themes
+## Die Standard-Themes
 
 | | Theme | Charakter |
 |---|---|---|
@@ -63,6 +122,17 @@ Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Li
 | 3 | **Liquid Glass** | Echtes Glas per WebGL: Lichtbrechung und Farbsaum am Rand, Milchglas, Randlicht folgt der Maus, Pillen verschmelzen flüssig |
 | 4 | **Terminal** | Monospace, Haarlinien, Bernstein; ohne Federn, Inhalte „rendern“ sich ein |
 | 5 | **Paper** | Editorial: warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot |
+| 6 | **LCARS** | Raumschiff-Konsole im TNG-Stil: Ellbogen-Rahmen, Farbblöcke statt Linien, Pille mit Endkappen, schmale Versalien |
+| 7 | **Enterprise NX-01** | Prä-LCARS der NX-01: stahlblaue Rahmen mit abgeschrägten Ecken, Haarlinien, segmentierte Balken, Bernstein, breite Schrift |
+| 8 | **Workbench 1.3** | Amiga-Desktop: Topaz-Pixelschrift, vier Farben, weiße Titelleiste mit Tiefen-Gadget, Komplement-Hervorhebung |
+| 9 | **Cyberpunk 2077** | HUD mit abgeschrägten Ecken, Koralle und Cyan, einmaliger Glitch beim Einblenden; hell als gelbes Poster |
+
+**Schriften:** Antonio (LCARS), Saira (NX-01) und Rajdhani (Cyberpunk) stehen unter der SIL Open Font License. Topaz (Workbench) ist
+eine Nachbildung von dMG/TrueSchool unter GPL mit Font-Ausnahme, das Original-Design © Amiga Inc.; Herkunft und
+Lizenztext liegen in `web/src/design/fonts/topaz-a500.LICENSE.txt`. Die Theme-Namen beziehen sich auf Marken ihrer
+jeweiligen Inhaber (Paramount, Amiga, CD PROJEKT) und beschreiben nur den Stil; das Maskottchen der Coding-Agent-Brücke
+stellt die Figur von Claude Code dar (Anthropic). rice ist ein nicht-kommerzielles Hobbyprojekt ohne Verbindung zu
+diesen Unternehmen. Alle Fremd-Lizenzen: [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).
 
 Jedes Theme lässt sich im **Theme-Editor** anpassen (Farben, Schriften, Radien, Tempo, Easing, Federung …) und als
 eigenes Theme speichern. Eigene Themes von Hand: [`docs/THEMING.md`](docs/THEMING.md).
@@ -77,6 +147,10 @@ eigenes Theme speichern. Eigene Themes von Hand: [`docs/THEMING.md`](docs/THEMIN
 | `pnpm build` | Produktions-Build nach `dist/` |
 | `pnpm verify` | alles drei nacheinander – vor jedem Commit |
 | `pnpm icons` | Icon-Subset neu erzeugen (nach Änderungen an `web/src/design/icons.json`, braucht Python mit `fonttools` + `brotli`) |
+| `pnpm tauri dev` | Desktop-App mit Vite-Server starten |
+| `pnpm release` | Installer bauen (`target\release\bundle\nsis\`) |
+| `cargo clippy -- -D warnings` | Rust-Lints (Warnungen sind Fehler) |
+| `cargo test` | Rust-Tests (Vertragsabgleich, Geometrie, Einstellungen, Dateien) |
 
 ## Struktur
 
@@ -99,6 +173,14 @@ web/
     settings/           Einstellungsfenster
     lab/ gallery/       Entwicklungsseiten
 scripts/                Hilfsskripte (Icon-Subset)
+src-tauri/              Tauri-App: Fenster, Commands, Events (Rust)
+crates/
+  rice-core/            Vertragstypen und Logik ohne Windows-Abhängigkeit
+  rice-services/        Konfiguration, Themes, Bildkodierung
+  rice-win/             Windows-API-Wrapper
+.github/workflows/      Release-Build (ARM64 + x64) bei jedem Push auf main, Probe-Build bei Pull Requests
 ```
 
-Das Rust-Backend (`src-tauri/`) entsteht als Nächstes nach [`docs/BACKEND.md`](docs/BACKEND.md).
+## Lizenz
+
+[MIT](LICENSE). Mitgelieferte Schriften und Icons haben eigene Lizenzen: [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md).

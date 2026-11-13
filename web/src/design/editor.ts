@@ -111,6 +111,10 @@ export const BUNDLED_FONTS: readonly FontOption[] = [
   { id: 'Instrument Sans', ui: '"Instrument Sans Variable", system-ui, sans-serif', display: '"Instrument Sans Variable", system-ui, sans-serif' },
   { id: 'Instrument Serif', ui: '"Instrument Serif", Georgia, serif', display: '"Instrument Serif", Georgia, serif' },
   { id: 'JetBrains Mono', ui: '"JetBrains Mono Variable", Consolas, monospace', display: '"JetBrains Mono Variable", Consolas, monospace' },
+  { id: 'Antonio', ui: '"Antonio Variable", "Arial Narrow", sans-serif', display: '"Antonio Variable", "Arial Narrow", sans-serif' },
+  { id: 'Rajdhani', ui: 'Rajdhani, Bahnschrift, system-ui, sans-serif', display: 'Rajdhani, Bahnschrift, system-ui, sans-serif' },
+  { id: 'Saira', ui: '"Saira Variable", Bahnschrift, system-ui, sans-serif', display: '"Saira Variable", Bahnschrift, system-ui, sans-serif' },
+  { id: 'Topaz', ui: '"Topaz a500", Consolas, monospace', display: '"Topaz a500", Consolas, monospace' },
   { id: 'Bahnschrift', ui: 'Bahnschrift, system-ui, sans-serif', display: 'Bahnschrift, system-ui, sans-serif' },
 ];
 

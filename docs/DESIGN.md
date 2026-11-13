@@ -52,6 +52,12 @@ Dieses Dokument verhindert, dass das Design über Monate „zufällig“ wird. E
 | Alles in Boxen mit Schatten | Weißraum und Ausrichtung gruppieren; Karten nur, wo Inhalte wirklich zusammengehören |
 | Animation als Effekt („alles wackelt“) | Animation erklärt Zustandswechsel; Federn mit Maß |
 
+**Begründete Ausnahmen – Zitat-Themes.** LCARS, Enterprise NX-01, Workbench 1.3 und Cyberpunk 2077 zitieren einen bekannten Stil und
+dürfen dessen Merkmale tragen, auch wenn sie oben unter „Vermeiden“ stehen: Cyberpunk leuchtet (Neon an Linien, Uhr und
+aktiven Flächen) und glitcht einmal beim Einblenden; LCARS trägt dekorative Zahlencodes im Rahmen, NX-01 die Kennung „NX-01“; Workbench hat nur eine
+Schriftgröße und vier Farben, Hierarchie entsteht über Farbe und Fläche. Die übrigen Regeln (Kontrast, Fokus,
+Trefferflächen, keine Endlosschleifen, reduzierte Bewegung) gelten unverändert.
+
 **Details, die Qualität ausmachen:** tabellarische Ziffern für alles, was sich ändert · negatives Tracking bei großen
 Schriftgraden · 0,5-px-Haarlinien statt 1 px auf dunklen Flächen · Icons optisch zentriert in ihren Kreisen ·
 Inhalte, die sich beim Morphen nicht neu umbrechen · Fokusringe, die zum Theme passen.
@@ -170,6 +176,8 @@ zwei Zeilen · Deutsch ist ~30 % länger als Englisch, beide Sprachen testen · 
 | Fläche | Obsidian, Monet | `--elevation-card: none`, Container unterscheiden sich farblich |
 | Haarlinie | Terminal | `--elevation-card: inset 0 0 0 1px var(--color-border)` |
 | Regel (Linie) | Paper | Fläche = Papier, Linien über gekapselte Overrides |
+| Farbblock | LCARS | Schwarz mit farbigen Blöcken, Kappen und Ellbogen; keine Linien, keine Schatten |
+| Rahmen | Workbench 1.3 | `--elevation-card: inset 0 0 0 2px` im weißen Stift, Titelleisten als weiße Flächen |
 | Schatten | Panel in allen Themes | `--elevation-panel` |
 
 **Material** (`--island-material`): `solid` oder `glass`. Glas bekommt vorgerenderte Wallpaper-Ebenen aus der Laufzeit;
@@ -231,8 +239,9 @@ Die Theme-Engine erzeugt daraus CSS-Kurven (`--ease-spring-*`) und Dauern (`--du
    Brücke ist ein berechneter Vektorpfad (Metaball) bzw. beim Liquid Glass die weiche Vereinigung im Shader. Beim
    Zurückziehen bildet sie sich neu. Schließt das Kontrollzentrum, wird die Island **erst** wieder eine Pille, **dann**
    spaltet sich die Bubble ab.
-9. **Keine Endlosschleifen** außer echtem Fortschritt, laufender Wiedergabe (Equalizer), klingelndem Wecker und dem
-   Pausen-Vollbild (Atemkreis, Ambiente; §16).
+9. **Keine Endlosschleifen** außer echtem Fortschritt, laufender Wiedergabe (Equalizer), klingelndem Wecker, dem
+   Pausen-Vollbild (Atemkreis, Ambiente; §16) und dem Maskottchen eines Coding-Agents, solange seine Frage sichtbar
+   ist (erst Hüpfen und Winken, nach `--agent-patience` ruhiges Umschauen).
 10. **Reduzierte Bewegung** (Windows oder Lab): Federn kritisch gedämpft ≤ 0,3 s, keine Unschärfe, Skalierung,
     Staffelung oder Wackeln. Überblendungen bleiben.
 
@@ -314,6 +323,8 @@ Bedeutung nie nur über Farbe.
 | `timer:expanded`, `stopwatch:expanded`, `pomodoro:expanded` | 304 × Inhalt | Schnellaktionen: Ring + Restzeit, darunter +1 Min/Pause/Abbrechen bzw. Runde/Pause bzw. Pause/Überspringen/Beenden |
 | `pomodoroPhase` | 304 × Inhalt | Ankündigung eines automatischen Phasenwechsels („Zeit für eine Pause · 5 Min“) |
 | `charging` | ≥ 264 × 34 | „Wird geladen“, Prozent, Akku |
+| `agent` | 392 × Inhalt | Voxel-Maskottchen (WebGL, schaut dem Mauszeiger nach), Agent · Projekt (+n weitere), die Beschreibung des Agents (sonst was er tun will, 2 Zeilen), darunter klein der echte Befehl/Pfad in Mono (2 Zeilen), „Im Terminal“/„Ablehnen“/„Erlauben“; nach der Entscheidung reagiert das Maskottchen (Sprung mit Drehung bzw. Kopfschütteln) |
+| `agentStatus` | Inhalt × 34 | Kleines Maskottchen, „Claude Code ist fertig“ bzw. „wartet auf dich“, Projekt |
 | `alarm` / `timerDone` / `pomodoroDone` | 392 × Inhalt | Wackelnde Glocke, Uhrzeit bzw. Name, Schlummern/+1 Min und Ausschalten/Stopp; beim Pomodoro „Pause starten“/„Fokus starten“ und Beenden |
 | `panel` | 800 × 556 | Kontrollzentrum |
 
@@ -324,7 +335,9 @@ Bedeutung nie nur über Farbe.
 | Wecker klingelt | 110 | bis Schlummern/Aus | Timer |
 | Timer abgelaufen | 105 | bis Stopp | Timer |
 | Pomodoro-Phase vorbei (ohne Autostart) | 104 | bis Start/Beenden | Timer |
+| Coding-Agent fragt | 102 | bis zur Antwort (hier oder im Terminal) | – |
 | Mitteilung | 100 | 4,8 s (pausiert bei Hover) | Mitteilungen |
+| Coding-Agent fertig/wartet | 99 | 4,2 s | – |
 | Pomodoro-Phasenwechsel | 95 | 5,2 s | Timer |
 | OSD | 90 | 1,7 s nach letzter Änderung | – |
 | Laden | 80 | 3,2 s | – |
@@ -401,6 +414,9 @@ Ein eigenes Fenster je Monitor (`break.html`, siehe BACKEND §3.3). Es soll zum 
   (`--break-drift`). Reduzierte Bewegung: beides steht still.
 - **Themes** färben es über `--break-*`: Obsidian echtes Schwarz mit weißem Ring, Monet Seed-Farben und ein Atemkreis,
   der seine Form wandelt, Liquid Glass das echte Wallpaper mattiert mit Glas-Zifferblatt, Terminal Scanlines, ASCII-Balken
-  und Cursor, Paper Papierkorn, Tuschering und kursiver Tipp.
+  und Cursor, Paper Papierkorn, Tuschering und kursiver Tipp, LCARS einen bildschirmfüllenden Doppel-Ellbogen mit der
+  Uhr in der oberen Leiste, NX-01 dasselbe kantig in Stahlblau mit einem getickten Ring in Eisblau, Workbench den blauen Screen mit weißer Titelleiste und einem „Gummiband“-Rahmen als
+  Atemhilfe, Cyberpunk Neon-Dunst, Scanlines, einen getickten HUD-Ring und einen Glitch auf dem Countdown (hell: gelb,
+  ohne Leuchten).
 - **Vorschau:** `break.html?preview` (auch `?preview=long`, `?preview=over`).
 

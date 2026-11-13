@@ -1,0 +1,11 @@
+/* Topaz, the Amiga Kickstart 1.x system font (Workbench 1.3 theme).
+   TrueType remake by dMG/TrueSchool, GPL with font exception; origin and
+   licence in topaz-a500.LICENSE.txt. It is a pixel font on a 100 × 200 unit
+   grid: at 16 px (and multiples) every pixel lands on whole device pixels. */
+@font-face {
+  font-family: "Topaz a500";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./topaz-a500.woff2") format("woff2");
+}

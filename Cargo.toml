@@ -1,0 +1,61 @@
+[workspace]
+resolver = "3"
+members = ["src-tauri", "crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+publish = false
+license = "MIT"
+repository = "https://github.com/johnnyjack123/windows-rice"
+
+[workspace.dependencies]
+rice-caldav = { path = "crates/rice-caldav" }
+rice-core = { path = "crates/rice-core" }
+rice-services = { path = "crates/rice-services" }
+rice-win = { path = "crates/rice-win" }
+
+base64 = "0.22"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+image = { version = "0.25", default-features = false, features = ["bmp", "gif", "jpeg", "png", "tiff", "webp"] }
+log = "0.4"
+notify = "8.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tempfile = "3"
+tokio = { version = "1", features = ["io-util", "macros", "net", "sync", "time"] }
+toml = "1"
+url = "2"
+windows = "0.62.2"
+windows-core = "0.62.2"
+windows-collections = "0.3.2"
+windows-future = "0.3.2"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+# Commands must never panic (docs/BACKEND.md §0); tests may.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+dbg_macro = "deny"
+
+# Decoding a 4K wallpaper in an unoptimised build takes seconds.
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.fdeflate]
+opt-level = 3
+[profile.dev.package.image-webp]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true

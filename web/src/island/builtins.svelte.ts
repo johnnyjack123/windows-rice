@@ -7,6 +7,8 @@ import { untrack } from 'svelte';
 import { i18n } from '$i18n/i18n.svelte';
 import { PRIORITY, type ActivityRegistry } from './activities.svelte';
 import type { IslandContext } from './context.svelte';
+import AgentStatusView from './views/AgentStatusView.svelte';
+import AgentView from './views/AgentView.svelte';
 import ChargingView from './views/ChargingView.svelte';
 import EventBubble from './views/EventBubble.svelte';
 import EventView from './views/EventView.svelte';
@@ -33,6 +35,7 @@ export const VIEW_CLASS: Record<string, string> = {
   timerDone: 'view--live',
   pomodoroDone: 'view--live',
   pomodoroPhase: 'view--live',
+  agent: 'view--live',
 };
 
 /**
@@ -60,6 +63,33 @@ export function registerBuiltinActivities(registry: ActivityRegistry, ctx: Pick<
   registry.define({
     id: 'notification', priority: PRIORITY.notification, view: NotificationView, compact: false, transient: true, section: 'notifications',
     label: () => (ctx.ui.notification ? `${ctx.ui.notification.appName}: ${ctx.ui.notification.title}` : m().sections.notifications),
+    // Like a Windows banner: a click opens the sending app.
+    open: async () => {
+      const shown = ctx.ui.notification;
+      if (!shown) {
+        throw new Error('no notification on show');
+      }
+      await ctx.backend.notifications.open(shown.id);
+      registry.hide('notification');
+    },
+  });
+  registry.define({
+    id: 'agent', priority: PRIORITY.agent, view: AgentView, compact: false, transient: true,
+    label: () => {
+      const request = ctx.ui.agentFarewell?.request ?? ctx.backend.agents.pending[0];
+      return request ? `${m().agents.request(m().agents.names[request.agent], request.project)}: ${m().agents.asks[request.kind]}` : m().agents.names.claude;
+    },
+  });
+  registry.define({
+    id: 'agentStatus', priority: PRIORITY.agentStatus, view: AgentStatusView, compact: true, transient: true,
+    label: () => {
+      const status = ctx.ui.agentStatus;
+      if (!status) {
+        return m().agents.names.claude;
+      }
+      const name = m().agents.names[status.agent];
+      return status.state === 'done' ? m().agents.done(name) : m().agents.waiting(name);
+    },
   });
   registry.define({ id: 'osd', priority: PRIORITY.osd, view: OsdView, compact: false, transient: true, label: () => (ctx.ui.osd.kind === 'volume' ? m().osd.volume : m().osd.brightness) });
   registry.define({ id: 'charging', priority: PRIORITY.charging, view: ChargingView, compact: true, transient: true, label: () => m().island.charging });
@@ -116,6 +146,14 @@ export function connectSources(ctx: IslandContext): () => void {
     }
   }));
 
+  offs.push(backend.agents.status.on((status) => {
+    if (controller.expanded) {
+      return;
+    }
+    ui.agentStatus = status;
+    registry.show('agentStatus', { ttl: 4200, bump: true });
+  }));
+
   offs.push(backend.power.plugged.on(() => registry.show('charging', { ttl: 3200 })));
   offs.push(backend.media.trackChanged.on(() => registry.show('music', { bump: true })));
 
@@ -168,6 +206,19 @@ export function connectSources(ctx: IslandContext): () => void {
     $effect(() => {
       const active = pomodoro.active;
       untrack(() => (active ? registry.show('pomodoro') : registry.hide('pomodoro')));
+    });
+
+    // A coding agent waits for an answer: shown until it is answered here or in
+    // the terminal; the next waiting request follows with a bump.
+    $effect(() => {
+      const shown = ui.agentFarewell?.request.id ?? backend.agents.pending[0]?.id;
+      untrack(() => {
+        if (!shown) {
+          registry.hide('agent');
+        } else {
+          registry.show('agent', { bump: registry.has('agent') });
+        }
+      });
     });
 
     // Automatic phase changes are announced briefly (also over other windows).

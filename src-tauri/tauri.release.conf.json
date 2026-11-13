@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeBuildCommand": "pnpm build && powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File scripts/identity-package.ps1"
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "rice",
+    "resources": {
+      "../target/identity/rice.msix": "identity/rice.msix",
+      "../target/identity/rice.cer": "identity/rice.cer",
+      "windows/identity.ps1": "identity/identity.ps1"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "installerHooks": "windows/hooks.nsh",
+        "languages": ["German", "English"],
+        "displayLanguageSelector": false
+      }
+    }
+  }
+}

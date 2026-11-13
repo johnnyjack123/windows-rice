@@ -116,6 +116,11 @@ höchstens 160 px von der Monitormitte entfernt → `{ active: true }`. Aktiv bl
 aktuellen Hit-Regions plus 32 px Rand verlässt **und** tiefer als 40 px unter der Oberkante ist → `{ active: false }`.
 (Referenzlogik: `trackEdge()` im Mock.)
 
+**Cursor (`island_track_cursor { enabled }` → `island://cursor`).** Solange ein Coding-Agent-Maskottchen zu sehen ist,
+schaut es dem Mauszeiger nach. Dann meldet der Cursor-Thread die Position (CSS-px relativ zur linken oberen Ecke des
+Island-Fensters, auch außerhalb des Fensters), nur bei Bewegung und höchstens alle 33 ms. Lädt die Island-Seite neu, ist
+das Melden wieder aus.
+
 **Hotkey.** `settings.island.hotkey` (Standard `"Super+Alt+Space"`) global registrieren → `island://toggle`. Bei
 Änderung der Einstellung neu registrieren.
 
@@ -165,10 +170,12 @@ Typen siehe `contract.ts`. „→“ = Event, das nach dem Command (oder bei ext
 | Command | Verhalten |
 |---|---|
 | `app_info` | `{ version, themesDir, configDir }` — `configDir = %APPDATA%\rice`, `themesDir = %APPDATA%\rice\themes` (absolute Pfade). |
+| `app_autostart_get` / `app_autostart_set { enabled }` | `AutostartState { enabled, supported }`. Wert `rice` unter `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` (Pfad zur laufenden Exe in Anführungszeichen). `enabled` heißt außerdem „im Task-Manager nicht deaktiviert“ (`…\Explorer\StartupApproved\Run`, erstes Byte ungerade = aus); Einschalten in rice hebt diese Sperre auf. Entwicklungs-Builds: `supported: false`, `set` → `not_supported` (sie bräuchten den Vite-Server). |
+| `app_quit` | Beendet rice (`app.exit(0)`); dabei kommen die Windows-Banner zurück (`RunEvent::Exit`). |
 | `config_get` | Liefert das **gespeicherte** JSON-Objekt aus `%APPDATA%\rice\config.json` (oder `{}`). Keine Defaults einfügen — die stehen im Frontend (`web/src/backend/settings.ts`). |
 | `config_set { patch }` | Tiefes Mergen: Objekte schlüsselweise, Arrays und Primitive ersetzen, `null` löscht den Schlüssel (identisch zu `applyPatch()` in `settings.ts`). Atomar schreiben (temp + rename). Rückgabe: neues gespeichertes Objekt. → `config://changed` (gesamtes Objekt). Externe Dateiänderungen (Watcher) ebenfalls → `config://changed`. |
 | `theme_list_user` | Alle Ordner unter `themes/` mit gültigem `theme.toml` + `theme.css` → `UserTheme[]`. |
-| `theme_save_user { id, manifest, css }` | `id` muss `^[a-z0-9-]{1,48}$` sein und darf kein eingebautes Theme sein (`obsidian`, `monet`, `glass`, `terminal`, `paper`) → sonst `invalid_args`. Ordner anlegen/überschreiben, `theme.toml` (Manifest) + `theme.css` schreiben. → `theme://user-changed` (komplette Liste). |
+| `theme_save_user { id, manifest, css }` | `id` muss `^[a-z0-9-]{1,48}$` sein und darf kein eingebautes Theme sein (`obsidian`, `monet`, `glass`, `terminal`, `paper`, `lcars`, `nx01`, `workbench`, `cyberpunk`) → sonst `invalid_args`. Ordner anlegen/überschreiben, `theme.toml` (Manifest) + `theme.css` schreiben. → `theme://user-changed` (komplette Liste). |
 | `theme_delete_user { id }` | Ordner löschen. → `theme://user-changed`. Der Ordner wird zusätzlich überwacht (Hot Reload beim Bearbeiten von `theme.css`). |
 
 `theme.toml`:
@@ -221,9 +228,9 @@ Was das Backend aus den Einstellungen selbst braucht (mit diesen Defaults, falls
 | `display_get` | Helligkeit des Island-Monitors: intern per WMI (`WmiMonitorBrightness`), extern per DDC/CI (`GetMonitorBrightness`, dxva2). Geht beides nicht → `brightness: null`. `nightLight`: Registry-Blob unter `…\CloudStore\Store\DefaultAccount\Current\default$windows.data.bluelightreduction.bluelightreductionstate\…` lesen; bei Unsicherheit `null` (Kachel zeigt „Wird nicht unterstützt“). |
 | `display_set_brightness`, `display_set_night_light` | Entsprechend; Nachtlicht experimentell. |
 | → `display://state` | `WmiMonitorBrightnessEvent` bzw. nach eigenen Änderungen. |
-| `power_get` | `GetSystemPowerStatus` (`battery: null`, wenn kein Akku: `BatteryFlag == 128`), Energiesparmodus über `GUID_POWER_SAVING_STATUS` lesen. `energySaverSupported` nur `true`, wenn du ihn zuverlässig schalten kannst. |
+| `power_get` | `GetSystemPowerStatus` (`battery: null`, wenn kein Akku: `BatteryFlag == 128`), Energiesparmodus über `GUID_POWER_SAVING_STATUS` lesen. `energySaverSupported` nur `true`, wenn du ihn zuverlässig schalten kannst. `updatePending` = Windows Update wartet auf einen Neustart (Windows Update Agent, `ISystemInformation::RebootRequired`). |
 | `power_set_energy_saver` | Experimentell; sonst `not_supported`. |
-| `power_action { action }` | `lock` → `LockWorkStation`; `sleep` → `SetSuspendState(false, false, false)`; `signout` → `ExitWindowsEx(EWX_LOGOFF)`; `restart`/`shutdown` → `ExitWindowsEx` mit `SE_SHUTDOWN_NAME`-Privileg. |
+| `power_action { action }` | `lock` → `LockWorkStation`; `sleep` → `SetSuspendState(false, false, false)`; `signout` → `ExitWindowsEx(EWX_LOGOFF)`; `restart`/`shutdown` → `ExitWindowsEx` mit `SE_SHUTDOWN_NAME`-Privileg; `update_restart`/`update_shutdown` → `InitiateShutdownW` mit `SHUTDOWN_INSTALL_UPDATES` (Windows installiert die wartenden Updates, dann Neustart bzw. Ausschalten – wie „Aktualisieren und …“ im Startmenü). |
 | → `power://state` | `RegisterPowerSettingNotification` (`GUID_BATTERY_PERCENTAGE_REMAINING`, `GUID_ACDC_POWER_SOURCE`, `GUID_POWER_SAVING_STATUS`). Das Frontend zeigt beim Einstecken („charging“ false → true) die Lade-Aktivität. |
 
 ### Netzwerk
@@ -259,6 +266,7 @@ mit der Capability `userNotificationListener`, das der Installer registriert. Oh
 | `notifications_get` | `GetAccessStatus` → `granted`/`denied`/`unknown` (bzw. `unsupported`). Bei `granted`: `GetNotificationsAsync(Toast)` → `AppNotification` (`id` = Id als String, `appId` = AUMID, `appName` = Anzeigename, `iconUrl` = Logo 48 px als Data-URL, `title` = erster Text des Toast-Bindings, `body` = restliche Texte, `time` = `CreationTime`). |
 | `notifications_request_access` | `RequestAccessAsync` (UI-Thread). → `notifications://state`. |
 | `notifications_dismiss { id }` / `notifications_clear` | `RemoveNotification` / `ClearNotifications`. → `notifications://removed` je Id. |
+| `notifications_open { id }` | Startet die sendende App bzw. holt sie nach vorn (`shell:AppsFolder\<AUMID>` per `ShellExecuteEx` ohne Fehlerdialog, vorher `AllowSetForegroundWindow`) und entfernt die Mitteilung wie ein Klick auf das Windows-Banner. Pfad-AUMIDs werden nie gestartet; Phone-Link-Unter-AUMIDs fallen auf die Haupt-App des Pakets zurück. Das eigentliche Ziel der Mitteilung (z. B. ein Chat) kann keine fremde App auslösen – Windows gibt die Aktivierung nur an den Absender. Geht es nicht: `not_supported`, die Mitteilung bleibt. → `notifications://removed`. |
 | → `notifications://posted` / `removed` | Über `NotificationChanged`; falls das Event in deiner Konfiguration nicht feuert, alle 2 s abgleichen (Diff nach Id). |
 
 **Windows-Banner ausblenden (`notifications.hideWindowsBanners`, Standard `true`).** Solange rice läuft, zeigt nur die
@@ -287,6 +295,59 @@ Island neue Mitteilungen; im Infocenter von Windows bleiben sie. Recherche (Okto
   zurücksetzen – sonst sieht der Nutzer gar keine Mitteilungen mehr.
 - **Offen, früh testen:** ob `ShowBanner = 0` auch Wecker-/Anruf-Toasts betrifft, und ob der Listener Mitteilungen
   klassischer Desktop-Apps (Discord, Outlook, Signal) sieht.
+
+### Coding-Agents (Claude Code; OpenCode und Pi folgen)
+
+Fragt ein Coding-Agent um Erlaubnis für ein Werkzeug, erscheint die Frage in der Island. rice registriert sich dafür
+als Hook des Agents; der Hook-Prozess ist rice selbst (`rice.exe --agent-hook claude`, Exec-Form ohne Shell) und
+spricht über eine Named Pipe mit der laufenden Instanz.
+
+| Command / Event | Verhalten |
+|---|---|
+| `agents_pending` | Wartende Anfragen, älteste zuerst (nach einem Neuladen der Island). |
+| `agents_respond { id, decision }` | `allow` / `deny` / `terminal` an den wartenden Hook. Unbekannte Id (schon im Terminal beantwortet, Agent gibt auf) → `not_found`. Das `agents://resolved` sendet der wartende Hook-Task. |
+| `agents_list` | Integrationen: `available` = Konfigurationsordner gefunden (`%CLAUDE_CONFIG_DIR%` bzw. `%USERPROFILE%\.claude`), `connected` = rice' Hooks stehen in `settings.json`. |
+| `agents_connect { id }` / `agents_disconnect { id }` | Hooks eintragen bzw. entfernen; nur rice' Einträge, alle anderen Hooks und Schlüssel bleiben (Reihenfolge erhalten). Vorher Kopie als `settings.json.rice-backup`, dann atomar schreiben; ungültiges JSON → `invalid_args`, die Datei bleibt unangetastet. OpenCode/Pi → `not_supported`. |
+| → `agents://request` | Neue Anfrage: Agent, Projekt (letzter Ordner von `cwd`), Werkzeug, Art (`command`, `edit`, `write`, `read`, `fetch`, `mcp`, `other`) und das aussagekräftigste Argument (Befehl, Pfad, URL; höchstens 600 Zeichen); `summary` = die Beschreibung des Agents (`description` bei Befehlen und Subagents, höchstens 160 Zeichen) oder `null`. |
+| → `agents://resolved` | Anfrage erledigt – hier, im Terminal, durch Zeitablauf oder weil der Agent aufgegeben hat. |
+| → `agents://status` | `done` (Hook `Stop`, mit dem Anfang der letzten Antwort) oder `waiting` (`Notification` mit `idle_prompt`). |
+
+**Hooks in Claude Code:** `PermissionRequest` (Matcher `*`, Timeout 600 s), dazu `PostToolBatch`, `Stop` und
+`Notification` (`idle_prompt`) – diese drei melden nur und laufen im Hintergrund (`"async": true`, 10 s).
+`PermissionRequest` feuert nur, wenn Claude Code sonst selbst fragen würde. Antwort auf stdout:
+`{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow"}}}` bzw. `"deny"` mit
+`message`; **keine Ausgabe** heißt „im Terminal fragen“.
+
+**Im Terminal beantwortet:** Claude Code zeigt seinen eigenen Dialog parallel zum Hook und lässt den Hook-Prozess
+weiterlaufen, wenn der Nutzer dort antwortet – beendet wird er nur, wenn der Turn abbricht (Esc, „No“ ohne
+Begründung). Deshalb zieht rice eine Anfrage auch zurück, sobald
+- `PostToolBatch` den Aufruf als erledigt meldet (gleiche Sitzung, gleicher Subagent `agent_id`, gleiches Werkzeug und
+  gleiches Detail; je Aufruf die älteste passende Anfrage) – also nach dem Lauf des Werkzeugs bzw. nach einer
+  Ablehnung mit Begründung, oder
+- der Hauptagent fertig ist oder auf Eingabe wartet (`Stop`, `idle_prompt`): dann alle Anfragen dieser Sitzung ohne
+  Subagent.
+
+Der wartende Hook bekommt `terminal` und endet ohne Ausgabe. Findet rice beim Start eigene Hooks einer älteren Version
+(gleiche `rice.exe`, andere Einträge), ersetzt es sie wie `agents_connect` (mit Sicherung); Hooks einer anderen
+Installation bleiben unberührt. Claude Code liest Hooks beim Sitzungsstart, neue Hooks gelten also erst in neuen
+Sitzungen.
+
+**Sicherheitsregeln (verbindlich)**
+
+- rice erlaubt **nie** von selbst: Zweifel, Fehler, Zeitablauf (15 min), unbekannte Protokollversion oder unbekannter
+  Agent → keine Entscheidung, der Agent fragt im Terminal.
+- Der Hook endet **immer** mit Exit-Code 0 und fängt Panics ab – unter Windows kann ein fehlschlagender
+  Permission-Hook den Aufruf blockieren. Läuft rice nicht, endet er sofort ohne Ausgabe.
+- Pipe `\\.\pipe\rice-agents-<Sitzung>` (Entwicklung: Suffix `-dev`): DACL nur für den angemeldeten Benutzer und
+  SYSTEM, entfernte Clients abgelehnt, erste Instanz exklusiv (`first_pipe_instance`).
+- Der Hook schickt Werkzeug-Eingaben (können Geheimnisse enthalten) nur an einen Server, dessen Programm **dieselbe
+  `rice.exe`** ist (`GetNamedPipeServerProcessId`), und verbindet mit `SECURITY_IDENTIFICATION` (keine Impersonation).
+- Protokoll: eine JSON-Zeile je Verbindung (`{"type":"permission"|"status"|"settled","v":1,…}`, höchstens 1 MiB),
+  Antwort nur auf `permission`: `{"decision":"allow"|"deny"|"terminal"}`. `settled` nennt erledigte Aufrufe nur als
+  Werkzeug und Detail, ohne Eingaben und Ergebnisse. Schließt der Hook die Pipe (abgebrochen, Zeitablauf), zieht rice
+  die Anfrage zurück. Ein Rückzug ist nie eine Erlaubnis.
+- Die Island nimmt in den ersten 500 ms einer neuen Anfrage keine Klicks an (`--agent-arm-delay`).
+- Der Deinstaller entfernt die Hooks (`rice.exe --disconnect-agents`).
 
 ### Kalender und Aufgaben (CalDAV, Nextcloud)
 
@@ -340,3 +401,246 @@ Farbextraktion aus Cover/Wallpaper, Übersetzungen (Deutsch/Englisch), „Nicht 
 
 Bei jedem Schritt: `cargo clippy -- -D warnings`, `cargo test`, `pnpm verify` grün. Leistungsbudget aus PLAN §1:
 < 0,5 % CPU im Leerlauf, kein Polling außer Cursor (60 Hz) und abonniertem Systemmonitor.
+
+---
+
+## 7. Umsetzungsstand
+
+**Schritte 1–7 umgesetzt** (Branch `feat/rust-backend`), damit alle Commands des Vertrags. Ein Test
+(`commands::tests`) prüft, dass genau die Commands aus `contract.ts` registriert sind und alle gesendeten Event-Namen im
+Vertrag stehen.
+
+**Aufbau**
+
+| Crate | Inhalt |
+|---|---|
+| `crates/rice-core` | Vertragstypen (serde), `applyPatch`-Semantik, Backend-Sicht der Einstellungen, Geometrie (Platzierung, Island-Zone, Hit-Test), Kanten-Zustandsautomat, Whitelist für `shell_open`, Theme-Manifest, Zeitstempel, Medien-/Geräte-Abbildungen, Regeln für Mitteilungen und Banner, Coding-Agent-Protokoll und Hook-Einträge in `settings.json` |
+| `crates/rice-services` | `config.json` (atomar, Watcher), Theme-Ordner, entprellte Dateiüberwachung, Bild → JPEG/PNG-Data-URL, Banner ausblenden mit Backup |
+| `crates/rice-caldav` | iCalendar lesen/schreiben, Wiederholungen, Zeitzonen, WebDAV-XML, HTTP-Client, Discovery, Sync, SQLite-Cache, `accounts.json` |
+| `crates/rice-win` | Win32/WinRT-Wrapper: Monitore (EDID-Namen, eingebaut/extern), Wallpaper, Darstellung, Schriften, Überlappung, System-Events-Thread (inkl. Energie), Shell, GSMTC, Core Audio, Helligkeit (WMI, DDC/CI), Energie, Systemlast (PDH, DXGI, Netzwerktabelle), Prozesse, WLAN, Funk/Hotspot, Bluetooth, Anmeldeinformationen, Mitteilungen (`UserNotificationListener`), Banner-Schalter in der Registry, Konsolen-Handler, Named-Pipe-Name und -Rechte |
+| `src-tauri` | Fenster, Commands, Events, Hotkey, Dienste Medien/Audio/Anzeige/Energie/Systemmonitor/Netzwerk/Bluetooth/Kalender/Mitteilungen/Coding-Agents (Pipe-Server, Hook-Prozess `--agent-hook`); `package/` (Sparse Package), `windows-app-manifest.xml` |
+
+**Präzisierungen gegenüber §3/§4**
+
+- **Fenster entstehen im Code**, nicht in `tauri.conf.json` (`app.windows` ist leer). Alle Fenster benutzen dieselben
+  Browser-Argumente (`webview::BROWSER_ARGS`) – WebView2 teilt sich einen Browser-Prozess, abweichende Argumente lassen
+  das Erzeugen weiterer Fenster scheitern.
+- **Island und Pausenfenster gehören einem unsichtbaren Besitzerfenster.** `skipTaskbar` allein lässt sie in Alt+Tab
+  stehen (tao setzt `WS_EX_APPWINDOW`); als „owned windows“ erscheinen sie weder in der Taskleiste noch in Alt+Tab.
+- **`NOACTIVATE` und Klick-durch** laufen über `set_focusable` bzw. `set_ignore_cursor_events`, weil tao die erweiterten
+  Fensterstile bei jeder Änderung komplett neu schreibt. Solange eine Maustaste gedrückt ist, bleibt die Island
+  klickbar (Regler ziehen über den Rand hinaus).
+- **Aufklappen/Zuklappen:** Beim Zuklappen bekommt das zuvor aktive Fenster die Tastatur zurück. `island://focus-lost`
+  wird erst gesendet, wenn nach 40 ms wirklich ein anderes Fenster im Vordergrund ist (der Fokuswechsel in das
+  WebView-Kindfenster löst sonst Fehlalarme aus).
+- **Überlappung:** Zusätzlich zu §3.1 zählen Fenster mit `WS_EX_TRANSPARENT` nicht (durchklickbare Overlays von Spielen
+  und Aufnahme-Tools). Die Zone beginnt an der Oberkante der Arbeitsfläche. `fullscreen` gilt außer im
+  Präsentationsmodus nur, wenn das Vordergrundfenster auf dem Island-Monitor liegt.
+- **`shell_open` mit Pfaden:** innerhalb von `configDir` nur Ordner und Textdateien (`.css`, `.json`, `.log`, `.toml`,
+  `.txt`), damit nie ein Programm gestartet wird.
+- **Wallpaper:** Data-URL wird nach Datei, Änderungszeit und Zielgröße gecacht, damit wiederholte Events denselben String
+  tragen. Unlesbare Formate (HEIC …) fallen auf Windows' JPEG-Kopie `TranscodedWallpaper` zurück. `system://wallpaper`
+  geht nur bei echten Änderungen raus.
+- **Alt+F4** schließt die Island nie (sie ist die App); Pausenfenster nur außerhalb einer Pause.
+
+**Schritt 2 (Medien, Audio, Anzeige, Energie)**
+
+- **Medien:** Sitzungs-Id = AUMID (bei mehreren Sitzungen derselben App `AUMID#2` …). `appName` aus
+  `AppInfo.GetFromAppUserModelId`, sonst aus der AUMID abgeleitet (`Spotify.exe` → „Spotify“). Titel und Cover werden
+  nur bei `MediaPropertiesChanged` neu gelesen; Cover ≤ 300 px, nach Inhalts-Hash gecacht. `media://state` geht nur
+  raus, wenn sich etwas ändert, das das Frontend nicht selbst hochrechnen kann – Timeline-Meldungen, die weniger als
+  1,5 s von der hochgerechneten Position abweichen, werden verschluckt (manche Apps melden sekündlich).
+- **Audio:** Ein eigener Thread besitzt alle Core-Audio-Objekte (in windows-rs nicht threadsicher); Commands schicken
+  ihm Aufträge. Bursts (Lautstärketasten) werden zu einer Meldung zusammengefasst. Lautstärke auf drei Nachkommastellen
+  gerundet, damit `0.62` als `0.62` zurückkommt. `kind`: Bluetooth/USB aus der Geräte-Id des verbundenen Treibers
+  (Gerätetopologie), sonst aus dem Formfaktor. `audio_set_device` über `IPolicyConfig` hinter dem Cargo-Feature
+  `policy-config` (Standard an); das Frontend ruft es derzeit nicht auf.
+- **Helligkeit:** Eingebautes Display → WMI inkl. `WmiMonitorBrightnessEvent` (Helligkeitstasten zeigen das OSD), externes
+  → DDC/CI (keine Events). Die Quelle wird je Island-Monitor einmal ermittelt. Eigene Änderungen werden mit genau dem
+  angefragten Wert bestätigt; ihr WMI-Echo wird 1,5 s lang ignoriert.
+- **Nachtlicht: `null`** (Kachel „Wird nicht unterstützt“). Der einzige Schalter ist ein undokumentiertes
+  CloudStore-Blob, dessen Format zwischen Windows-Versionen wechselt – nach §4 „bei Unsicherheit null“.
+- **Energie:** `charging` heißt „Akku vorhanden und Netzteil angeschlossen“ (auch bei 100 %), damit Einstecken immer die
+  Lade-Aktivität zeigt. Energiesparen wird gelesen (`SystemStatusFlag`), lässt sich aber nicht dokumentiert schalten →
+  `energySaverSupported: false`. Herunterfahren mit `EWX_POWEROFF` (ohne Schnellstart-Hybrid).
+- **Wartende Updates:** Windows meldet keine Änderung von `RebootRequired`; rice fragt beim Start und bei jedem Öffnen
+  des Kontrollzentrums (`island_set_expanded(true)`), höchstens einmal pro Minute, und sendet `power://state` nur bei
+  Änderung. Updates, die heruntergeladen, aber noch nicht installiert sind, zählen nicht (das ginge nur über eine
+  langsame Update-Suche).
+
+**Schritt 3 (Systemmonitor)** – ohne `sysinfo`, direkt über dokumentierte APIs:
+
+- **CPU:** Auslastung aus `GetSystemTimes`-Deltas, Name aus der Registry (`ProcessorNameString`). `ghz` wie im
+  Task-Manager: PDH `Processor Frequency` × `% Processor Performance` (`sysinfo` liefert unter Windows nur den
+  Nenntakt). **RAM:** `GlobalMemoryStatusEx`, belegt = gesamt − verfügbar.
+- **Netz:** `GetIfTable2`, nur Hardware-Schnittstellen, die aktiv sind; Filtertreiber (QoS, WFP) und Loopback zählen
+  nicht, sonst wäre der Verkehr doppelt.
+- **GPU:** Adapter = Hardware-Adapter mit dem meisten dedizierten Speicher (DXGI, Name und Größe). Auslastung = PDH
+  `GPU Engine(*engtype_3D)` je Adapter summiert (max. 100). **Belegter VRAM über PDH `GPU Adapter Memory`**
+  (`Dedicated Usage`, bei integrierten GPUs `Shared Usage`), nicht über DXGI `QueryVideoMemoryInfo` – das misst nur
+  den eigenen Prozess. Gesamt = dedizierter bzw. bei integrierten GPUs geteilter Speicher.
+- **Abos:** je Fenster gezählt; lädt ein Fenster neu oder schließt es, verfallen seine Abos (sonst liefe der Takt nach
+  einem Reload ewig weiter). Takt 250 ms–10 s, erstes Sample nach 300 ms.
+- **Prozesse:** Toolhelp-Snapshot + `GetProcessTimes`/`GetProcessMemoryInfo` mit `PROCESS_QUERY_LIMITED_INFORMATION`;
+  Prozesse, die sich nicht öffnen lassen, fehlen. CPU-Anteil seit dem letzten Aufruf (ist der älter als 10 s, wird
+  300 ms gemessen). Icons 48 px als **PNG**-Data-URL (Transparenz), nach Exe-Pfad gecacht.
+- **Beenden:** `TerminateProcess`; PID 0, 4 und rice selbst → `access_denied`, unbekannte PID → `not_found`.
+- Diagnose: `cargo test -p rice-win prints_a_sample -- --ignored --nocapture` gibt einen Messpunkt aus.
+
+**Schritt 4 (Netzwerk, Bluetooth)**
+
+- **WLAN** über `wlanapi` mit Benachrichtigungen (Scan fertig, Verbindung fertig/fehlgeschlagen, Funk, Schnittstellen).
+  `detail` = Band aus der Kanalfrequenz des verbundenen BSSID bzw. des stärksten Access Points („2,4 GHz“ mit Komma bei
+  deutscher Oberfläche) + Sicherheit („WPA2“, „WPA3“ …, offen → nur das Band).
+- **Standort:** `ERROR_ACCESS_DENIED` der WLAN-Abfragen → `permission: 'location_required'` bzw. beim Scan
+  `permission_required`. Name und Balken der aktuellen Verbindung kommen dann aus dem Verbindungsprofil
+  (`NetworkInformation`), das keine Standortfreigabe braucht.
+- **Verbinden:** bekanntes Netz ohne Schlüssel → vorhandenes Profil. Sonst neues Profil (WPA2-Personal, WPA3-SAE oder
+  offen; SSID als Hex, Schlüssel XML-escaped) und Verbindung; Ergebnis aus der Verbindungsbenachrichtigung (max. 15 s).
+  Sicherheitsfehler (`WLAN_REASON_CODE_MSMSEC_*`) → `wrong_key`; ein neu angelegtes Profil wird bei jedem Fehlschlag
+  wieder gelöscht, sonst probiert Windows es endlos. Enterprise-Netze → `failed` (Anmeldedaten nur über Windows).
+- **Funk/Flugmodus** über `Windows.Devices.Radios` (`StateChanged` → `network://state` und `bluetooth://state`).
+  `airplane` = alle Funkmodule aus; Flugmodus an = alle aus (vorherige Zustände gemerkt), aus = gemerkte wieder an.
+  WLAN einschalten beendet den Flugmodus.
+- **Hotspot:** `supported` nur, wenn `GetTetheringCapabilityFromConnectionProfile` `Enabled` meldet.
+- **Bluetooth:** gekoppelte Geräte (klassisch + LE, zusammengefasst nach Container-Id), `connected` aus
+  `System.Devices.Aep.IsConnected`, `kind` aus Class of Device bzw. LE-Appearance (Name verfeinert „Buds“/„AirPods“ →
+  Earbuds), `battery` aus `{104EA319…} 2` der Geräteknoten – nur für verbundene Geräte (Windows behält sonst den
+  letzten Stand).
+- **Verbinden/Trennen** für Audiogeräte mit eigenem Bluetooth-Audiofilter (`bthenum`): `IKsControl` über das
+  Filtergerät (`IMMDeviceEnumerator::GetDevice(<Filter-Id>)`, nicht über `IPart`), Property `KSPROPSETID_BtAudio`
+  `ONESHOT_RECONNECT/DISCONNECT`, danach bis 10 s auf den Verbindungsstatus warten. Geteilte Offload-Filter (z. B.
+  Qualcomm `aucd` auf Snapdragon) und LE-Audio-Geräte → `canConnect: false` (das Frontend öffnet die Einstellungen).
+- Diagnose (nur lesend): `cargo test -p rice-win prints_wifi -- --ignored --nocapture`, ebenso `prints_connectivity`.
+
+**Schritt 5 (Kalender, Aufgaben)**
+
+- **Bibliotheken:** eigener iCalendar-Leser/-Schreiber (unbekannte Eigenschaften anderer Apps bleiben beim Ändern
+  erhalten), `rrule` + `chrono-tz`, `quick-xml`, `rusqlite` (SQLite gebündelt) und `reqwest` mit **Windows-TLS
+  (Schannel)** statt rustls – rustls/aws-lc braucht auf ARM64-Windows zusätzliche Build-Werkzeuge, und Schannel vertraut
+  denselben Zertifikaten wie Windows (selbst signierte Heimserver).
+- **Discovery:** Adresse ohne Schema → `https://`. Kandidaten: angegebener DAV-Pfad, `/.well-known/caldav`,
+  `<Pfad>/remote.php/dav/`, die Adresse selbst. Weiterleitungen werden nur innerhalb desselben Servers verfolgt – das
+  Passwort geht nie an einen anderen Host.
+- **Passwort:** generischer Eintrag `rice/caldav/<accountId>` in der Windows-Anmeldeinformationsverwaltung (direkt per
+  `CredWriteW`, ohne `keyring`). Konto-Id = Hash aus Benutzer und DAV-Adresse (erneutes Hinzufügen findet den Cache
+  wieder), Kalender-Id = `<Konto>:<letztes Pfadsegment>`.
+- **Sync:** 3 s nach dem Start, alle 5 min und per `calendar_sync`. Unveränderter Sync-Token bzw. CTag in der
+  Kalenderliste → keine weitere Anfrage. Sonst `sync-collection` (abgelaufener Token → vollständiger Neuabgleich),
+  Fallback CTag + ETag-Liste; Objekte per `calendar-multiget` in 50er-Paketen. Auf dem Server gelöschte Kalender
+  verschwinden aus dem Cache.
+- **Termine:** Serien über `rrule` (`UNTIL` wird an `DTSTART` angeglichen, wie RFC 5545 verlangt), `EXDATE`,
+  verschobene Einzeltermine (`RECURRENCE-ID`), abgesagte entfallen. Zeitzonen: IANA, Windows-Namen aus
+  Outlook-Einladungen (Tabelle der häufigsten), Mozilla-Präfixe; Unbekanntes gilt als Ortszeit statt zu verschwinden.
+- **Aufgaben:** `id` = Pfad des Objekts auf dem Server. Sortierung: offen vor erledigt, mit Fälligkeit vor ohne, dann
+  Datum und Titel. Änderungen landen im gespeicherten Text (`SEQUENCE` + 1); bei 412 werden sie auf die aktuelle
+  Server-Version angewendet, Änderungen vom Handy gehen also nicht verloren.
+- **Offline:** Schreibvorgänge kommen in die Warteschlange im Cache (auch „Fälligkeit entfernen“), Status `offline`;
+  der nächste Sync spielt sie vor dem Abgleich aus.
+- **Tests:** `crates/rice-caldav/tests/fake_server.rs` spielt Discovery, Sync und Schreibzugriffe gegen einen Server, der
+  wie Nextcloud antwortet (Weiterleitung, Basic Auth, Sync-Token, ETags).
+
+**Schritt 6 (Mitteilungen, Sparse Package)**
+
+- **Paket-Identität:** `src-tauri/package/AppxManifest.xml` ist ein Sparse Package nach Microsofts Vorlage („packaging
+  with external location“: `AllowExternalContent`, `runFullTrust`, `unvirtualizedResources`, `AppListEntry="none"`)
+  plus Capability `userNotificationListener`. `rice.exe` trägt dazu ein eigenes Manifest
+  (`src-tauri/windows-app-manifest.xml`, eingebettet von `build.rs`) mit dem `msix`-Element; Name, Publisher und
+  Application-Id müssen in beiden gleich sein. Ohne registriertes Paket läuft rice wie bisher ohne Identität →
+  `permission: 'unsupported'`, die Registry bleibt unangetastet. **Entwicklung:** eigene Identität
+  `io.github.johnnyjack123.rice.dev` („rice (dev)“; `build.rs` bettet sie in Debug-Builds ein), damit installierte
+  Version und `pnpm tauri dev` sich nicht gegenseitig die Identität nehmen. `scripts/sparse-package.ps1` schreibt die
+  Dev-Variante des Manifests nach `%LOCALAPPDATA%\rice-dev\package` und registriert sie unsigniert mit `target\debug`
+  als externem Ort (Entwicklermodus nötig, `-Remove` entfernt sie wieder). **Release:** siehe Schritt 7.
+- **Listener und Threads:** `UserNotificationListener` ist nicht agil, sondern gehört dem COM-Apartment, in dem er
+  entsteht. Er wird deshalb auf einem eigenen MTA-Thread erzeugt (`CoIncrementMTAUsage` hält das MTA am Leben) und nur
+  von Worker-Threads benutzt; vom UI-Thread (STA) aus erzeugt, scheitern alle Aufrufe aus dem Hintergrund mit
+  `RPC_E_WRONG_THREAD` (0x8001010E). Nur der Zugriffsdialog (`RequestAccessAsync`) läuft auf dem UI-Thread mit eigener
+  Instanz; die Antwort kommt über einen Completed-Handler. Diagnose ohne Fenster: `rice.exe --check-notifications`
+  (Identität, Zugriff, Events, Anzahl – fragt nichts an, ändert nichts).
+- **Abgleich:** Zugriff (`GetAccessStatus`) wird bei jedem Abgleich neu gelesen; ist er nicht lesbar, gilt er als nicht
+  erteilt. Fehler beim Lesen landen einmal je Fehlerserie im Log. Abgleich über `NotificationChanged` plus alle 10 s als
+  Sicherheitsnetz (bemerkt auch entzogenen Zugriff); findet ein Abgleich Änderungen, die kein Event gemeldet hat, wird
+  auf 2 s umgestellt. Die erste Liste nach dem Start bzw. nach erteiltem Zugriff geht als `notifications://state` raus,
+  nicht als `posted` – sonst würde der Bestand des Infocenters als Banner-Flut in der Island landen.
+- **Abbildung:** `title`/`body` = erster bzw. übrige nicht leere Texte der `ToastGeneric`-Bindung (ohne Text: App-Name
+  als Titel). `appName` aus `AppInfo.DisplayInfo`, sonst `GetFromAppUserModelId`, sonst aus der AUMID abgeleitet.
+  `iconUrl` = App-Logo bzw. Startmenü-Icon (`shell:AppsFolder\<AUMID>`, auch für klassische Apps), 48 px als
+  PNG-Data-URL, je App gecacht. Liste neueste zuerst.
+- **Banner ausblenden:** Regeln in `rice-core::notifications`, Backup-Logik in `rice-services::banners`, Registry in
+  `rice-win::banners`. Geschrieben wird nur `ShowBanner` in vorhandenen App-Schlüsseln. Unberührt bleiben Apps mit
+  `Enabled = 0` sowie **Wecker (`Microsoft.WindowsAlarms_…`) und Anrufe (`Windows.SystemToast.Calling…`)**, die auch bei
+  verdeckter Island durchkommen sollen. Das Backup (`%APPDATA%\rice\banner-backup.json`, Originalwert je Schlüssel,
+  `null` = fehlte) wird vor jedem Schreiben gesichert; lässt es sich nicht schreiben, wird nichts unterdrückt.
+- **Zurücksetzen** (nur Werte, die noch 0 sind; was scheitert, bleibt im Backup für den nächsten Versuch): beim Beenden
+  (`RunEvent::Exit`), bei `WM_ENDSESSION`, bei Strg+C bzw. Schließen der Konsole (Entwicklung), im Panic-Hook (danach
+  blendet rice in dieser Sitzung nichts mehr aus), wenn das Setting ausgeht oder der Zugriff nicht (mehr) erteilt ist,
+  bei jedem Start und per `rice.exe --restore-banners` (für den Deinstaller).
+- **Neue Apps:** Bei der ersten Mitteilung einer App in dieser Sitzung wird ihr Schlüssel nachgezogen.
+- **Öffnen** (`notifications_open`, nachgereicht): Ein Klick auf das Island-Banner oder ein Antippen in der Liste öffnet
+  die App (Aktivitäts-Registry: neues optionales `open` an `ActivityDef`; scheitert es, öffnet das Banner wie vorher
+  den Mitteilungsbereich). In der Liste ist der Titel dafür ein Knopf (Tastatur), Wischen entfernt weiterhin.
+
+**Schritt 7 (Installer, Autostart, Einzelinstanz)**
+
+- **Bauen:** `pnpm release` = `tauri build` mit `src-tauri/tauri.release.conf.json` (Bundling, Ressourcen, NSIS). Die
+  Basiskonfiguration bündelt nicht (`bundle.active: false`), weil `tauri-build` Bundle-Ressourcen bei *jedem* Build
+  kopiert und ohne gebautes Paket auch `cargo build` scheitern würde. Ergebnis:
+  `target\release\bundle\nsis\rice_<Version>_<Arch>-setup.exe`.
+- **Signiertes Sparse Package:** `scripts/identity-package.ps1` (läuft vor dem Kompilieren) packt `src-tauri/package`
+  mit der App-Version (`x.y.z.0`), signiert es mit SignTool und exportiert den öffentlichen Teil des Zertifikats nach
+  `target\identity\`. Zertifikat: selbst signiert, `CN=rice` (= Publisher im Manifest), Code-Signing-EKU, 10 Jahre,
+  einmalig angelegt in `Cert:\CurrentUser\My` mit **nicht exportierbarem** privatem Schlüssel – nie als Datei, nie im
+  Repo. Kostenpflichtige Alternativen (Microsoft Artifact Signing: für Einzelpersonen nur USA/Kanada) sind für ein
+  privates Projekt unverhältnismäßig.
+- **Installer (NSIS, pro Benutzer),** Hooks in `src-tauri/windows/hooks.nsh`:
+  - *Vor der Installation:* läuft rice schon (Update), beendet `rice.exe --quit` es geordnet.
+  - *Danach:* `identity.ps1 -Install` vertraut dem Zertifikat in `Cert:\LocalMachine\TrustedPeople` und registriert das
+    Paket (`Add-AppxPackage -ExternalLocation <Installationsordner>`); ein vorhandenes Paket gleichen Namens wird vorher
+    entfernt. **Nur der Zertifikatsschritt läuft erhöht (eine UAC-Abfrage, entfällt, wenn das Zertifikat schon
+    vertraut ist):** Der Bereitstellungsdienst akzeptiert ausschließlich den Maschinenspeicher – ein Vertrauen nur für
+    den Benutzer (`CurrentUser\TrustedPeople`) scheitert mit `0x800B0109`, anders als Microsofts Anleitung
+    nahelegt (am echten System nachgewiesen). PowerShell wird über `Sysnative` als 64-Bit-Prozess gestartet (der
+    Installer ist 32-Bit, dort fehlen die Appx-Cmdlets). Abgelehnte UAC oder ein anderer Fehler → rice läuft ohne
+    Mitteilungen weiter. **Achtung:** `Cert:\CurrentUser\TrustedPeople` listet auch die Zertifikate des
+    Maschinenspeichers; ein `Remove-Item` darauf will die Maschinenkopie löschen und scheitert ohne Adminrechte. Das
+    Skript entfernt deshalb nur eine Kopie, die wirklich im Benutzerspeicher liegt
+    (`HKCU\Software\Microsoft\SystemCertificates\TrustedPeople\Certificates\<Fingerabdruck>`), und bricht dabei nie ab –
+    sonst verliert jedes Update die Paket-Identität.
+  - *Autostart:* einmalig gesetzt (Merker `HKCU\Software\io.github.johnnyjack123.rice\AutostartOffered`); wer ihn in rice
+    ausschaltet, behält das über Updates.
+  - *Deinstallation:* `--quit`, `--restore-banners`, `identity.ps1 -Uninstall` (Paket weg; das Zertifikat entfernt eine
+    weitere UAC-Abfrage aus dem Maschinenspeicher), Autostart-Werte und Merker löschen. Läuft vor Tauris eigener „App
+    läuft noch“-Prüfung.
+- **`rice.exe --quit`:** sucht das Systemereignis-Fenster und schickt die registrierte Nachricht `rice-quit`; rice
+  beendet sich über `app.exit(0)` (Banner zurück), der Aufrufer wartet bis 5 s. Debug- und Release-Builds haben
+  getrennte Fensterklassen und treffen sich nie.
+- **Einzelinstanz** (`tauri-plugin-single-instance`, nur Release): ein zweiter Start öffnet die Einstellungen. In
+  Entwicklungs-Builds aus, damit `pnpm tauri dev` neben der installierten Version läuft (beide haben eigene Identitäten;
+  das Banner-Backup teilen sie sich – beim Entwickeln die installierte Version am besten beenden).
+- **Autostart** über den `Run`-Schlüssel selbst statt `tauri-plugin-autostart`: wenige Zeilen mit dem vorhandenen
+  Registry-Helfer, keine weiteren Crates, und das Verhalten bei der Task-Manager-Sperre bleibt in eigener Hand. Beim
+  Start wird ein vorhandener Eintrag auf die aktuelle Exe korrigiert, ohne die Task-Manager-Einstellung anzufassen.
+- **CSP:** `default-src 'self'`, `script-src 'self'`, `style-src 'self' 'unsafe-inline'` (Svelte-Stilattribute,
+  Nutzer-Themes als `<style>`), `img-src 'self' data: blob:` (Wallpaper, Cover, Icons, Glasebenen), `font-src 'self'
+  data:`, `connect-src ipc: http://ipc.localhost`, `object-src 'none'`. `dangerousDisableAssetCspModification:
+  ["style-src"]`, weil Tauri sonst Hashes einträgt und Browser dann `'unsafe-inline'` ignorieren. `devCsp` erlaubt
+  zusätzlich Vites HMR (`ws://127.0.0.1:1420`). Nutzer-Themes können damit keine Schriften oder Bilder aus dem Netz
+  laden.
+
+**Bekannt / offen**
+
+- Ein hart beendeter Prozess (Task-Manager, `pnpm tauri dev` beim Neubau) kann die Banner nicht zurücksetzen; das
+  passiert beim nächsten Start oder mit `rice.exe --restore-banners`.
+- Noch am echten System zu prüfen: ob der Listener Mitteilungen klassischer Desktop-Apps (Discord, Outlook, Signal)
+  sieht und ob `NotificationChanged` für rice feuert (sonst greift das 2-s-Polling automatisch).
+
+- Das Frontend setzt `settings.island.offsetTop` noch nicht um (`--island-top` ist ein festes Token). Das Backend nutzt
+  den Wert nur für die Island-Zone.
+- Der Standard-Hotkey `Super+Alt+Space` kann belegt sein (z. B. PowerToys Command Palette); das Backend loggt dann eine
+  Warnung, die Island funktioniert weiter.
+- Wenig freier Arbeitsspeicher: Der erste Build kompiliert die große `windows`-Crate; bei „Die Auslagerungsdatei ist zu
+  klein“ (os error 1455) mit weniger Jobs bauen (`$env:CARGO_BUILD_JOBS=4`).
+- Der Installer ist nicht signiert: Windows SmartScreen warnt beim ersten Start („Unbekannter Herausgeber“ → „Weitere
+  Informationen“ → „Trotzdem ausführen“). Das verhindert nur ein gekauftes Code-Signing-Zertifikat.
+- Der Installer passt zur Architektur des Build-Rechners (hier ARM64).
