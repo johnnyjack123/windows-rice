@@ -167,7 +167,9 @@ Obsidian). Dafür gilt:
 |---|---|---|
 | Rahmen ums Kontrollzentrum | Pseudo-Elemente an `.p-header`/`.p-body`, Platz über `padding-left` der `.view--panel` und `--panel-column` | LCARS: Ellbogen = Element mit dickem `border-left` + `border-top` und elliptischem Eckradius (die Innenkurve entsteht automatisch) |
 | Deko an der Pille | `.island__bg::before` (wird mit der Form beschnitten) oder `.view[data-compact]::after` (wird mitgemessen) | LCARS: Endkappen; Workbench: Tiefen-Gadget |
-| Abgeschrägte Ecken | `corner-shape: bevel` bzw. pro Ecke (`square square bevel bevel`); Radien werden zur Fasenbreite, Rahmen und Schatten folgen | Cyberpunk; NX-01 auch an den Ellbogen (aus der runden wird eine schräge Kurve); ohne Unterstützung bleiben kleine Rundungen |
+| Rahmen aus Hintergrund-Ebenen | Knopf (`radial-gradient` mit Ring), Schiene, Blöcke, Lineal und Haarlinien als Ebenen einer Custom Property (`--_frame`) auf dem Rahmen-Element; Maße als Variablen, die das Element selbst setzt (so dient dieselbe Liste Kopfzeile, Bereichskarte und Pausenbildschirm). Text auf der Schiene im zweiten Pseudo-Element mit `writing-mode: vertical-rl` und `rotate: 180deg` | NX-01 |
+| Zustand als Licht | Kachelfarbe als Variable je `[data-tile]`; aus: gedimmt über relative Farben (`oklch(from var(--_c) calc(l * 0.42) calc(c * 0.6) h)`), Schrift als helle Tönung derselben Farbe; an: volle Farbe, dunkle Schrift, Lämpchen leuchtet | NX-01 |
+| Abgeschrägte Ecken | `corner-shape: bevel` bzw. pro Ecke (`square square bevel bevel`); Radien werden zur Fasenbreite, Rahmen und Schatten folgen | Cyberpunk; ohne Unterstützung bleiben kleine Rundungen |
 | Farbwechsel je Fläche | Rollen lokal neu setzen (`--color-text`, `--color-focus` …) auf dem Element mit der anderen Fläche | Workbench: weiße Titelleisten und Requester mit blauer Schrift |
 | Einmaliger Effekt beim Einblenden | `animation` auf `.view.is-active` (Name wechseln bei `.is-bumped`), bei reduzierter Bewegung `none` | Cyberpunk: Glitch |
 | Text als Deko | nur Zeichen/Codes ohne Sprache, mit leerem Alternativtext: `content: "47-1138" / ""` | LCARS-Rahmen, Cyberpunk `//` |
@@ -235,8 +237,8 @@ based_on = "obsidian"     # optional: Theme, aus dem es abgeleitet wurde
 - „Als eigenes Theme speichern“ schreibt genau so ein Paket: das Basis-Theme mit neuem Selektor plus einem Block mit den
   Editor-Werten.
 - **Schriften:** Ein Theme kann jede installierte Windows-Schrift über `--font-ui` / `--font-display` nutzen. Mitgeliefert
-  sind Roboto Flex, Instrument Sans/Serif, JetBrains Mono, Antonio, Saira, Rajdhani und Topaz (im Editor auswählbar).
-  Saira hat eine Breitenachse: In den Rollen genügt `expanded`, `semi-expanded` usw. im `font`-Kurzschreibwert.
+  sind Roboto Flex, Instrument Sans/Serif, JetBrains Mono, Antonio, Rajdhani und Topaz (im Editor auswählbar).
+  Roboto Flex hat eine Breitenachse: In den Rollen genügt `condensed`, `semi-condensed` usw. im `font`-Kurzschreibwert.
   Topaz ist eine Pixelschrift: scharf nur bei 16 px und Vielfachen, nur ein Schnitt – dazu `font-synthesis: none`, sonst
   verschmiert der künstliche Fettdruck die Pixel.
 

@@ -54,7 +54,7 @@ Dieses Dokument verhindert, dass das Design über Monate „zufällig“ wird. E
 
 **Begründete Ausnahmen – Zitat-Themes.** LCARS, Enterprise NX-01, Workbench 1.3 und Cyberpunk 2077 zitieren einen bekannten Stil und
 dürfen dessen Merkmale tragen, auch wenn sie oben unter „Vermeiden“ stehen: Cyberpunk leuchtet (Neon an Linien, Uhr und
-aktiven Flächen) und glitcht einmal beim Einblenden; LCARS trägt dekorative Zahlencodes im Rahmen, NX-01 die Kennung „NX-01“; Workbench hat nur eine
+aktiven Flächen) und glitcht einmal beim Einblenden; LCARS trägt dekorative Zahlencodes im Rahmen, NX-01 die Kennung „NX-01 2151“ auf der Schiene; Workbench hat nur eine
 Schriftgröße und vier Farben, Hierarchie entsteht über Farbe und Fläche. Die übrigen Regeln (Kontrast, Fokus,
 Trefferflächen, keine Endlosschleifen, reduzierte Bewegung) gelten unverändert.
 
@@ -415,7 +415,7 @@ Ein eigenes Fenster je Monitor (`break.html`, siehe BACKEND §3.3). Es soll zum 
 - **Themes** färben es über `--break-*`: Obsidian echtes Schwarz mit weißem Ring, Monet Seed-Farben und ein Atemkreis,
   der seine Form wandelt, Liquid Glass das echte Wallpaper mattiert mit Glas-Zifferblatt, Terminal Scanlines, ASCII-Balken
   und Cursor, Paper Papierkorn, Tuschering und kursiver Tipp, LCARS einen bildschirmfüllenden Doppel-Ellbogen mit der
-  Uhr in der oberen Leiste, NX-01 dasselbe kantig in Stahlblau mit einem getickten Ring in Eisblau, Workbench den blauen Screen mit weißer Titelleiste und einem „Gummiband“-Rahmen als
+  Uhr in der oberen Leiste, NX-01 einen bildschirmfüllenden Anzeigerahmen mit Kreisknopf, grauer Schiene, Farbblöcken und Lineal sowie einen getickten Ring in Hellblau, Workbench den blauen Screen mit weißer Titelleiste und einem „Gummiband“-Rahmen als
   Atemhilfe, Cyberpunk Neon-Dunst, Scanlines, einen getickten HUD-Ring und einen Glitch auf dem Countdown (hell: gelb,
   ohne Leuchten).
 - **Vorschau:** `break.html?preview` (auch `?preview=long`, `?preview=over`).

@@ -9,7 +9,6 @@ rice selbst steht unter der [MIT-Lizenz](LICENSE). Mitgeliefert bzw. ins Fronten
 | Instrument Sans, Instrument Serif | `@fontsource-variable/instrument-sans`, `@fontsource/instrument-serif` | The Instrument Sans/Serif Project Authors | SIL Open Font License 1.1 |
 | JetBrains Mono | `@fontsource-variable/jetbrains-mono` | The JetBrains Mono Project Authors | SIL Open Font License 1.1 |
 | Antonio | `@fontsource-variable/antonio` | The Antonio Project Authors | SIL Open Font License 1.1 |
-| Saira | `@fontsource-variable/saira` | The Saira Project Authors (Omnibus-Type) | SIL Open Font License 1.1 |
 | Rajdhani | `@fontsource/rajdhani` | Indian Type Foundry | SIL Open Font License 1.1 |
 | Topaz a500 | `web/src/design/fonts/topaz-a500.woff2` | Design © Amiga Inc., TrueType-Version © dMG/TrueSchool | GPL mit Font-Ausnahme – Herkunft und Lizenztext in [`topaz-a500.LICENSE.txt`](web/src/design/fonts/topaz-a500.LICENSE.txt) |
 

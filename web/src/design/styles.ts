@@ -14,7 +14,6 @@ import '@fontsource-variable/antonio/index.css';
 import '@fontsource/rajdhani/500.css';
 import '@fontsource/rajdhani/600.css';
 import '@fontsource/rajdhani/700.css';
-import '@fontsource-variable/saira/wdth.css';
 import './fonts/topaz.css';
 import './fonts/material-symbols.css';
 import './base.css';
