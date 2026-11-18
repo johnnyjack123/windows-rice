@@ -1,148 +1,167 @@
 /* =============================================================================
    Theme · Enterprise NX-01
-   The 22nd-century consoles of Archer's Enterprise, the forerunner of LCARS:
-   the same frame-and-block grammar, but harder and more technical – steel
-   blue frames with cut instead of rounded corners on a deep navy screen,
-   hairline-outlined data blocks, segmented bar graphs, amber for what is
-   active and an extended, squarish type (Saira standing in for Eurostile).
-   Content is drawn in with a downward scan. Dark only.
+   The 22nd-century consoles of Archer's Enterprise, the forerunner of LCARS.
+   A deep navy screen; displays are hairline boxes hanging off a light grey
+   rail with a round knob at the top, vertical lettering and colour blocks at
+   its foot. Beside them sits the wall of console keys: teal, blue, yellow,
+   orange and red, each with a big condensed number, a label strip underneath
+   and an indicator lamp in the corner – lit when on, dimmed when off.
+   Grotesque type, condensed and bold for keys and numbers (Roboto Flex
+   standing in for Helvetica Condensed), light blue for readouts. Content is
+   drawn in with a downward scan. Dark only.
    ========================================================================== */
 
 [data-theme="nx01"] {
   color-scheme: dark;
 
   /* 1. Inputs */
-  --base-bg: #070b14;
-  --base-fg: #dfe8f4;
-  --accent: #f2a541;
-  --mix-container: 5%;
-  --mix-container-high: 8%;
-  --mix-container-highest: 14%;
-  --mix-muted: 66%;
-  --mix-subtle: 56%;
-  --mix-border: 16%;
-  --mix-border-strong: 30%;
+  --base-bg: #0a1442;
+  --base-fg: #e9eef7;
+  --accent: #f4e04d;
+  --mix-container: 6%;
+  --mix-container-high: 10%;
+  --mix-container-highest: 16%;
+  --mix-muted: 72%;
+  --mix-subtle: 60%;
+  --mix-border: 18%;
+  --mix-border-strong: 34%;
 
-  /* 2. Primitives: hull steel, ice-blue readouts, frame geometry */
-  --_steel: #4d6d94;
-  --_steel-light: #7d9cc4;
-  --_slate: #2a3b55;
-  --_ice: #9cc7f0;
-  --_line: color-mix(in srgb, var(--_ice) 30%, transparent);
-  --_gap: 3px;                                 /* gap between frame blocks */
-  --_cap: 12px;                                /* island end caps */
-  --_rail: 44px;                               /* sidebar of the control-centre frame */
-  --_bar: 10px;                                /* horizontal bars of the frame */
-  --_inner: 14px;                              /* inner cut of an elbow */
-  --_side: 10px;                               /* rail → content */
-  --_end: 56px;                                /* block at the end of the lower bar */
-  --_caps:
-    linear-gradient(var(--_steel), var(--_steel)) left / var(--_cap) 100% no-repeat,
-    linear-gradient(var(--_steel), var(--_steel)) right / var(--_cap) 100% no-repeat;
+  /* 2. Primitives: console greys, the key colours and the frame geometry */
+  --_rail-c: #b8bcc5;                          /* rail and knob ring */
+  --_rail-ink: #232834;                        /* lettering on the rail */
+  --_line: #cfd4de;                            /* hairline around a display */
+  --_line-dim: color-mix(in srgb, var(--_line) 26%, transparent);
+  --_teal: #35bfb4;
+  --_teal-light: #7fdcc8;
+  --_blue: #4a6fd6;
+  --_sky: #74cff0;
+  --_yellow: #f4e04d;
+  --_orange: #f2a646;
+  --_cream: #f3edc8;
+  --_coral: #f0683f;
+  --_red: #c2402f;
+  --_grey: #9a9ea8;
+  --_led: #10141e;                             /* indicator lamp housing */
+  --_led-off: #2e3546;
+  --_led-on: #fff;
+  --_key-dim: oklch(from var(--_blue) calc(l * 0.55) calc(c * 0.6) h);
+
+  --_lw: 2px;                                  /* hairline width */
+  --_gap: 3px;                                 /* gap between keys and blocks */
+  --_col: 30px;                                /* knob diameter = width of the blocks */
+  --_rail: 20px;                               /* grey rail, flush right under the knob */
+  --_ring: 4px;                                /* grey ring around the knob */
+  --_side: 18px;                               /* rail → content (room for the ruler) */
+  --_in: var(--space-2);                       /* hairline → content */
+  --_tick: 8px;                                /* ruler pitch */
+  --_strip: 15px;                              /* label strip under a key */
+  --_lamp: 9px;                                /* indicator lamp */
+
+  /* The island: a knob on a short rail at its left end. */
+  --_knob-i: calc(var(--island-height) - 6px);
+  --_island-cap:
+    radial-gradient(closest-side, var(--_teal) calc(100% - var(--_ring)), var(--_rail-c) calc(100% - var(--_ring) + 0.5px) calc(100% - 0.5px), transparent 100%)
+      left 3px top 3px / var(--_knob-i) var(--_knob-i) no-repeat,
+    linear-gradient(var(--_rail-c), var(--_rail-c))
+      left calc(3px + var(--_knob-i) - var(--_rail) * 0.7) top calc(3px + var(--_knob-i) / 2) / calc(var(--_rail) * 0.7) 100% no-repeat;
 
   /* 3. Roles */
   --color-on-accent: var(--base-bg);
-  --color-accent-container: color-mix(in srgb, var(--accent) 16%, var(--base-bg));
+  --color-accent-container: color-mix(in srgb, var(--accent) 18%, var(--base-bg));
   --color-on-accent-container: var(--accent);
   --color-accent-text: var(--accent);
-  --color-focus: var(--_ice);
-  --color-positive: #7ee0a0;
+  --color-text-muted: var(--_sky);
+  --color-text-subtle: #6f9fc0;
+  --color-focus: var(--_sky);
+  --color-positive: #72dc9c;
   --color-on-positive: var(--base-bg);
-  --color-negative: #ff5a4e;
+  --color-negative: #ff6b57;
   --color-on-negative: var(--base-bg);
-  --color-warning: #ffd166;
+  --color-warning: var(--_orange);
 
-  --data-l: 0.78;
-  --data-c: 0.1;
+  --data-l: 0.8;
+  --data-c: 0.12;
   --app-icon-l: 0.78;
-  --app-icon-c: 0.08;
+  --app-icon-c: 0.11;
   --app-icon-fg: var(--base-bg);
 
-  /* 4. Type: one variable family, extended for titles, labels and numbers */
-  --font-ui: "Saira Variable", "Saira", "Bahnschrift", "Segoe UI", sans-serif;
+  /* 4. Type: one grotesque, condensed and bold for keys, numbers and titles */
+  --font-ui: "Roboto Flex Variable", "Arial", sans-serif;
   --font-display: var(--font-ui);
   --font-numeric: var(--font-ui);
-  --type-display: expanded 300 calc(44px * var(--text-scale))/0.95 var(--font-numeric);
-  --type-timer: expanded 300 calc(40px * var(--text-scale))/1 var(--font-numeric);
-  --type-page: expanded 500 calc(28px * var(--text-scale))/1.1 var(--font-display);
-  --type-break: expanded 200 calc(clamp(80px, 13vh, 168px) * var(--text-scale))/1 var(--font-numeric);
-  --type-headline: expanded 600 calc(17px * var(--text-scale))/1.2 var(--font-display);
-  --type-title: 500 calc(14px * var(--text-scale))/1.25 var(--font-ui);
-  --type-body: 400 calc(13.5px * var(--text-scale))/1.4 var(--font-ui);
-  --type-label: expanded 600 calc(10.5px * var(--text-scale))/1.2 var(--font-ui);
+  --type-display: condensed 700 calc(46px * var(--text-scale))/0.95 var(--font-numeric);
+  --type-timer: condensed 600 calc(46px * var(--text-scale))/1 var(--font-numeric);
+  --type-page: condensed 700 calc(30px * var(--text-scale))/1.1 var(--font-display);
+  --type-break: condensed 600 calc(clamp(96px, 15vh, 190px) * var(--text-scale))/1 var(--font-numeric);
+  --type-headline: condensed 700 calc(20px * var(--text-scale))/1.15 var(--font-display);
+  --type-title: semi-condensed 600 calc(14px * var(--text-scale))/1.25 var(--font-ui);
+  --type-body: 400 calc(13px * var(--text-scale))/1.4 var(--font-ui);
+  --type-label: semi-condensed 700 calc(11px * var(--text-scale))/1.2 var(--font-ui);
   --type-caption: 400 calc(12px * var(--text-scale))/1.3 var(--font-ui);
   --type-island: 500 calc(13.5px * var(--text-scale))/1 var(--font-ui);
-  --type-island-clock: expanded 500 calc(13px * var(--text-scale))/1 var(--font-numeric);
-  --type-metric: expanded 400 calc(22px * var(--text-scale))/1 var(--font-numeric);
-  --type-badge: expanded 700 calc(9.5px * var(--text-scale))/1 var(--font-ui);
-  --tracking-display: 0.02em;
-  --tracking-headline: 0.08em;
-  --tracking-label: 0.14em;
+  --type-island-clock: condensed 700 calc(16px * var(--text-scale))/1 var(--font-numeric);
+  --type-metric: condensed 700 calc(24px * var(--text-scale))/1 var(--font-numeric);
+  --type-badge: 700 calc(10px * var(--text-scale))/1 var(--font-ui);
+  --tracking-display: 0em;
+  --tracking-headline: 0.02em;
+  --tracking-label: 0.06em;
   --label-transform: uppercase;
+  --_type-key: condensed 700 calc(18px * var(--text-scale))/1 var(--font-ui);
+  --_type-strip: semi-condensed 700 calc(9.5px * var(--text-scale))/1 var(--font-ui);
+  --_type-rail: condensed 700 calc(13px * var(--text-scale))/1 var(--font-ui);
 
-  /* 5. Shape: every radius is a cut corner (corner-shape: bevel below) */
-  --radius-island: 9px;
-  --radius-live: 14px;
-  --radius-panel: 18px;
-  --panel-padding: calc(var(--space-unit) * 3.5);
-  --radius-card: 10px;
-  --radius-row: 6px;
-  --radius-control: 6px;
-  --radius-check: 3px;
-  --radius-tile: 8px;
-  --radius-tile-small: 8px;
-  --radius-tile-icon: 6px;
-  --radius-art: 6px;
-  --radius-art-island: 4px;
-  --radius-window: 10px;
+  /* 5. Shape: square keys and boxes; only the knobs are round */
+  --radius-island: 4px;
+  --radius-live: 6px;
+  --radius-panel: 6px;
+  --panel-padding: calc(var(--space-unit) * 3);
+  --radius-card: 2px;
+  --radius-row: 2px;
+  --radius-control: 2px;
+  --radius-check: 2px;
+  --radius-tile: 2px;
+  --radius-tile-small: 2px;
+  --radius-tile-icon: 2px;
+  --radius-art: 2px;
+  --radius-art-island: 2px;
+  --radius-window: 6px;
 
   --panel-height: 576px;
   --panel-column: 320px;
-  --tile-height: 58px;
-  --tile-icon-size: 44px;
+  --tile-height: 60px;
+  --tile-small-height: 46px;
+  --tile-icon-size: 40px;
   --control-height: 30px;
   --slider-height: 30px;
   --switch-width: 42px;
   --switch-height: 22px;
   --switch-thumb: 16px;
 
-  /* 6. Separation: steel blocks for the frame, ice hairlines around data */
-  --elevation-island: 0 0 0 1px var(--_line);
-  --elevation-panel: 0 0 0 1px var(--_line), 0 28px 70px -20px rgb(0 0 0 / 0.75);
-  --elevation-card: inset 0 0 0 1px var(--_line);
-  --elevation-tile: inset 0 0 0 1px var(--_line);
+  /* 6. Separation: hairline boxes around displays, keys stand on their own */
+  --elevation-island: 0 0 0 1.5px var(--_line);
+  --elevation-panel: 0 0 0 1px var(--_line-dim), 0 28px 70px -20px rgb(0 0 0 / 0.75);
+  --elevation-card: inset 0 0 0 1px var(--_line-dim);
+  --elevation-tile: none;
   --elevation-raised: none;
 
   /* Components */
-  --tile-bg: var(--color-surface-container-high);
-  --tile-icon-bg: var(--_steel);
-  --tile-icon-fg: var(--base-fg);
-  --tile-bg-on: color-mix(in srgb, var(--accent) 12%, var(--base-bg));
-  --tile-fg-on: var(--base-fg);
-  --tile-fg-muted-on: var(--color-text-muted);
-  --tile-icon-bg-on: var(--accent);
-  --tile-icon-fg-on: var(--base-bg);
-  --tile-border-on: var(--accent);
-  --tile-small-bg-on: var(--accent);
-  --tile-small-fg-on: var(--base-bg);
-
-  --slider-track: var(--color-surface-container-high);
-  --slider-fill: var(--_steel-light);
+  --slider-track: color-mix(in srgb, var(--_blue) 14%, var(--base-bg));
+  --slider-fill: var(--_sky);
   --slider-icon: var(--base-bg);
-  --switch-track: var(--_slate);
-  --switch-thumb-color: var(--_ice);
+  --switch-track: color-mix(in srgb, var(--_rail-c) 18%, var(--base-bg));
+  --switch-thumb-color: var(--_rail-c);
   --switch-track-on: var(--accent);
   --switch-thumb-color-on: var(--base-bg);
   --tabs-bg: transparent;
   --tabs-indicator: var(--accent);
   --tabs-fg-active: var(--base-bg);
-  --progress-track: var(--_slate);
-  --progress-fill: var(--_ice);
-  --media-bg: var(--color-surface-container);
-  --eq-color: var(--_ice);
+  --progress-track: color-mix(in srgb, var(--_line) 16%, transparent);
+  --progress-fill: var(--_sky);
+  --media-bg: transparent;
+  --eq-color: var(--_sky);
 
   --icon-family: "Material Symbols Sharp";
-  --icon-weight: 400;
+  --icon-weight: 500;
 
   /* 7. Motion: mechanical and exact, the faintest settle */
   --island-goo: 0;
@@ -178,171 +197,257 @@
       visibility 0s linear 0s;
   }
 
-  /* ── Cut corners everywhere ─────────────────────────────────────────────── */
-  :scope :is(.island__shadow, .island__bg, .island__clip, .island__bubble, .bubble-content, .g-island, .theme-card__pill, .preview-island),
-  :scope :is(.p-right, .media, .page--detail, .power-menu, .settings-card, .theme-card, .editor__preview, .preview-panel, .g-card),
-  :scope :is(.tile, .tile__toggle, .btn, .chip, .tab, .seg, .seg__btn, .field, .select, .stepper, .time-input, .color-input, .row),
-  :scope :is(.notif, .event-row, .timer-card, .alarm-row, .meter, .banner, .day-chip, .day__num, .qa-btn, .agent-detail),
-  :scope :is(.slider, .slider__track, .slider__fill, .switch, .icon-btn, .check, .app-icon, .art, .tab__badge, .island-count),
-  :scope :is(.settings-nav__item, .break__hold, .break__breath),
-  :scope .switch::after,
-  :scope .p-header::before,
-  :scope .p-header::after,
-  :scope .p-body::before {
-    corner-shape: bevel;
-  }
-  /* Layers that copy their parent's radius copy its shape too. */
-  :scope .has-state::before,
-  :scope .tile__main {
-    corner-shape: inherit;
-  }
-
-  /* ── Island: a navy capsule between two steel end caps ──────────────────── */
+  /* ── Island: a navy display with a knob on its rail ─────────────────────── */
   :scope .island__bg::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: var(--_caps);
+    background: var(--_island-cap);
     pointer-events: none;
     transition: opacity var(--dur-fast) var(--ease-standard);
   }
-  /* The control centre draws its own frame. */
+  /* The control centre draws its own frames. */
   :scope .island.is-expanded .island__bg::before {
     opacity: 0;
   }
   :scope :is(.island__clip, .g-island) > .view:not(.view--panel) {
-    padding-inline: calc(var(--_cap) + var(--space-2-5));
+    padding-left: calc(3px + var(--_knob-i) + var(--space-2-5));
   }
   :scope :is(.g-island, .theme-card__pill, .preview-island) {
-    background: var(--_caps), var(--color-island);
+    background: var(--_island-cap), var(--color-island);
   }
   :scope .theme-card__pill {
-    padding-inline: calc(var(--_cap) + var(--space-2));
+    padding-left: calc(3px + var(--_knob-i) + var(--space-2));
   }
   :scope .preview-island__content {
-    padding-inline: calc(var(--_cap) + var(--space-2-5));
+    padding-left: calc(3px + var(--_knob-i) + var(--space-2-5));
   }
   :scope .island__bubble {
-    box-shadow: inset 0 0 0 1px var(--_line);
+    box-shadow: inset 0 0 0 1.5px var(--_line);
   }
 
-  /* ── Control centre: two angular frames, steel with amber detail ────────── */
-  :scope .view--panel {
-    row-gap: calc(var(--_bar) * 2 + var(--_gap) + var(--space-2) * 2);
-    padding-left: calc(var(--panel-padding) + var(--_rail) + var(--_side));
+  /* ── Display frames: knob, rail, blocks, ruler and a hairline box ───────── */
+  :scope :is(.p-header, .p-right, .break) {
+    --_knob-c: var(--_teal);
+    --_b1: 22px;                               /* blocks at the foot of the rail, bottom up */
+    --_b2: 26px;
+    --_b3: 26px;
+    --_ruler: 4px;                             /* 0 hides the ruler */
+    --_frame:
+      radial-gradient(closest-side, var(--_knob-c) calc(100% - var(--_ring)), var(--_rail-c) calc(100% - var(--_ring) + 0.5px) calc(100% - 0.5px), transparent 100%)
+        left 0 top 0 / var(--_col) var(--_col) no-repeat,
+      linear-gradient(var(--_grey), var(--_grey))
+        left 0 bottom 0 / var(--_col) var(--_b1) no-repeat,
+      linear-gradient(var(--_yellow), var(--_yellow))
+        left 0 bottom calc(var(--_b1) + var(--_gap)) / var(--_col) var(--_b2) no-repeat,
+      linear-gradient(var(--_blue), var(--_blue))
+        left 0 bottom calc(var(--_b1) + var(--_b2) + var(--_gap) * 2) / var(--_col) var(--_b3) no-repeat,
+      linear-gradient(var(--_rail-c), var(--_rail-c))
+        left calc(var(--_col) - var(--_rail)) top calc(var(--_col) / 2) / var(--_rail) 100% no-repeat,
+      repeating-linear-gradient(var(--_line) 0 1px, transparent 1px calc(var(--_tick) * 5))
+        left calc(var(--_col) + var(--_lw) * 2) top calc(var(--_col) / 2 + var(--_in)) / calc(var(--_ruler) * 2) calc(100% - var(--_col) / 2 - var(--_in) * 2) no-repeat,
+      repeating-linear-gradient(var(--_line-dim) 0 1px, transparent 1px var(--_tick))
+        left calc(var(--_col) + var(--_lw) * 2) top calc(var(--_col) / 2 + var(--_in)) / var(--_ruler) calc(100% - var(--_col) / 2 - var(--_in) * 2) no-repeat,
+      linear-gradient(var(--_line), var(--_line))
+        left calc(var(--_col) / 2) top calc(var(--_col) / 2 - var(--_lw) / 2) / 100% var(--_lw) no-repeat,
+      linear-gradient(var(--_line), var(--_line))
+        right 0 top calc(var(--_col) / 2 - var(--_lw) / 2) / var(--_lw) 100% no-repeat,
+      linear-gradient(var(--_line), var(--_line))
+        left calc(var(--_col) - var(--_rail)) bottom 0 / 100% var(--_lw) no-repeat;
   }
-  :scope .p-body {
-    position: relative;
-  }
-  :scope .p-header::before,
-  :scope .p-body::before {
+  :scope :is(.p-header, .p-right)::before {
     content: "";
     position: absolute;
-    left: calc(-1 * (var(--_rail) + var(--_side)));
+    inset: 0;
+    z-index: -1;
+    background: var(--_frame);
     pointer-events: none;
   }
-  /* Upper frame: the rail turns into a bar under the header … */
-  :scope .p-header::before {
-    top: 0;
-    right: calc(56px + 20px + var(--_gap) * 2);
-    bottom: calc(-1 * (var(--space-2) + var(--_bar)));
-    border-left: var(--_rail) solid var(--_steel);
-    border-bottom: var(--_bar) solid var(--_steel);
-    border-bottom-left-radius: calc(var(--_rail) + var(--_inner)) calc(var(--_bar) + var(--_inner));
-  }
-  /* … that ends in an amber and an ice block, the last one cut. */
-  :scope .p-header::after {
-    content: "";
+  /* Vertical lettering on the rail, read bottom to top, flush under the knob. */
+  :scope :is(.p-right, .break)::after {
+    content: "NX-01 2151" / "";
     position: absolute;
-    right: 0;
-    bottom: calc(-1 * (var(--space-2) + var(--_bar)));
-    width: calc(56px + 20px + var(--_gap));
-    height: var(--_bar);
-    border-radius: 0 var(--_bar) var(--_bar) 0;
-    background:
-      linear-gradient(var(--accent), var(--accent)) left / 56px 100% no-repeat,
-      linear-gradient(var(--_ice), var(--_ice)) right / 20px 100% no-repeat;
+    top: calc(var(--_col) + var(--_gap) * 2);
+    bottom: calc(var(--_b1) + var(--_b2) + var(--_b3) + var(--_gap) * 4);
+    left: calc(var(--_col) - var(--_rail));
+    width: var(--_rail);
+    overflow: hidden;
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+    color: var(--_rail-ink);
+    font: var(--_type-rail);
+    line-height: var(--_rail);
+    letter-spacing: 0.04em;
+    text-align: end;
+    white-space: nowrap;
     pointer-events: none;
   }
-  /* Lower frame: a bar over the body turning down into the sidebar … */
-  :scope .p-body::before {
-    top: calc(-1 * (var(--space-2) + var(--_bar)));
-    right: calc(var(--_end) + var(--_gap));
-    bottom: 0;
-    border-left: var(--_rail) solid var(--_steel);
-    border-top: var(--_bar) solid var(--_steel);
-    border-top-left-radius: calc(var(--_rail) + var(--_inner)) calc(var(--_bar) + var(--_inner));
-  }
-  /* … whose rail is cut into blocks with the registry at the bottom. */
-  :scope .p-body::after {
-    --_y: 84px;
-    --_a: 22px;
-    --_b: 40px;
-    content: "NX-01" / "";
-    position: absolute;
-    top: calc(-1 * (var(--space-2) + var(--_bar)));
-    right: 0;
-    bottom: 0;
-    left: calc(-1 * (var(--_rail) + var(--_side)));
-    display: grid;
-    grid-template-columns: calc(var(--_rail) - var(--space-1-5));
-    align-content: end;
-    padding-bottom: var(--space-1-5);
-    color: var(--base-bg);
-    font: var(--type-badge);
-    letter-spacing: 0.06em;
-    text-align: right;
-    background:
-      linear-gradient(var(--accent), var(--accent)) left 0 top calc(var(--_y) + var(--_gap)) / var(--_rail) var(--_a) no-repeat,
-      linear-gradient(var(--_ice), var(--_ice)) left 0 top calc(var(--_y) + var(--_a) + var(--_gap) * 2) / var(--_rail) var(--_b) no-repeat,
-      linear-gradient(var(--_steel-light), var(--_steel-light)) left 0 top calc(var(--_y) + var(--_a) + var(--_b) + var(--_gap) * 3) / var(--_rail) 100% no-repeat,
-      linear-gradient(var(--base-bg), var(--base-bg)) left 0 top var(--_y) / var(--_rail) 100% no-repeat,
-      linear-gradient(var(--_ice), var(--_ice)) right 0 top 0 / var(--_end) var(--_bar) no-repeat;
-    pointer-events: none;
+
+  /* ── Control centre: a small display for the time, a big one for the
+     sections, the key wall beside it ────────────────────────────────────── */
+  :scope .p-header {
+    --_knob-c: var(--_yellow);
+    --_b1: 14px;
+    --_b2: 0px;
+    --_b3: 0px;
+    --_ruler: 0px;
+    padding: calc(var(--_col) / 2 + var(--_in)) var(--_in) var(--_in) calc(var(--_col) + var(--_side));
   }
   :scope .p-date {
-    color: var(--accent);
+    color: var(--_sky);
   }
   :scope .p-right {
+    position: relative;
+    isolation: isolate;
+    padding: calc(var(--_col) / 2 + var(--_in)) var(--_in) var(--_in) calc(var(--_col) + var(--_side));
     background: transparent;
+    box-shadow: none;
   }
-  :scope .detail-title {
-    color: var(--_ice);
+  :scope .power-menu {
+    box-shadow: 0 0 0 1.5px var(--_line), var(--elevation-panel);
+  }
+  :scope :is(.detail-title, .settings-title) {
+    color: var(--_sky);
     text-transform: uppercase;
   }
 
-  /* ── Tiles: a steel switch tab beside an outlined readout ───────────────── */
+  /* ── Tiles: console keys – a big condensed label, a label strip and an
+     indicator lamp; dimmed when off, lit when on ────────────────────────── */
+  :scope .tile {
+    --_c: var(--_teal);                        /* key colour */
+    --_s: var(--_teal-light);                  /* strip colour */
+    --_body: oklch(from var(--_c) calc(l * 0.42) calc(c * 0.6) h);
+    --_band: oklch(from var(--_s) calc(l * 0.34) calc(c * 0.5) h);
+    --_ink-key: oklch(from var(--_c) 0.9 calc(c * 0.55) h);
+    --_ink-band: oklch(from var(--_s) 0.86 calc(c * 0.5) h);
+    --_lamp-c: var(--_led-off);
+    --_key:
+      linear-gradient(var(--_band), var(--_band)) left bottom / 100% var(--_strip) no-repeat,
+      var(--_body);
+    --tile-fg: var(--_ink-key);
+    --tile-fg-on: var(--_ink-key);
+    --tile-fg-muted: var(--_ink-band);
+    --tile-fg-muted-on: var(--_ink-band);
+    --tile-icon-fg: var(--_ink-key);
+    --tile-icon-fg-on: var(--_ink-key);
+    --tile-small-fg-on: var(--_ink-key);
+  }
+  :scope .tile.is-on {
+    --_body: var(--_c);
+    --_band: var(--_s);
+    --_ink-key: var(--_on-key, var(--base-bg));
+    --_ink-band: var(--_on-band, var(--base-bg));
+    --_lamp-c: var(--_led-on);
+  }
+  /* A console column runs from teal and blue over yellow and orange to red. */
+  :scope [data-tile="bluetooth"] {
+    --_c: var(--_blue);
+    --_s: var(--_sky);
+    --_on-key: #fff;
+  }
+  :scope [data-tile="airplane"] {
+    --_c: var(--_sky);
+    --_s: var(--_blue);
+    --_on-band: #fff;
+  }
+  :scope [data-tile="dnd"] {
+    --_c: var(--_yellow);
+    --_s: var(--_orange);
+  }
+  :scope [data-tile="night"] {
+    --_c: var(--_orange);
+    --_s: var(--_yellow);
+  }
+  :scope [data-tile="saver"] {
+    --_c: var(--_yellow);
+    --_s: var(--_cream);
+  }
+  :scope [data-tile="mic"] {
+    --_c: var(--_coral);
+    --_s: var(--_red);
+    --_on-band: #fff;
+  }
+  :scope [data-tile="hotspot"] {
+    --_c: var(--_red);
+    --_s: var(--_grey);
+    --_on-key: #fff;
+  }
+
   :scope .tile:not(.tile--small) {
     column-gap: var(--_gap);
     background: transparent;
     box-shadow: none;
   }
-  :scope .tile__toggle {
+  :scope .tile .tile__toggle {
     align-self: stretch;
+    width: var(--tile-icon-size);
     height: auto;
     margin-left: 0;
+    padding-bottom: var(--_strip);
+    background: var(--_key);
   }
-  :scope .tile__main {
-    background: var(--tile-bg);
-    box-shadow: var(--elevation-tile);
-    transition:
-      background-color var(--dur-medium) var(--ease-standard),
-      box-shadow var(--dur-medium) var(--ease-standard);
+  :scope .tile .tile__main {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 var(--space-2);
+    background: var(--_key);
   }
-  :scope .tile.is-on .tile__main {
-    background: var(--tile-bg-on);
-    box-shadow: inset 0 0 0 1px var(--tile-border-on);
+  :scope .tile__main .stack {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) var(--_strip);
+    align-self: stretch;
+    text-align: center;
   }
   :scope .tile__label {
-    font-stretch: semi-expanded;
-    letter-spacing: 0.06em;
+    align-self: center;
+    font: var(--_type-key);
+  }
+  :scope .tile__sub {
+    margin: 0;
+    font: var(--_type-strip);
+    line-height: var(--_strip);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
   }
+  /* Keys with a detail page carry the chevron in the key, clear of the lamp. */
+  :scope .tile .tile__chev {
+    position: absolute;
+    top: calc((100% - var(--_strip)) / 2);
+    right: var(--space-1);
+    translate: 0 -50%;
+    color: var(--_ink-key);
+  }
+  :scope .tile__main:has(.tile__chev) .stack {
+    padding-right: var(--icon-size-sm);
+  }
+  /* The indicator lamp in the top right corner. */
+  :scope :is(.tile__main, .tile--small)::after {
+    content: "";
+    position: absolute;
+    top: var(--space-1);
+    right: var(--space-1);
+    width: var(--_lamp);
+    height: var(--_lamp);
+    background:
+      radial-gradient(closest-side, var(--_lamp-c) 62%, transparent 72%),
+      var(--_led);
+    pointer-events: none;
+  }
+  :scope .tile--small {
+    --_strip: 7px;
+    --_lamp: 7px;
+    padding-bottom: var(--_strip);
+    background: var(--_key);
+  }
 
-  /* ── Tabs and segmented controls: separate cut blocks ───────────────────── */
+  /* ── Tabs and segmented controls: rows of dimmed keys, the active one lit ─ */
+  :scope .tabs {
+    gap: var(--_gap);
+    height: var(--control-height);
+    padding: 0;
+  }
   :scope :is(.tab, .seg__btn) {
-    background: var(--_slate);
-    color: var(--_ice);
+    background: var(--_key-dim);
+    color: var(--_sky);
   }
   :scope :is(.tab, .seg__btn).is-active {
     background: var(--accent);
@@ -350,8 +455,8 @@
     box-shadow: none;
   }
   :scope .tab__badge {
-    background: var(--base-bg);
-    color: var(--accent);
+    background: var(--_coral);
+    color: var(--base-bg);
   }
   :scope .seg {
     gap: var(--_gap);
@@ -362,108 +467,105 @@
 
   /* ── Buttons and chips ──────────────────────────────────────────────────── */
   :scope .btn--tonal {
-    background: var(--_slate);
-    color: var(--_ice);
-    box-shadow: inset 0 0 0 1px var(--_line);
+    background: var(--_key-dim);
+    color: var(--_sky);
   }
   :scope .chip {
-    color: var(--_ice);
-    box-shadow: inset 0 0 0 1px var(--_line);
+    color: var(--_sky);
+    box-shadow: inset 0 0 0 1px var(--_line-dim);
+  }
+  :scope :is(.chip.is-selected, .chip--accent, .day-chip[aria-pressed="true"]) {
+    background: var(--accent);
+    color: var(--base-bg);
+    box-shadow: none;
   }
 
-  /* ── Readouts: outlined rows with a steel tab, segmented bar graphs ─────── */
+  /* ── Readouts: outlined boxes with a coloured key edge, a ruled slider ──── */
   :scope :is(.notif, .timer-card, .alarm-row, .meter) {
-    box-shadow: inset 0 0 0 1px var(--_line), inset 3px 0 0 var(--_row, var(--_steel-light));
+    box-shadow: inset 0 0 0 1px var(--_line-dim), inset 4px 0 0 var(--_row, var(--_blue));
   }
   :scope .timer-card {
     --_row: var(--accent);
   }
   :scope .alarm-row {
-    --_row: var(--_ice);
+    --_row: var(--_sky);
   }
   :scope .alarm-row.is-off {
-    --_row: var(--_slate);
+    --_row: var(--_key-dim);
   }
-  :scope :is(.progress__fill, .meter__fill, .osd__fill) {
-    background: repeating-linear-gradient(90deg, currentColor 0 5px, transparent 5px 7px);
+  :scope .meter {
+    --_row: var(--_teal);
+  }
+  :scope .slider__track {
+    background:
+      repeating-linear-gradient(90deg, var(--_line-dim) 0 1px, transparent 1px var(--_tick)) left bottom / 100% 6px no-repeat,
+      var(--slider-track);
+    box-shadow: inset 0 0 0 1px var(--_line-dim);
   }
   :scope .day.is-selected {
     background: transparent;
     box-shadow: inset 0 0 0 1px var(--_line);
   }
   :scope .settings-nav__item[aria-current="page"] {
-    background: var(--_slate);
-    color: var(--base-fg);
-    box-shadow: inset 3px 0 0 var(--accent);
-  }
-  :scope .settings-title {
-    color: var(--_ice);
-    text-transform: uppercase;
+    background: var(--accent);
+    color: var(--base-bg);
   }
 
-  /* ── Break screen: an angular double frame, the clock in the top bar ────── */
+  /* ── Break screen: one full-screen display, knob, rail and ruler included ── */
   :scope .break {
-    --_m: 24px;
-    --_rail: 84px;
-    --_bar: 16px;
+    --_m: 28px;
+    --_col: 64px;
+    --_rail: 40px;
+    --_ring: 7px;
+    --_b1: 44px;
+    --_b2: 56px;
+    --_b3: 56px;
+    --_ruler: 6px;
+    --_tick: 12px;
+    --_in: var(--space-4);
+    --_type-rail: condensed 700 calc(26px * var(--text-scale))/1 var(--font-ui);
     --break-bg: var(--base-bg);
     --break-orb-display: none;
-    --break-ring: var(--_ice);
-    --break-ring-track: var(--_slate);
-    --break-ring-width: 1.6;
-    --break-breath-radius: 30%;
-    --break-breath-fill: color-mix(in srgb, var(--_ice) 5%, transparent);
-    padding-bottom: calc(var(--_m) + var(--_bar) + var(--space-8));
-  }
-  :scope .break::before,
-  :scope .break::after {
-    content: "";
-    position: absolute;
-    left: var(--_m);
-    right: var(--_m);
-    height: calc(50% - var(--_m) - var(--_gap));
-    corner-shape: bevel;
-    pointer-events: none;
+    --break-ring: var(--_sky);
+    --break-ring-track: color-mix(in srgb, var(--_line) 38%, transparent);
+    --break-ring-width: 1.2;
+    --break-breath-fill: color-mix(in srgb, var(--_sky) 7%, transparent);
+    padding:
+      calc(var(--_m) + var(--_col) / 2 + var(--space-6))
+      calc(var(--_m) + var(--space-8))
+      calc(var(--_m) + var(--space-8));
   }
   :scope .break::before {
-    top: var(--_m);
-    border-left: var(--_rail) solid var(--_steel);
-    border-top: var(--_bar) solid var(--_steel);
-    border-top-left-radius: calc(var(--_rail) + var(--_inner) * 2) calc(var(--_bar) + var(--_inner) * 2);
+    content: "";
+    position: absolute;
+    inset: var(--_m);
+    background: var(--_frame);
+    pointer-events: none;
   }
   :scope .break::after {
-    bottom: var(--_m);
-    border-left: var(--_rail) solid var(--_steel);
-    border-bottom: var(--_bar) solid var(--_steel);
-    border-bottom-left-radius: calc(var(--_rail) + var(--_inner) * 2) calc(var(--_bar) + var(--_inner) * 2);
+    top: calc(var(--_m) + var(--_col) + var(--_gap) * 3);
+    bottom: calc(var(--_m) + var(--_b1) + var(--_b2) + var(--_b3) + var(--_gap) * 6);
+    left: calc(var(--_m) + var(--_col) - var(--_rail));
   }
-  /* The clock sits in a gap of the top bar. */
   :scope .break__top {
     justify-self: end;
-    margin: calc(var(--_m) - var(--space-8) - var(--space-1)) var(--space-10) 0 0;
-    padding: 0 var(--space-3);
-    background: var(--break-bg);
-    color: var(--accent);
+    color: var(--_sky);
     font: var(--type-headline);
-    line-height: calc(var(--_bar) + var(--space-2));
   }
   :scope .break__ring circle {
     stroke-linecap: butt;
   }
   :scope .break__track {
-    stroke-dasharray: 0.006 0.004;
-  }
-  :scope .break__breath {
-    box-shadow: inset 0 0 0 1px var(--_line);
+    stroke-dasharray: 0.004 0.006;
   }
   :scope .break__hold {
     border-radius: var(--radius-control);
-    background: var(--_slate);
-    color: var(--_ice);
-    box-shadow: inset 0 0 0 1px var(--_line);
+    background: var(--_key-dim);
+    color: var(--_sky);
+    box-shadow: inset 0 0 0 1px var(--_line-dim);
   }
   :scope .break__hold-fill {
-    background: color-mix(in srgb, var(--accent) 45%, transparent);
+    background: color-mix(in srgb, var(--accent) 55%, transparent);
   }
 }
 
