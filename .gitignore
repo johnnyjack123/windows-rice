@@ -22,5 +22,8 @@ logs/
 Thumbs.db
 desktop.ini
 
+# Local reference images (screenshots, not ours to publish)
+reference/
+
 # Local Claude Code settings (personal)
 .claude/settings.local.json
