@@ -400,6 +400,7 @@ Größen: S ≈ wenige Abende, M ≈ ein bis zwei Wochenenden, L ≈ mehrere Woc
 | 11.11. | Drei Retro-/Fiktions-Themes dazu: LCARS, Workbench 1.3 (mit Topaz, GPL mit Font-Ausnahme), Cyberpunk 2077 (dunkel + gelbes helles Schema) |
 | 12.11. | Viertes Zitat-Theme: Enterprise NX-01 (Prä-LCARS, abgeschrägte Rahmen, Saira) |
 | 18.11. | NX-01 nach Referenzbildern der Serie neu gestaltet: Marineblau, Anzeigen als Haarlinien-Kästen an grauer Schiene mit Kreisknopf, Kacheln als bunte Konsolentasten (Beschriftungsstreifen, Lämpchen; aus = gedimmt, an = beleuchtet), Roboto Flex schmal statt Saira; Saira entfernt |
+| 18.11. | Paper bekommt ein dunkles Schema (anthrazitfarbener Karton, cremefarbene Tinte, helles Papierkorn, hellerer Zinnober); hell bleibt Standard |
 | 12.11. | Repo öffentlich unter MIT; Git-Historie auf die GitHub-noreply-Adresse umgeschrieben. GitHub Actions baut bei jedem Push auf `main` die Installer für x64 und ARM64 (ARM64 cross-kompiliert) und veröffentlicht sie als Release `v<version>-build.<n>`; Pull Requests bauen nur zur Probe. Signiert wird pro Build mit einem Wegwerf-Zertifikat `CN=rice` |
 | 14.10. | Theme-Editor mit Standardwerten pro Theme: Hintergrund, Text, Akzent, Schriften, Textgröße, Island-/Panel-/Kachel-Rundung, Dichte, Tempo, Federung, Easing, Weichzeichnen, flüssiges Abspalten, Icon-Stil/-Stärke |
 | 14.10. | Alle UI-Texte über Kataloge, Deutsch und Englisch von Anfang an |

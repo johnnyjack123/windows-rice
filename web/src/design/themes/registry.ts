@@ -26,7 +26,7 @@ export const BUILTIN_THEMES: ThemeMeta[] = [
   { id: 'monet', name: 'Monet', author: 'rice', schemes: ['dark', 'light'], builtIn: true, css: monet },
   { id: 'glass', name: 'Liquid Glass', author: 'rice', schemes: ['dark', 'light'], builtIn: true, css: glass },
   { id: 'terminal', name: 'Terminal', author: 'rice', schemes: ['dark'], builtIn: true, css: terminal },
-  { id: 'paper', name: 'Paper', author: 'rice', schemes: ['light'], builtIn: true, css: paper },
+  { id: 'paper', name: 'Paper', author: 'rice', schemes: ['light', 'dark'], builtIn: true, css: paper },
   { id: 'lcars', name: 'LCARS', author: 'rice', schemes: ['dark'], builtIn: true, css: lcars },
   { id: 'nx01', name: 'Enterprise NX-01', author: 'rice', schemes: ['dark'], builtIn: true, css: nx01 },
   { id: 'workbench', name: 'Workbench 1.3', author: 'rice', schemes: ['dark'], builtIn: true, css: workbench },
