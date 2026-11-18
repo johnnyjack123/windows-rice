@@ -357,7 +357,7 @@ export const de = {
     monet: 'Material 3 Expressive. Tonale Farben aus Wallpaper und Albumcover, Formen, die sich verwandeln.',
     glass: 'Lichtbrechendes Glas über dem Wallpaper, Glanzkante folgt dem Mauszeiger, gelartige Bewegung.',
     terminal: 'Monospace, Haarlinien, Bernstein. Dicht und präzise, ohne Federn.',
-    paper: 'Editorial. Warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot, ruhige Bewegung.',
+    paper: 'Editorial. Warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot, ruhige Bewegung. Dunkel als anthrazitfarbener Karton.',
     lcars: 'Raumschiff-Konsole im TNG-Stil. Ellbogen-Rahmen, Farbblöcke, schmale Versalien, flinke Bewegung.',
     nx01: 'Die Konsolen von Archers Enterprise, Vorläufer von LCARS. Marineblaue Anzeigen an grauer Schiene, bunte Tasten mit Lämpchen.',
     workbench: 'Der Amiga-Desktop von 1988. Topaz-Pixelschrift, vier Farben, Komplement-Hervorhebung, kaum Animation.',

@@ -121,7 +121,7 @@ Abspalten. Am deutlichsten in Zeitlupe (`S`) und mit den Themes Obsidian oder Li
 | 2 | **Monet** | Material 3 Expressive: alle Farben aus einem Seed (Wallpaper/Album), Formen verwandeln sich je nach Zustand |
 | 3 | **Liquid Glass** | Echtes Glas per WebGL: Lichtbrechung und Farbsaum am Rand, Milchglas, Randlicht folgt der Maus, Pillen verschmelzen flüssig |
 | 4 | **Terminal** | Monospace, Haarlinien, Bernstein; ohne Federn, Inhalte „rendern“ sich ein |
-| 5 | **Paper** | Editorial: warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot |
+| 5 | **Paper** | Editorial: warmes Papier, Serifen-Ziffern, Tinte und Zinnoberrot; dunkel als anthrazitfarbener Karton mit cremefarbener Tinte |
 | 6 | **LCARS** | Raumschiff-Konsole im TNG-Stil: Ellbogen-Rahmen, Farbblöcke statt Linien, Pille mit Endkappen, schmale Versalien |
 | 7 | **Enterprise NX-01** | Konsolen der NX-01: Marineblau, Anzeigen in Haarlinien-Rahmen an grauer Schiene mit Kreisknopf, bunte Tasten mit Nummer, Beschriftungsstreifen und Lämpchen |
 | 8 | **Workbench 1.3** | Amiga-Desktop: Topaz-Pixelschrift, vier Farben, weiße Titelleiste mit Tiefen-Gadget, Komplement-Hervorhebung |

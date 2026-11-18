@@ -355,7 +355,7 @@ export const en: Messages = {
     monet: 'Material 3 Expressive. Tonal colours from wallpaper and album art, shapes that morph.',
     glass: 'Refractive glass over your wallpaper, a sheen that follows the pointer, gel-like motion.',
     terminal: 'Monospace, hairlines, amber. Dense and precise, no springs.',
-    paper: 'Editorial. Warm paper, serif numerals, ink and vermilion, calm motion.',
+    paper: 'Editorial. Warm paper, serif numerals, ink and vermilion, calm motion. Dark as charcoal card stock.',
     lcars: 'A starship console, TNG style. Elbow frames, colour blocks, condensed capitals, snappy motion.',
     nx01: "The consoles of Archer's Enterprise, the forerunner of LCARS. Navy displays on a grey rail, colourful keys with indicator lamps.",
     workbench: 'The Amiga desktop of 1988. Topaz pixel font, four colours, complement highlights, hardly any animation.',
