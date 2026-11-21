@@ -55,6 +55,11 @@ opt-level = 3
 [profile.dev.package.image-webp]
 opt-level = 3
 
+# Dependencies get no debug info: with it, the `windows` crate made the debug
+# build tens of GB and linking slow. Workspace crates keep full debug info.
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 codegen-units = 1
 lto = true
